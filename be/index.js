@@ -104,6 +104,12 @@ app.post('/scan/gmail', async (req, res) => {
         
         // Chỉ trả về email có phát hiện được bank (không phải UNKNOWN)
         if (parsed.bank !== 'UNKNOWN') {
+          // Bỏ qua nếu số tiền âm (chỉ nhận cộng tiền, không check trừ tiền)
+          if (parsed.amountVND !== null && parsed.amountVND < 0) {
+            console.log(`⏭️  Skipping negative amount transaction: ${parsed.amountVND} VND`);
+            continue;
+          }
+
           transactions.push({
             ...parsed,
             emailUid: emailData.uid,

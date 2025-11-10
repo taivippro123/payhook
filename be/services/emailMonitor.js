@@ -86,6 +86,13 @@ class EmailMonitor {
 
           // Chỉ xử lý email có phát hiện được bank
           if (parsed.bank !== 'UNKNOWN') {
+            // Bỏ qua nếu số tiền âm (chỉ nhận cộng tiền, không check trừ tiền)
+            if (parsed.amountVND !== null && parsed.amountVND < 0) {
+              console.log(`⏭️  Skipping negative amount transaction: ${parsed.amountVND} VND`);
+              this.processedUids.add(emailData.uid); // Đánh dấu đã xử lý để không scan lại
+              continue;
+            }
+
             // Đánh dấu đã xử lý
             this.processedUids.add(emailData.uid);
 
