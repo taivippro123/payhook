@@ -1,13 +1,24 @@
 const express = require('express');
+const cors = require('cors');
+const swaggerUi = require('swagger-ui-express');
+const swaggerSpec = require('./config/swagger');
 const { connectDB, closeDB, getDB } = require('./db');
 const path = require('path');
-const { parseEmlFileToTransaction, parseMailToTransaction } = require('./services/emailParser');
-const { scanGmail } = require('./services/gmailScanner');
-const EmailMonitor = require('./services/emailMonitor');
+const { parseEmlFileToTransaction } = require('./services/emailParser');
+const MultiUserEmailMonitor = require('./services/multiUserEmailMonitor');
+const { authenticate } = require('./middleware/auth');
 require('dotenv').config();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+
+// CORS configuration
+app.use(cors({
+  origin: process.env.FRONTEND_URL,
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+}));
 
 app.use(express.json());
 
@@ -17,32 +28,56 @@ connectDB().catch((error) => {
   process.exit(1);
 });
 
-// Khởi tạo Email Monitor nếu có config trong env
-let emailMonitor = null;
-const GMAIL_EMAIL = process.env.GMAIL_EMAIL;
-const GMAIL_APP_PASSWORD = process.env.GMAIL_APP_PASSWORD;
-const SCAN_INTERVAL = parseInt(process.env.SCAN_INTERVAL || '30000', 10); // 30 giây mặc định
+// Khởi tạo Multi-User Email Monitor
+const multiUserEmailMonitor = new MultiUserEmailMonitor();
 
-if (GMAIL_EMAIL && GMAIL_APP_PASSWORD) {
-  emailMonitor = new EmailMonitor(GMAIL_EMAIL, GMAIL_APP_PASSWORD, {
-    scanInterval: SCAN_INTERVAL,
-    onTransaction: async (transaction) => {
-      // Callback khi phát hiện transaction mới
-      // Có thể lưu vào DB hoặc gửi webhook ở đây
-      // Không log ở đây để tránh duplicate với log trong emailMonitor
-    },
-  });
-  console.log(`✅ Email monitoring configured for: ${GMAIL_EMAIL}`);
-} else {
-  console.warn('⚠️  GMAIL_EMAIL or GMAIL_APP_PASSWORD not set in .env - Email monitoring disabled');
-  console.warn('⚠️  Add GMAIL_EMAIL and GMAIL_APP_PASSWORD to .env to enable background monitoring');
-}
+// Routes
+const authRoutes = require('./routes/auth');
+const emailConfigRoutes = require('./routes/emailConfigs');
+const transactionRoutes = require('./routes/transactions');
+const userRoutes = require('./routes/users');
+
+app.use('/api/auth', authRoutes);
+app.use('/api/email-configs', emailConfigRoutes);
+app.use('/api/transactions', transactionRoutes);
+app.use('/api/users', userRoutes);
+
+// Swagger documentation
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
+  customCss: '.swagger-ui .topbar { display: none }',
+  customSiteTitle: 'Payhook API Documentation',
+}));
 
 app.get('/', (req, res) => {
-  res.send('Hello World!');
+  res.json({
+    message: 'Payhook API',
+    version: '2.0.0',
+    endpoints: {
+      auth: '/api/auth',
+      emailConfigs: '/api/email-configs',
+      transactions: '/api/transactions',
+    },
+  });
 });
 
-// Endpoint kiểm tra DB
+/**
+ * @swagger
+ * /health:
+ *   get:
+ *     summary: Health check endpoint
+ *     tags: [Health]
+ *     responses:
+ *       200:
+ *         description: Database connection status
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 ok:
+ *                   type: number
+ *                   example: 1
+ */
 app.get('/health', async (req, res) => {
   try {
     const db = await getDB();
@@ -53,7 +88,24 @@ app.get('/health', async (req, res) => {
   }
 });
 
-// Endpoint parse .eml mẫu (TPBank) và trả về JSON (giữ lại để test)
+/**
+ * @swagger
+ * /parse/eml:
+ *   get:
+ *     summary: Parse .eml file (testing only)
+ *     tags: [Testing]
+ *     parameters:
+ *       - in: query
+ *         name: file
+ *         schema:
+ *           type: string
+ *         description: Path to .eml file
+ *     responses:
+ *       200:
+ *         description: Parsed transaction data
+ *       500:
+ *         description: Parse error
+ */
 app.get('/parse/eml', async (req, res) => {
   try {
     const file = req.query.file || path.join('payhook', 'Thông báo giao dịch từ tài khoản.eml');
@@ -66,153 +118,104 @@ app.get('/parse/eml', async (req, res) => {
   }
 });
 
-// Endpoint quét Gmail và parse email giao dịch
-app.post('/scan/gmail', async (req, res) => {
-  try {
-    const { email, appPassword, limit = 10 } = req.body;
-
-    if (!email || !appPassword) {
-      return res.status(400).json({ 
-        error: 'Missing required fields: email and appPassword are required' 
-      });
-    }
-
-    console.log(`📧 Scanning Gmail for: ${email}`);
-
-    // Quét email từ Gmail
-    const emails = await scanGmail(email, appPassword, {
-      limit: parseInt(limit, 10),
-      searchCriteria: ['UNSEEN'], // Chỉ lấy email chưa đọc
-    });
-
-    if (emails.length === 0) {
-      return res.json({
-        success: true,
-        message: 'No new emails found',
-        transactions: [],
-        count: 0,
-      });
-    }
-
-    // Parse từng email thành transaction
-    const transactions = [];
-    const errors = [];
-
-    for (const emailData of emails) {
-      try {
-        const parsed = parseMailToTransaction(emailData.raw);
-        
-        // Chỉ trả về email có phát hiện được bank (không phải UNKNOWN)
-        if (parsed.bank !== 'UNKNOWN') {
-          // Bỏ qua nếu số tiền âm (chỉ nhận cộng tiền, không check trừ tiền)
-          if (parsed.amountVND !== null && parsed.amountVND < 0) {
-            console.log(`⏭️  Skipping negative amount transaction: ${parsed.amountVND} VND`);
-            continue;
-          }
-
-          transactions.push({
-            ...parsed,
-            emailUid: emailData.uid,
-            emailDate: emailData.date,
-          });
-          
-          console.log(`✅ Parsed transaction from ${parsed.bank}:`, {
-            transactionId: parsed.transactionId,
-            amount: parsed.amountVND,
-            date: parsed.executedAt,
-          });
-        }
-      } catch (parseError) {
-        errors.push({
-          uid: emailData.uid,
-          error: parseError.message,
-        });
-        console.error(`❌ Error parsing email UID ${emailData.uid}:`, parseError.message);
-      }
-    }
-
-    res.json({
-      success: true,
-      message: `Found ${transactions.length} transaction(s) from ${emails.length} email(s)`,
-      transactions,
-      count: transactions.length,
-      errors: errors.length > 0 ? errors : undefined,
-    });
-
-  } catch (error) {
-    console.error('❌ Gmail scan error:', error);
-    res.status(500).json({ 
-      error: error.message,
-      details: error.stack,
-    });
-  }
-});
-
-// Endpoint xem trạng thái email monitor
-app.get('/monitor/status', (req, res) => {
-  if (!emailMonitor) {
-    return res.json({
-      enabled: false,
-      message: 'Email monitor not configured. Set GMAIL_EMAIL and GMAIL_APP_PASSWORD in .env',
-    });
-  }
+/**
+ * @swagger
+ * /monitor/status:
+ *   get:
+ *     summary: Get email monitor status
+ *     tags: [Monitor]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Monitor status
+ *       401:
+ *         description: Unauthorized
+ */
+app.get('/monitor/status', authenticate, (req, res) => {
   res.json({
-    enabled: true,
-    ...emailMonitor.getStats(),
+    success: true,
+    ...multiUserEmailMonitor.getStats(),
   });
 });
 
-// Endpoint dừng email monitor
-app.post('/monitor/stop', (req, res) => {
-  if (!emailMonitor) {
-    return res.status(400).json({ error: 'Email monitor not configured' });
-  }
-  emailMonitor.stop();
+/**
+ * @swagger
+ * /monitor/stop:
+ *   post:
+ *     summary: Stop email monitor
+ *     tags: [Monitor]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Monitor stopped
+ *       401:
+ *         description: Unauthorized
+ */
+app.post('/monitor/stop', authenticate, (req, res) => {
+  multiUserEmailMonitor.stop();
   res.json({ success: true, message: 'Email monitor stopped' });
 });
 
-// Endpoint khởi động lại email monitor
-app.post('/monitor/start', (req, res) => {
-  if (!emailMonitor) {
-    return res.status(400).json({ error: 'Email monitor not configured' });
-  }
-  emailMonitor.start();
+/**
+ * @swagger
+ * /monitor/start:
+ *   post:
+ *     summary: Start email monitor
+ *     tags: [Monitor]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Monitor started
+ *       401:
+ *         description: Unauthorized
+ */
+app.post('/monitor/start', authenticate, async (req, res) => {
+  await multiUserEmailMonitor.start();
   res.json({ success: true, message: 'Email monitor started' });
 });
 
-app.listen(PORT, () => {
+app.listen(PORT, async () => {
   console.log(`\n🚀 Server running on port ${PORT}`);
   
-  // Tự động khởi động email monitor nếu có config
-  if (emailMonitor) {
-    emailMonitor.start();
-  }
+  // Tự động khởi động multi-user email monitor
+  await multiUserEmailMonitor.start();
   
   console.log(`\n📋 Available endpoints:`);
-  console.log(`   GET  / - Health check`);
+  console.log(`   GET  / - API info`);
   console.log(`   GET  /health - Database health check`);
-  console.log(`   GET  /monitor/status - Email monitor status`);
-  console.log(`   POST /monitor/stop - Stop email monitor`);
-  console.log(`   POST /monitor/start - Start email monitor`);
-  console.log(`   GET  /parse/eml - Parse .eml file (test)`);
-  console.log(`   POST /scan/gmail - Manual Gmail scan\n`);
+  console.log(`   POST /api/auth/register - Register new user`);
+  console.log(`   POST /api/auth/login - Login`);
+  console.log(`   GET  /api/email-configs - Get user's email configs (auth required)`);
+  console.log(`   POST /api/email-configs - Create email config (auth required)`);
+  console.log(`   GET  /api/transactions - Get user's transactions (auth required)`);
+  console.log(`   GET  /api/users - Get all users (admin only)`);
+  console.log(`   GET  /api/users/me - Get current user profile`);
+  console.log(`   PUT  /api/users/me - Update current user profile`);
+  console.log(`   GET  /api/users/:id - Get user by ID`);
+  console.log(`   PUT  /api/users/:id - Update user by ID`);
+  console.log(`   DELETE /api/users/:id - Delete user (admin only)`);
+  console.log(`   PUT  /api/users/:id/role - Update user role (admin only)`);
+  console.log(`   GET  /monitor/status - Email monitor status (auth required)`);
+  console.log(`   POST /monitor/stop - Stop email monitor (auth required)`);
+  console.log(`   POST /monitor/start - Start email monitor (auth required)`);
+  console.log(`   GET  /parse/eml - Parse .eml file (testing only)`);
+  console.log(`   GET  /api-docs - Swagger API documentation\n`);
 });
 
 // Đóng kết nối database và dừng email monitor khi server tắt
 process.on('SIGINT', async () => {
   console.log('\n🛑 Shutting down server...');
-  if (emailMonitor) {
-    emailMonitor.stop();
-  }
+  multiUserEmailMonitor.stop();
   await closeDB();
   process.exit(0);
 });
 
 process.on('SIGTERM', async () => {
   console.log('\n🛑 Shutting down server...');
-  if (emailMonitor) {
-    emailMonitor.stop();
-  }
+  multiUserEmailMonitor.stop();
   await closeDB();
   process.exit(0);
 });

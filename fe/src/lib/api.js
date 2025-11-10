@@ -1,0 +1,115 @@
+import axios from 'axios'
+
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000'
+
+const api = axios.create({
+  baseURL: API_BASE_URL,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+})
+
+// Add token to requests
+api.interceptors.request.use((config) => {
+  const token = localStorage.getItem('token')
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`
+  } else {
+    console.warn('⚠️ No token found in localStorage')
+  }
+  return config
+}, (error) => {
+  return Promise.reject(error)
+})
+
+// Handle response errors
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      // Token expired or invalid, clear storage and redirect to login
+      localStorage.removeItem('token')
+      localStorage.removeItem('user')
+      // Only redirect if not already on login/register page
+      if (!window.location.pathname.includes('/login') && !window.location.pathname.includes('/register')) {
+        window.location.href = '/login'
+      }
+    }
+    return Promise.reject(error)
+  }
+)
+
+// Auth API
+export const authAPI = {
+  register: async (data) => {
+    const response = await api.post('/api/auth/register', data)
+    return response.data
+  },
+  login: async (data) => {
+    const response = await api.post('/api/auth/login', data)
+    return response.data
+  },
+}
+
+// Email Config API
+export const emailConfigAPI = {
+  getAll: async () => {
+    const response = await api.get('/api/email-configs')
+    return response.data
+  },
+  create: async (data) => {
+    const response = await api.post('/api/email-configs', data)
+    return response.data
+  },
+  update: async (id, data) => {
+    const response = await api.put(`/api/email-configs/${id}`, data)
+    return response.data
+  },
+  delete: async (id) => {
+    const response = await api.delete(`/api/email-configs/${id}`)
+    return response.data
+  },
+}
+
+// Transactions API
+export const transactionsAPI = {
+  getAll: async (params = {}) => {
+    const response = await api.get('/api/transactions', { params })
+    return response.data
+  },
+}
+
+// Users API
+export const usersAPI = {
+  getAll: async (params = {}) => {
+    const response = await api.get('/api/users', { params })
+    return response.data
+  },
+  getMe: async () => {
+    const response = await api.get('/api/users/me')
+    return response.data
+  },
+  updateMe: async (data) => {
+    const response = await api.put('/api/users/me', data)
+    return response.data
+  },
+  getById: async (id) => {
+    const response = await api.get(`/api/users/${id}`)
+    return response.data
+  },
+  update: async (id, data) => {
+    const response = await api.put(`/api/users/${id}`, data)
+    return response.data
+  },
+  delete: async (id) => {
+    const response = await api.delete(`/api/users/${id}`)
+    return response.data
+  },
+  updateRole: async (id, role) => {
+    const response = await api.put(`/api/users/${id}/role`, { role })
+    return response.data
+  },
+}
+
+export default api
+
