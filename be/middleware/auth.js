@@ -76,9 +76,14 @@ function isAdmin(req, res, next) {
   next();
 }
 
+function decodeToken(token) {
+  return jwt.verify(token, JWT_SECRET);
+}
+
 module.exports = {
   authenticate,
   generateToken,
   isAdmin,
+  decodeToken,
 };
 

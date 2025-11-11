@@ -5,6 +5,7 @@ import Login from '@/pages/Login'
 import Register from '@/pages/Register'
 import Dashboard from '@/pages/Dashboard'
 import AdminDashboard from '@/pages/AdminDashboard'
+import QRGenerator from '@/pages/QRGenerator'
 import { getRedirectPath } from '@/utils/redirect'
 
 function RootRedirect() {
@@ -42,6 +43,14 @@ function App() {
             element={
               <ProtectedRoute>
                 <AdminDashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/qr"
+            element={
+              <ProtectedRoute>
+                <QRGenerator />
               </ProtectedRoute>
             }
           />

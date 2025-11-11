@@ -1,6 +1,20 @@
 const EmailMonitor = require('./emailMonitor');
 const EmailConfig = require('../models/emailConfig');
 const Transaction = require('../models/transaction');
+const { broadcastTransaction } = require('./wsHub');
+
+function serializeTransaction(tx) {
+  if (!tx) return null;
+  const { raw, ...rest } = tx;
+  return {
+    ...rest,
+    _id: tx._id ? tx._id.toString() : undefined,
+    userId: tx.userId ? tx.userId.toString() : undefined,
+    emailConfigId: tx.emailConfigId ? tx.emailConfigId.toString() : undefined,
+    detectedAt: tx.detectedAt instanceof Date ? tx.detectedAt.toISOString() : tx.detectedAt,
+    createdAt: tx.createdAt instanceof Date ? tx.createdAt.toISOString() : tx.createdAt,
+  };
+}
 
 /**
  * Quản lý nhiều EmailMonitor cho nhiều users
@@ -116,7 +130,11 @@ class MultiUserEmailMonitor {
             );
 
             if (!exists && transaction.transactionId) {
-              await Transaction.create(transaction, userId, configId);
+              const saved = await Transaction.create(transaction, userId, configId);
+              const serialized = serializeTransaction(saved);
+              if (serialized) {
+                broadcastTransaction(serialized, userId);
+              }
               console.log(`💾 Saved transaction to DB: ${transaction.transactionId}`);
             } else if (exists) {
               console.log(`⏭️  Transaction already exists: ${transaction.transactionId}`);

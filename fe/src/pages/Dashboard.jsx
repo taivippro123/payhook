@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '@/contexts/AuthContext'
-import { emailConfigAPI, transactionsAPI } from '@/lib/api'
+import { emailConfigAPI, transactionsAPI, WS_BASE_URL } from '@/lib/api'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -21,14 +21,73 @@ export default function Dashboard() {
     appPassword: '',
     scanInterval: Number(import.meta.env.VITE_SCAN_INTERVAL_MS) || 1000,
   })
+  const wsRef = useRef(null)
+  const MAX_TRANSACTIONS = 20
 
   useEffect(() => {
     loadData()
-    // Refresh transactions (default 1s)
-    const POLL_MS = Number(import.meta.env.VITE_POLL_MS) || 1000
-    const interval = setInterval(loadTransactions, POLL_MS)
-    return () => clearInterval(interval)
   }, [])
+
+  useEffect(() => {
+    const token = localStorage.getItem('token')
+    if (!token) return
+
+    let isMounted = true
+    let reconnectTimer = null
+    const wsUrl = `${WS_BASE_URL}/ws?token=${encodeURIComponent(token)}`
+
+    const connect = () => {
+      if (!isMounted) return
+      const socket = new WebSocket(wsUrl)
+      wsRef.current = socket
+
+      socket.onmessage = (event) => {
+        try {
+          const payload = JSON.parse(event.data)
+          if (payload.event === 'transaction:new' && payload.data) {
+            setTransactions((prev) => {
+              const incomingId = payload.data._id?.$oid || payload.data._id
+              if (!incomingId) return prev
+              const exists = prev.some((tx) => {
+                const existingId = tx?._id?.$oid || tx?._id
+                return existingId === incomingId
+              })
+              if (exists) {
+                return prev
+              }
+              const updated = [payload.data, ...prev]
+              return updated.slice(0, MAX_TRANSACTIONS)
+            })
+          }
+        } catch (error) {
+          console.error('WS message parse error:', error)
+        }
+      }
+
+      socket.onclose = () => {
+        if (isMounted) {
+          reconnectTimer = setTimeout(connect, 3000)
+        }
+      }
+
+      socket.onerror = () => {
+        socket.close()
+      }
+    }
+
+    connect()
+
+    return () => {
+      isMounted = false
+      if (reconnectTimer) {
+        clearTimeout(reconnectTimer)
+      }
+      if (wsRef.current) {
+        wsRef.current.close()
+        wsRef.current = null
+      }
+    }
+  }, [user])
 
   const loadData = async () => {
     setLoading(true)
@@ -63,7 +122,11 @@ export default function Dashboard() {
     e.preventDefault()
     try {
       await emailConfigAPI.create(newConfig)
-      setNewConfig({ email: '', appPassword: '', scanInterval: 30000 })
+      setNewConfig({
+        email: '',
+        appPassword: '',
+        scanInterval: Number(import.meta.env.VITE_SCAN_INTERVAL_MS) || 1000,
+      })
       setShowAddConfig(false)
       await loadConfigs()
     } catch (error) {
@@ -113,6 +176,9 @@ export default function Dashboard() {
             <h1 className="text-xl sm:text-2xl font-bold text-primary">Payhook Monitor</h1>
             <div className="flex items-center gap-3 sm:gap-4">
               <span className="text-xs sm:text-sm text-gray-600">Xin chào, {user?.username}</span>
+              <Button variant="secondary" size="sm" className="text-xs sm:text-sm" onClick={() => navigate('/qr')}>
+                Tạo QR
+              </Button>
               <Button variant="outline" size="sm" className="text-xs sm:text-sm" onClick={logout}>
                 Đăng xuất
               </Button>
@@ -123,6 +189,7 @@ export default function Dashboard() {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
         <div className="grid gap-4 sm:gap-6 lg:grid-cols-2">
+          {/* placeholder gap so layout unaffected */}
           {/* Email Configs Section */}
           <Card className="shadow-sm">
             <CardHeader>

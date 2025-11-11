@@ -19,6 +19,7 @@
     "jsonwebtoken": "^9.0.2",
     "cors": "^2.8.5",
     "swagger-ui-express": "^5.0.0",
-    "swagger-jsdoc": "^6.2.8"
+    "swagger-jsdoc": "^6.2.8",
+    "ws": "^8.17.0"
   }
 }

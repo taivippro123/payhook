@@ -1,12 +1,17 @@
 const express = require('express');
 const cors = require('cors');
+const http = require('http');
+const { URL } = require('url');
+const { WebSocketServer } = require('ws');
 const swaggerUi = require('swagger-ui-express');
 const swaggerSpec = require('./config/swagger');
 const { connectDB, closeDB, getDB } = require('./db');
 const path = require('path');
 const { parseEmlFileToTransaction } = require('./services/emailParser');
 const MultiUserEmailMonitor = require('./services/multiUserEmailMonitor');
-const { authenticate } = require('./middleware/auth');
+const { authenticate, decodeToken } = require('./middleware/auth');
+const User = require('./models/user');
+const wsHub = require('./services/wsHub');
 require('dotenv').config();
 
 const app = express();
@@ -36,11 +41,13 @@ const authRoutes = require('./routes/auth');
 const emailConfigRoutes = require('./routes/emailConfigs');
 const transactionRoutes = require('./routes/transactions');
 const userRoutes = require('./routes/users');
+const qrRoutes = require('./routes/qr');
 
 app.use('/api/auth', authRoutes);
 app.use('/api/email-configs', emailConfigRoutes);
 app.use('/api/transactions', transactionRoutes);
 app.use('/api/users', userRoutes);
+app.use('/api/qr', qrRoutes);
 
 // Swagger documentation
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
@@ -177,7 +184,49 @@ app.post('/monitor/start', authenticate, async (req, res) => {
   res.json({ success: true, message: 'Email monitor started' });
 });
 
-app.listen(PORT, async () => {
+const server = http.createServer(app);
+
+const wss = new WebSocketServer({ server, path: '/ws' });
+
+wss.on('connection', async (ws, req) => {
+  try {
+    const url = new URL(req.url, `http://${req.headers.host}`);
+    const token = url.searchParams.get('token');
+    if (!token) {
+      ws.close(4401, 'Token required');
+      return;
+    }
+
+    let decoded;
+    try {
+      decoded = decodeToken(token);
+    } catch (error) {
+      ws.close(4401, 'Invalid token');
+      return;
+    }
+
+    const user = await User.findById(decoded.userId);
+    if (!user) {
+      ws.close(4403, 'User not found');
+      return;
+    }
+
+    wsHub.registerClient(ws, {
+      userId: decoded.userId,
+      username: decoded.username || user.username,
+      role: decoded.role || user.role || 'user',
+    });
+  } catch (error) {
+    console.error('WS connection error:', error.message);
+    try {
+      ws.close(1011, 'Internal server error');
+    } catch (closeError) {
+      // ignore
+    }
+  }
+});
+
+server.listen(PORT, async () => {
   console.log(`\n🚀 Server running on port ${PORT}`);
   
   // Tự động khởi động multi-user email monitor
@@ -210,12 +259,12 @@ process.on('SIGINT', async () => {
   console.log('\n🛑 Shutting down server...');
   multiUserEmailMonitor.stop();
   await closeDB();
-  process.exit(0);
+  server.close(() => process.exit(0));
 });
 
 process.on('SIGTERM', async () => {
   console.log('\n🛑 Shutting down server...');
   multiUserEmailMonitor.stop();
   await closeDB();
-  process.exit(0);
+  server.close(() => process.exit(0));
 });

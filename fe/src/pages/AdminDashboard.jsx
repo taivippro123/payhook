@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '@/contexts/AuthContext'
-import { usersAPI, transactionsAPI } from '@/lib/api'
+import { usersAPI, transactionsAPI, WS_BASE_URL } from '@/lib/api'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -17,18 +17,83 @@ export default function AdminDashboard() {
   const [selectedUserId, setSelectedUserId] = useState(null)
   const [searchTerm, setSearchTerm] = useState('')
 
+  const wsRef = useRef(null)
+  const MAX_TRANSACTIONS = 100
+
   useEffect(() => {
     if (user?.role === 'admin') {
       loadData()
-      // Refresh fast (default 1s)
-      const POLL_MS = Number(import.meta.env.VITE_POLL_MS) || 1000
-      const interval = setInterval(() => {
-        loadUsers()
-        loadTransactions()
-      }, POLL_MS)
-      return () => clearInterval(interval)
     }
-  }, [user, selectedUserId])
+  }, [user])
+
+  useEffect(() => {
+    if (user?.role === 'admin') {
+      loadTransactions()
+    }
+  }, [selectedUserId])
+
+  useEffect(() => {
+    if (user?.role !== 'admin') return
+
+    const token = localStorage.getItem('token')
+    if (!token) return
+
+    let isMounted = true
+    let reconnectTimer = null
+    const wsUrl = `${WS_BASE_URL}/ws?token=${encodeURIComponent(token)}`
+
+    const connect = () => {
+      if (!isMounted) return
+      const socket = new WebSocket(wsUrl)
+      wsRef.current = socket
+
+      socket.onmessage = (event) => {
+        try {
+          const payload = JSON.parse(event.data)
+          if (payload.event === 'transaction:new' && payload.data) {
+            setTransactions((prev) => {
+              const incomingId = payload.data._id?.$oid || payload.data._id
+              if (!incomingId) return prev
+              const exists = prev.some((tx) => {
+                const existingId = tx?._id?.$oid || tx?._id
+                return existingId === incomingId
+              })
+              if (exists) {
+                return prev
+              }
+              const updated = [payload.data, ...prev]
+              return updated.slice(0, MAX_TRANSACTIONS)
+            })
+          }
+        } catch (error) {
+          console.error('WS message parse error:', error)
+        }
+      }
+
+      socket.onclose = () => {
+        if (isMounted) {
+          reconnectTimer = setTimeout(connect, 3000)
+        }
+      }
+
+      socket.onerror = () => {
+        socket.close()
+      }
+    }
+
+    connect()
+
+    return () => {
+      isMounted = false
+      if (reconnectTimer) {
+        clearTimeout(reconnectTimer)
+      }
+      if (wsRef.current) {
+        wsRef.current.close()
+        wsRef.current = null
+      }
+    }
+  }, [user])
 
   const loadData = async () => {
     setLoading(true)
@@ -149,6 +214,14 @@ export default function AdminDashboard() {
             <h1 className="text-xl sm:text-2xl font-bold text-primary">Admin Dashboard</h1>
             <div className="flex items-center gap-3 sm:gap-4">
               <span className="text-xs sm:text-sm text-gray-600">Xin chào, {user?.username}</span>
+              <Button 
+                variant="secondary" 
+                size="sm" 
+                className="text-xs sm:text-sm" 
+                onClick={() => navigate('/qr')}
+              >
+                Tạo QR
+              </Button>
               <Button 
                 variant="outline" 
                 size="sm" 

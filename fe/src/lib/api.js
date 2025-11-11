@@ -1,6 +1,13 @@
 import axios from 'axios'
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000'
+const stripTrailingSlash = (value) => {
+  if (!value) return value
+  return value.endsWith('/') ? value.slice(0, -1) : value
+}
+
+export const API_BASE_URL = stripTrailingSlash(import.meta.env.VITE_API_URL || 'http://localhost:3000')
+const defaultWsBase = API_BASE_URL.replace(/^http/, 'ws')
+export const WS_BASE_URL = stripTrailingSlash(import.meta.env.VITE_WS_URL || defaultWsBase)
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -108,6 +115,18 @@ export const usersAPI = {
   updateRole: async (id, role) => {
     const response = await api.put(`/api/users/${id}/role`, { role })
     return response.data
+  },
+}
+
+// QR API (helper to compose image URL)
+export const qrAPI = {
+  imageUrl: ({ acc, amount, des, bank = 'cake' }) => {
+    const u = new URL(`${API_BASE_URL}/api/qr/img`)
+    if (acc) u.searchParams.set('acc', acc)
+    if (bank) u.searchParams.set('bank', bank)
+    if (amount) u.searchParams.set('amount', amount)
+    if (des) u.searchParams.set('des', des)
+    return u.toString()
   },
 }
 
