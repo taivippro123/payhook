@@ -19,13 +19,14 @@ export default function Dashboard() {
   const [newConfig, setNewConfig] = useState({
     email: '',
     appPassword: '',
-    scanInterval: 30000,
+    scanInterval: Number(import.meta.env.VITE_SCAN_INTERVAL_MS) || 1000,
   })
 
   useEffect(() => {
     loadData()
-    // Refresh transactions every 10 seconds
-    const interval = setInterval(loadTransactions, 10000)
+    // Refresh transactions (default 1s)
+    const POLL_MS = Number(import.meta.env.VITE_POLL_MS) || 1000
+    const interval = setInterval(loadTransactions, POLL_MS)
     return () => clearInterval(interval)
   }, [])
 

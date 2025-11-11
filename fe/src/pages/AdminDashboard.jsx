@@ -20,11 +20,12 @@ export default function AdminDashboard() {
   useEffect(() => {
     if (user?.role === 'admin') {
       loadData()
-      // Refresh data every 10 seconds
+      // Refresh fast (default 1s)
+      const POLL_MS = Number(import.meta.env.VITE_POLL_MS) || 1000
       const interval = setInterval(() => {
         loadUsers()
         loadTransactions()
-      }, 10000)
+      }, POLL_MS)
       return () => clearInterval(interval)
     }
   }, [user, selectedUserId])

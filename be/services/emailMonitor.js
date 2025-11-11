@@ -8,7 +8,7 @@ class EmailMonitor {
     this.startTime = new Date(); // Thời điểm app khởi động
     this.isRunning = false;
     this.intervalId = null;
-    this.scanInterval = options.scanInterval || 30000; // 30 giây mặc định
+    this.scanInterval = options.scanInterval || Number(process.env.SCAN_INTERVAL_MS) || 1000; // default 1s
     this.isScanning = false; // Flag để tránh scan đồng thời 
     this.onTransactionCallback = options.onTransaction || null;
     this.processedUids = new Set(); // Lưu UID đã xử lý để tránh duplicate
@@ -65,7 +65,7 @@ class EmailMonitor {
     this.isScanning = true;
     try {
       const emails = await scanGmail(this.email, this.appPassword, {
-        limit: 50, // Lấy nhiều hơn để đảm bảo không bỏ sót
+        limit: 10, // đủ để phát hiện nhanh
         searchCriteria: ['UNSEEN'],
         sinceDate: this.startTime,
       });

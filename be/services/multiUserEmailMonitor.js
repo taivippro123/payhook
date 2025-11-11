@@ -104,7 +104,7 @@ class MultiUserEmailMonitor {
       const userId = config.userId.toString();
 
       const monitor = new EmailMonitor(config.email, config.appPassword, {
-        scanInterval: config.scanInterval || 30000,
+        scanInterval: config.scanInterval || Number(process.env.SCAN_INTERVAL_MS) || 1000,
         onTransaction: async (transaction) => {
           // Lưu transaction vào DB
           try {
