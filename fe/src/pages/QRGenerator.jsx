@@ -1,15 +1,14 @@
 import { useState, useMemo } from 'react'
-import { useNavigate } from 'react-router-dom'
 import { useAuth } from '@/contexts/AuthContext'
 import { qrAPI } from '@/lib/api'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { AppLayout } from '@/components/AppLayout'
 
 export default function QRGenerator() {
-  const { user, logout } = useAuth()
-  const navigate = useNavigate()
+  const { user } = useAuth()
   const [form, setForm] = useState({
     acc: '',
     amount: '',
@@ -44,25 +43,11 @@ export default function QRGenerator() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="bg-white border-b shadow-sm sticky top-0 z-10">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-3 sm:py-4">
-          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
-            <h1 className="text-xl sm:text-2xl font-bold text-primary">Tạo QR Thanh toán (Cake)</h1>
-            <div className="flex items-center gap-3 sm:gap-4">
-              <Button variant="outline" size="sm" className="text-xs sm:text-sm" onClick={() => navigate('/dashboard')}>
-                ← Dashboard
-              </Button>
-              <span className="text-xs sm:text-sm text-gray-600 hidden sm:inline">Xin chào, {user?.username}</span>
-              <Button variant="outline" size="sm" className="text-xs sm:text-sm" onClick={logout}>
-                Đăng xuất
-              </Button>
-            </div>
-          </div>
-        </div>
-      </header>
-
-      <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+    <AppLayout
+      title="Tạo QR Thanh toán (Cake)"
+      subtitle="Mẫu QR chuẩn VietQR cho tài khoản Cake by VPBank"
+    >
+      <div className="max-w-4xl mx-auto">
         <Card className="shadow-sm">
           <CardHeader>
             <CardTitle className="text-lg sm:text-xl">Thông tin chuyển khoản</CardTitle>
@@ -139,8 +124,8 @@ export default function QRGenerator() {
             )}
           </CardContent>
         </Card>
-      </main>
-    </div>
+      </div>
+    </AppLayout>
   )
 }
 

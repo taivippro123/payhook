@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Input } from '@/components/ui/input'
+import { AppLayout } from '@/components/AppLayout'
 
 export default function AdminDashboard() {
   const { user, logout } = useAuth()
@@ -206,40 +207,11 @@ export default function AdminDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white border-b shadow-sm sticky top-0 z-10">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 sm:py-4">
-          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
-            <h1 className="text-xl sm:text-2xl font-bold text-primary">Admin Dashboard</h1>
-            <div className="flex items-center gap-3 sm:gap-4">
-              <span className="text-xs sm:text-sm text-gray-600">Xin chào, {user?.username}</span>
-              <Button 
-                variant="secondary" 
-                size="sm" 
-                className="text-xs sm:text-sm" 
-                onClick={() => navigate('/qr')}
-              >
-                Tạo QR
-              </Button>
-              <Button 
-                variant="outline" 
-                size="sm" 
-                className="text-xs sm:text-sm" 
-                onClick={() => navigate('/dashboard')}
-              >
-                Dashboard
-              </Button>
-              <Button variant="outline" size="sm" className="text-xs sm:text-sm" onClick={logout}>
-                Đăng xuất
-              </Button>
-            </div>
-          </div>
-        </div>
-      </header>
-
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
-        <div className="grid gap-4 sm:gap-6 lg:grid-cols-2">
+    <AppLayout
+      title="Admin Dashboard"
+      subtitle="Quản lý người dùng và giao dịch trong hệ thống"
+    >
+              <div className="grid gap-4 sm:gap-6 lg:grid-cols-2">
           {/* Users Management */}
           <Card className="shadow-sm">
             <CardHeader>
@@ -423,8 +395,7 @@ export default function AdminDashboard() {
             </CardContent>
           </Card>
         )}
-      </div>
-    </div>
+    </AppLayout>
   )
 }
 
