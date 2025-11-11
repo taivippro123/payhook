@@ -1,0 +1,892 @@
+Delivered-To: phanvothanhtai1007@gmail.com
+Received: by 2002:a05:6000:418a:b0:429:b98a:dcd2 with SMTP id ei10csp1429736wrb;
+        Tue, 11 Nov 2025 05:00:51 -0800 (PST)
+X-Google-Smtp-Source: AGHT+IGiFqTQyjHfuAPvasjtcD9TZESeazOO2arvWNtJIneM2bxNq6dJ4+MaqfceUud9oxWgyP0A
+X-Received: by 2002:a05:6a21:890c:b0:334:87c2:445 with SMTP id adf61e73a8af0-353a335665dmr15427033637.36.1762866050884;
+        Tue, 11 Nov 2025 05:00:50 -0800 (PST)
+ARC-Seal: i=1; a=rsa-sha256; t=1762866050; cv=none;
+        d=google.com; s=arc-20240605;
+        b=Fd6wxCxJCQN7C343xYAe5DKXekP7ntfhUQB9f1FRmk/sQ4QMnJuHm5w5RnIjRlg3QH
+         gjpvwlcUmChH7JVKodw8vUl9Aq/gCxC1AgA3dYbyFIVg00++FcYJIGpffqe94wpkEpQ6
+         9lo1cMZnmEoPNsoJIDKOV6kN76Bh8tP0MUCx6eVHoV8jO/QPeukq2QwPv9/Rsx6E2k0m
+         viZH+QcoJ/EpiWgGQcXelJy6lkD5dBHMGjcUEEISiIurKSBGQVT1eYxdNC4quO0XyhO7
+         f+hTPqw3TUZauWgR97o9bh8rMuToGor3uBttcCHWlM0NIM6hFZP6uPgekvgRjeNYqE6R
+         JdLA==
+ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=google.com; s=arc-20240605;
+        h=feedback-id:date:message-id:mime-version:subject:to:from
+         :dkim-signature:dkim-signature;
+        bh=aRSVcBHnrdpProqustPMLDSpZ/MrrZxxLuYpWHpgkvo=;
+        fh=h1YudOf007uVqUnb/40TOBTDOOF2Yv8N6koDzoebvSA=;
+        b=SxQZpAg4DHO0gNxMQQybcj0QEQYsMXxZ95qNoGR171wpqMLINwrncf/e4VO/xGuZOE
+         9XZwOQXWdCQoVJFNa+6LIsMU1jTl2U9Ec7XQrrFTVDyIXNWXp946c2cXOJXEh3fi8ULV
+         kg3NKE83xHGIIs9nPfR/VUzU9rR5aQf71HVwxnuXxl36HatmA1ZSTvGo7AB2LSdUtEpb
+         dP3nVVOkFzjGWsOtymtdH/L9Am5o4Khz9/ex9D5jSo1gcANtXUqD5yJcKVR+FpTFCkDn
+         eU9jy+Eu95BTcjrQ/kQHrniHbBfM4Xjw5uBxYksUG/wf8pNQqvq3k8B/FyhDF7pW37Av
+         KINA==;
+        dara=google.com
+ARC-Authentication-Results: i=1; mx.google.com;
+       dkim=pass header.i=@cake.vn header.s=vlpe5nx5d3ly4np7hzkkzgbdhxlranfb header.b=jRxNrSRP;
+       dkim=pass header.i=@amazonses.com header.s=pd64dbxfdcqqbvadj6zks7h7qe3c33ao header.b=FfX3kuGu;
+       spf=pass (google.com: domain of 010e019a7301332f-002a058b-a586-4af3-9162-9e6a9ba6605f-000000@ap-southeast-1.amazonses.com designates 216.221.164.233 as permitted sender) smtp.mailfrom=010e019a7301332f-002a058b-a586-4af3-9162-9e6a9ba6605f-000000@ap-southeast-1.amazonses.com;
+       dmarc=pass (p=QUARANTINE sp=QUARANTINE dis=NONE) header.from=cake.vn
+Return-Path: <010e019a7301332f-002a058b-a586-4af3-9162-9e6a9ba6605f-000000@ap-southeast-1.amazonses.com>
+Received: from g164-233.smtp-out.ap-southeast-1.amazonses.com (g164-233.smtp-out.ap-southeast-1.amazonses.com. [216.221.164.233])
+        by mx.google.com with ESMTPS id 41be03b00d2f7-ba903b04f29si8652499a12.1645.2025.11.11.05.00.50
+        for <phanvothanhtai1007@gmail.com>
+        (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
+        Tue, 11 Nov 2025 05:00:50 -0800 (PST)
+Received-SPF: pass (google.com: domain of 010e019a7301332f-002a058b-a586-4af3-9162-9e6a9ba6605f-000000@ap-southeast-1.amazonses.com designates 216.221.164.233 as permitted sender) client-ip=216.221.164.233;
+Authentication-Results: mx.google.com;
+       dkim=pass header.i=@cake.vn header.s=vlpe5nx5d3ly4np7hzkkzgbdhxlranfb header.b=jRxNrSRP;
+       dkim=pass header.i=@amazonses.com header.s=pd64dbxfdcqqbvadj6zks7h7qe3c33ao header.b=FfX3kuGu;
+       spf=pass (google.com: domain of 010e019a7301332f-002a058b-a586-4af3-9162-9e6a9ba6605f-000000@ap-southeast-1.amazonses.com designates 216.221.164.233 as permitted sender) smtp.mailfrom=010e019a7301332f-002a058b-a586-4af3-9162-9e6a9ba6605f-000000@ap-southeast-1.amazonses.com;
+       dmarc=pass (p=QUARANTINE sp=QUARANTINE dis=NONE) header.from=cake.vn
+DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/simple;
+	s=vlpe5nx5d3ly4np7hzkkzgbdhxlranfb; d=cake.vn; t=1762866049;
+	h=From:To:Subject:MIME-Version:Content-Type:Message-ID:Date;
+	bh=MNVQ7OPirf/HdrH4nfdhTGUjlRP9dRrbSy9g1/JR1HA=;
+	b=jRxNrSRPWArA7Pbognr7mFrbXklpm0lrXnqX3nSvrrJZzjbc9pcARGZDLaxYAcUP
+	eYBGb3IQJK3cQF5xzBd7nLCVEDHxyja0mzJVDedFhB76wLhwZmBBE/0V1ykaW2aL1VR
+	kuyU385D+7baAC5qGWtMd+pA/PQIKnKWUBEkSRG9fnq0lr9oCokyT/LVrFhKkka32qI
+	hV9dfmzB5gygmVHSyYHuz8fxSq/XywKxFqnORHSwenYORuOYvgg9+J3Ru/pcWOvv8uy
+	iS6W3l8SJZf37x84YkbnPomFEabYCw7rj8GUACmmlWGmK29xh0qHzzdluG/ZjOPm+d4
+	w4AMCW0fZg==
+DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/simple;
+	s=pd64dbxfdcqqbvadj6zks7h7qe3c33ao; d=amazonses.com; t=1762866049;
+	h=From:To:Subject:MIME-Version:Content-Type:Message-ID:Date:Feedback-ID;
+	bh=MNVQ7OPirf/HdrH4nfdhTGUjlRP9dRrbSy9g1/JR1HA=;
+	b=FfX3kuGu4hLKZ3JEjQtu0Gu7+qePVJACxFKqBVjiPn6tUiOyMIuhsMpkOWLt3Xh+
+	HW80NHTDsmDfs9L4jHrPi9sDKdmILEKY9RMVPTX/8XC89N1bv3SsYIvxTZV9vQjmv6i
+	wlQHprJfM/6Zz6LIijGc0l+QZDGzG1lvGJpj1tic=
+From: =?UTF-8?Q?Ng=C3=A2n_h=C3=A0ng_s=E1=BB=91_Cake_by_VPBank?= <no-reply@cake.vn>
+To: phanvothanhtai1007@gmail.com
+Subject: =?UTF-8?Q?[CAKE]_Th=C3=B4ng_b=C3=A1o_g?=
+ =?UTF-8?Q?iao_d=E1=BB=8Bch_th=C3=A0nh_c=C3=B4ng?=
+MIME-Version: 1.0
+Content-Type: multipart/alternative; 
+	boundary="----=_Part_72943_2007842857.1762866049839"
+Message-ID: <010e019a7301332f-002a058b-a586-4af3-9162-9e6a9ba6605f-000000@ap-southeast-1.amazonses.com>
+Date: Tue, 11 Nov 2025 13:00:49 +0000
+Feedback-ID: ::1.ap-southeast-1.5moSSgVj5UbJ+8oCrd+QMfJO8IfwR1+FG3fb8/58pGk=:AmazonSES
+X-SES-Outgoing: 2025.11.11-216.221.164.233
+
+------=_Part_72943_2007842857.1762866049839
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 7bit
+
+
+------=_Part_72943_2007842857.1762866049839
+Content-Type: text/html; charset=UTF-8
+Content-Transfer-Encoding: quoted-printable
+
+<!doctype html>
+<html xmlns=3D"http://www.w3.org/1999/xhtml" xmlns:v=3D"urn:schemas-microso=
+ft-com:vml" xmlns:o=3D"urn:schemas-microsoft-com:office:office">
+
+<head>
+  <title>
+  </title>
+ =20
+  <meta http-equiv=3D"X-UA-Compatible" content=3D"IE=3Dedge">
+ =20
+  <meta http-equiv=3D"Content-Type" content=3D"text/html; charset=3DUTF-8">
+  <meta name=3D"viewport" content=3D"width=3Ddevice-width, initial-scale=3D=
+1">
+  <style type=3D"text/css">
+    #outlook a {
+      padding: 0;
+    }
+
+    body {
+      margin: 0;
+      padding: 0;
+      -webkit-text-size-adjust: 100%;
+      -ms-text-size-adjust: 100%;
+    }
+
+    table,
+    td {
+      border-collapse: collapse;
+      mso-table-lspace: 0pt;
+      mso-table-rspace: 0pt;
+    }
+
+    img {
+      border: 0;
+      height: auto;
+      line-height: 100%;
+      outline: none;
+      text-decoration: none;
+      -ms-interpolation-mode: bicubic;
+    }
+
+    p {
+      display: block;
+      margin: 13px 0;
+    }
+  </style>
+ =20
+ =20
+  <style type=3D"text/css">
+    @media only screen and (min-width:480px) {
+      .mj-column-per-100 {
+        width: 100% !important;
+        max-width: 100%;
+      }
+
+      .mj-column-per-50 {
+        width: 50% !important;
+        max-width: 50%;
+      }
+    }
+  </style>
+  <style media=3D"screen and (min-width:480px)">
+    .moz-text-html .mj-column-per-100 {
+      width: 100% !important;
+      max-width: 100%;
+    }
+
+    .moz-text-html .mj-column-per-50 {
+      width: 50% !important;
+      max-width: 50%;
+    }
+  </style>
+  <style type=3D"text/css">
+    @media only screen and (max-width:480px) {
+      table.mj-full-width-mobile {
+        width: 100% !important;
+      }
+
+      td.mj-full-width-mobile {
+        width: auto !important;
+      }
+    }
+  </style>
+  <style type=3D"text/css">
+  </style>
+</head>
+
+<body style=3D"word-spacing:normal;background-color:#CECECE;">
+  <div style=3D"background-color:#CECECE;">
+   =20
+    <div style=3D"background:#F5F6F7;background-color:#F5F6F7;margin:0px au=
+to;max-width:550px;">
+      <table align=3D"center" border=3D"0" cellpadding=3D"0" cellspacing=3D=
+"0" role=3D"presentation" style=3D"background:#F5F6F7;background-color:#F5F=
+6F7;width:100%;">
+        <tbody>
+          <tr>
+            <td style=3D"direction:ltr;font-size:0px;padding:24px 32px;text=
+-align:center;">
+             =20
+              <div class=3D"mj-column-per-100 mj-outlook-group-fix" style=
+=3D"font-size:0px;text-align:left;direction:ltr;display:inline-block;vertic=
+al-align:top;width:100%;">
+                <table border=3D"0" cellpadding=3D"0" cellspacing=3D"0" rol=
+e=3D"presentation" width=3D"100%">
+                  <tbody>
+                    <tr>
+                      <td style=3D"vertical-align:top;padding:0;">
+                        <table border=3D"0" cellpadding=3D"0" cellspacing=
+=3D"0" role=3D"presentation" style=3D"" width=3D"100%">
+                          <tbody>
+                            <tr>
+                              <td align=3D"left" style=3D"font-size:0px;pad=
+ding:0 0 8px 16px;word-break:break-word;">
+                                <table border=3D"0" cellpadding=3D"0" cells=
+pacing=3D"0" role=3D"presentation" style=3D"border-collapse:collapse;border=
+-spacing:0px;">
+                                  <tbody>
+                                    <tr>
+                                      <td style=3D"width:100px;">
+                                        <img height=3D"auto" src=3D"https:/=
+/imgcdn.be.com.vn/cake/v1/home/logo-cake-v3.png" style=3D"border:0;display:=
+block;outline:none;text-decoration:none;height:auto;width:100%;font-size:13=
+px;" width=3D"100" />
+                                      </td>
+                                    </tr>
+                                  </tbody>
+                                </table>
+                              </td>
+                            </tr>
+                            <tr>
+                              <td align=3D"center" style=3D"font-size:0px;p=
+adding:24px 0;word-break:break-word;">
+                                <table border=3D"0" cellpadding=3D"0" cells=
+pacing=3D"0" role=3D"presentation" style=3D"border-collapse:collapse;border=
+-spacing:0px;">
+                                  <tbody>
+                                    <tr>
+                                      <td style=3D"width:486px;">
+                                        <img height=3D"auto" src=3D"https:/=
+/imgcdn.be.com.vn/cake/v1/email_banner/term_deposit_banner.png" style=3D"bo=
+rder:0;border-radius:8px;display:block;outline:none;text-decoration:none;he=
+ight:auto;width:100%;font-size:13px;" width=3D"486" />
+                                      </td>
+                                    </tr>
+                                  </tbody>
+                                </table>
+                              </td>
+                            </tr>
+                          </tbody>
+                        </table>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+             =20
+              <div class=3D"mj-column-per-100 mj-outlook-group-fix" style=
+=3D"font-size:0px;text-align:left;direction:ltr;display:inline-block;vertic=
+al-align:top;width:100%;">
+                <table border=3D"0" cellpadding=3D"0" cellspacing=3D"0" rol=
+e=3D"presentation" width=3D"100%">
+                  <tbody>
+                    <tr>
+                      <td style=3D"vertical-align:top;padding:0;">
+                        <table border=3D"0" cellpadding=3D"0" cellspacing=
+=3D"0" role=3D"presentation" style=3D"" width=3D"100%">
+                          <tbody>
+                            <tr>
+                              <td align=3D"left" style=3D"font-size:0px;pad=
+ding:0 16px 12px;word-break:break-word;">
+                                <div style=3D"font-family:Be Vietnam Pro 20=
+22, sans-serif;font-size:14px;line-height:20px;text-align:left;color:#00000=
+0;"><span style=3D"color: #394860">Ch=C3=A0o <b>Phan V=C3=B5 Th=C3=A0nh T=
+=C3=A0i</b></span></div>
+                              </td>
+                            </tr>
+                            <tr>
+                              <td align=3D"left" style=3D"font-size:0px;pad=
+ding:12px 16px;word-break:break-word;">
+                                <div style=3D"font-family:Be Vietnam Pro 20=
+22, sans-serif;font-size:14px;line-height:20px;text-align:left;color:#39486=
+0;">Cake xin th=C3=B4ng b=C3=A1o t=C3=A0i kho=E1=BA=A3n c=E1=BB=A7a b=E1=BA=
+=A1n v=E1=BB=ABa m=E1=BB=9Bi ph=C3=A1t sinh giao d=E1=BB=8Bch nh=C6=B0 sau:=
+</div>
+                              </td>
+                            </tr>
+                          </tbody>
+                        </table>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+             =20
+              <div class=3D"mj-column-per-100 mj-outlook-group-fix" style=
+=3D"font-size:0px;text-align:left;direction:ltr;display:inline-block;vertic=
+al-align:top;width:100%;">
+                <table border=3D"0" cellpadding=3D"0" cellspacing=3D"0" rol=
+e=3D"presentation" width=3D"100%">
+                  <tbody>
+                    <tr>
+                      <td style=3D"vertical-align:top;padding:0 0 12px;">
+                        <table border=3D"0" cellpadding=3D"0" cellspacing=
+=3D"0" role=3D"presentation" style=3D"" width=3D"100%">
+                          <tbody>
+                            <tr>
+                              <td align=3D"left" style=3D"font-size:0px;pad=
+ding:12px 16px;word-break:break-word;">
+                                <div style=3D"font-family:Be Vietnam Pro 20=
+22, sans-serif;font-size:15px;font-weight:bold;line-height:20px;text-align:=
+left;color:#394860;">Th=C3=B4ng tin t=C3=A0i kho=E1=BA=A3n</div>
+                              </td>
+                            </tr>
+                            <tr>
+                              <td align=3D"left" style=3D"font-size:0px;pad=
+ding:0;word-break:break-word;">
+                                <table cellpadding=3D"0" cellspacing=3D"0" =
+width=3D"100%" border=3D"0" style=3D"color:#666F80;font-family:Be Vietnam P=
+ro 2022, sans-serif;font-size:14px;line-height:20px;table-layout:auto;width=
+:100%;border:none;">
+                                 =20
+                                  <tr valign=3D"top" height=3D"8px" style=
+=3D"background: #ffffff">
+                                   =20
+                                    <td style=3D"border-top-left-radius: 12=
+px"></td>
+                                    <td />
+                                    <td />
+                                   =20
+                                    <td width=3D"1px"></td>
+                                    <td />
+                                    <td />
+                                    <td style=3D"border-top-right-radius: 1=
+2px" />
+                                  </tr>
+                                  <tr>
+                                   =20
+                                    <td style=3D"width: 16px; background-co=
+lor: #ffffff" />
+                                    <td style=3D"
+                width: 30%;
+                padding: 8px 0;
+                background-color: #ffffff;
+                border-bottom: 1px solid #f2f1f7;
+              "> T=C3=A0i kho=E1=BA=A3n nh=E1=BA=ADn </td>
+                                   =20
+                                    <td style=3D"width: 16px; background-co=
+lor: #ffffff" />
+                                    <td width=3D"1px" />
+                                   =20
+                                    <td style=3D"width: 16px; background-co=
+lor: #ffffff" />
+                                    <td style=3D"
+                padding: 8px 0;
+                background-color: #ffffff;
+                border-bottom: 1px solid #f2f1f7;
+                color: #071a38;
+              ">
+                                      0356882700 - T=C3=A0i kho=E1=BA=A3n t=
+hanh to=C3=A1n
+                                    </td>
+                                    <td style=3D"width: 16px; background-co=
+lor: #ffffff" />
+                                  </tr>
+                                  <tr>
+                                   =20
+                                    <td style=3D"width: 16px; background-co=
+lor: #ffffff" />
+                                    <td style=3D"
+                width: 30%;
+                padding: 8px 0;
+                background-color: #ffffff;
+                border-bottom: 1px solid #f2f1f7;
+              "> T=C3=A0i kho=E1=BA=A3n chuy=E1=BB=83n </td>
+                                   =20
+                                    <td style=3D"width: 16px; background-co=
+lor: #ffffff" />
+                                    <td width=3D"1px" />
+                                   =20
+                                    <td style=3D"width: 16px; background-co=
+lor: #ffffff" />
+                                    <td style=3D"
+                padding: 8px 0;
+                background-color: #ffffff;
+                border-bottom: 1px solid #f2f1f7;
+                color: #071a38;
+              ">
+                                      10002639102
+                                    </td>
+                                    <td style=3D"width: 16px; background-co=
+lor: #ffffff" />
+                                  </tr>
+                                  <tr>
+                                   =20
+                                    <td style=3D"width: 16px; background-co=
+lor: #ffffff" />
+                                    <td style=3D"
+                width: 30%;
+                padding: 8px 0;
+                background-color: #ffffff;
+                border-bottom: 1px solid #f2f1f7;
+              "> T=C3=AAn ng=C6=B0=E1=BB=9Di chuy=E1=BB=83n </td>
+                                   =20
+                                    <td style=3D"width: 16px; background-co=
+lor: #ffffff" />
+                                    <td width=3D"1px" />
+                                   =20
+                                    <td style=3D"width: 16px; background-co=
+lor: #ffffff" />
+                                    <td style=3D"
+                padding: 8px 0;
+                background-color: #ffffff;
+                border-bottom: 1px solid #f2f1f7;
+                color: #071a38;
+              ">
+                                      PHAN VO THANH TAI
+                                    </td>
+                                    <td style=3D"width: 16px; background-co=
+lor: #ffffff" />
+                                  </tr>
+                                  <tr>
+                                   =20
+                                    <td style=3D"width: 16px; background-co=
+lor: #ffffff" />
+                                    <td style=3D"width: 30%; padding: 8px 0=
+; background-color: #ffffff"> Ng=C3=A2n h=C3=A0ng chuy=E1=BB=83n </td>
+                                   =20
+                                    <td style=3D"width: 16px; background-co=
+lor: #ffffff" />
+                                    <td width=3D"1px" />
+                                   =20
+                                    <td style=3D"width: 16px; background-co=
+lor: #ffffff" />
+                                    <td style=3D"padding: 8px 0; background=
+-color: #ffffff; color: #071a38">
+                                      TPB
+                                    </td>
+                                    <td style=3D"width: 16px; background-co=
+lor: #ffffff" />
+                                  </tr>
+                                 =20
+                                  <tr valign=3D"top" height=3D"8px" style=
+=3D"background: #ffffff">
+                                   =20
+                                    <td style=3D"border-bottom-left-radius:=
+ 12px"></td>
+                                    <td />
+                                    <td />
+                                   =20
+                                    <td width=3D"1px"></td>
+                                    <td />
+                                    <td />
+                                    <td style=3D"border-bottom-right-radius=
+: 12px"></td>
+                                  </tr>
+                                </table>
+                              </td>
+                            </tr>
+                          </tbody>
+                        </table>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+             =20
+              <div class=3D"mj-column-per-100 mj-outlook-group-fix" style=
+=3D"font-size:0px;text-align:left;direction:ltr;display:inline-block;vertic=
+al-align:top;width:100%;">
+                <table border=3D"0" cellpadding=3D"0" cellspacing=3D"0" rol=
+e=3D"presentation" width=3D"100%">
+                  <tbody>
+                    <tr>
+                      <td style=3D"vertical-align:top;padding:0 0 12px;">
+                        <table border=3D"0" cellpadding=3D"0" cellspacing=
+=3D"0" role=3D"presentation" style=3D"" width=3D"100%">
+                          <tbody>
+                            <tr>
+                              <td align=3D"left" style=3D"font-size:0px;pad=
+ding:12px 16px;word-break:break-word;">
+                                <div style=3D"font-family:Be Vietnam Pro 20=
+22, sans-serif;font-size:15px;font-weight:bold;line-height:20px;text-align:=
+left;color:#394860;">Th=C3=B4ng tin giao d=E1=BB=8Bch</div>
+                              </td>
+                            </tr>
+                            <tr>
+                              <td align=3D"left" style=3D"font-size:0px;pad=
+ding:0;word-break:break-word;">
+                                <table cellpadding=3D"0" cellspacing=3D"0" =
+width=3D"100%" border=3D"0" style=3D"color:#666F80;font-family:Be Vietnam P=
+ro 2022, sans-serif;font-size:14px;line-height:20px;table-layout:auto;width=
+:100%;border:none;">
+                                 =20
+                                  <tr valign=3D"top" height=3D"8px" style=
+=3D"background: #ffffff">
+                                   =20
+                                    <td style=3D"border-top-left-radius: 12=
+px"></td>
+                                    <td />
+                                    <td />
+                                   =20
+                                    <td width=3D"1px"></td>
+                                    <td />
+                                    <td />
+                                    <td style=3D"border-top-right-radius: 1=
+2px" />
+                                  </tr>
+                                  <tr>
+                                   =20
+                                    <td style=3D"width: 16px; background-co=
+lor: #ffffff" />
+                                    <td style=3D"
+                width: 30%;
+                padding: 8px 0;
+                background-color: #ffffff;
+                border-bottom: 1px solid #f2f1f7;
+              "> Lo=E1=BA=A1i giao d=E1=BB=8Bch </td>
+                                   =20
+                                    <td style=3D"width: 16px; background-co=
+lor: #ffffff" />
+                                    <td width=3D"1px" />
+                                   =20
+                                    <td style=3D"width: 16px; background-co=
+lor: #ffffff" />
+                                    <td style=3D"
+                padding: 8px 0;
+                background-color: #ffffff;
+                border-bottom: 1px solid #f2f1f7;
+                color: #071a38;
+              ">
+                                      Chuy=E1=BB=83n ti=E1=BB=81n ngo=C3=A0=
+i CAKE
+                                    </td>
+                                    <td style=3D"width: 16px; background-co=
+lor: #ffffff" />
+                                  </tr>
+                                  <tr>
+                                   =20
+                                    <td style=3D"width: 16px; background-co=
+lor: #ffffff" />
+                                    <td style=3D"
+                width: 30%;
+                padding: 8px 0;
+                background-color: #ffffff;
+                border-bottom: 1px solid #f2f1f7;
+              "> M=C3=A3 giao d=E1=BB=8Bch </td>
+                                   =20
+                                    <td style=3D"width: 16px; background-co=
+lor: #ffffff" />
+                                    <td width=3D"1px" />
+                                   =20
+                                    <td style=3D"width: 16px; background-co=
+lor: #ffffff" />
+                                    <td style=3D"
+                padding: 8px 0;
+                background-color: #ffffff;
+                border-bottom: 1px solid #f2f1f7;
+                color: #071a38;
+              ">
+                                      339441845
+                                    </td>
+                                    <td style=3D"width: 16px; background-co=
+lor: #ffffff" />
+                                  </tr>
+                                  <tr>
+                                   =20
+                                    <td style=3D"width: 16px; background-co=
+lor: #ffffff" />
+                                    <td style=3D"
+                width: 30%;
+                padding: 8px 0;
+                background-color: #ffffff;
+                border-bottom: 1px solid #f2f1f7;
+              "> Ng=C3=A0y gi=E1=BB=9D giao d=E1=BB=8Bch </td>
+                                   =20
+                                    <td style=3D"width: 16px; background-co=
+lor: #ffffff" />
+                                    <td width=3D"1px" />
+                                   =20
+                                    <td style=3D"width: 16px; background-co=
+lor: #ffffff" />
+                                    <td style=3D"
+                padding: 8px 0;
+                background-color: #ffffff;
+                border-bottom: 1px solid #f2f1f7;
+                color: #071a38;
+              ">
+                                      11/11/2025, 20:00:49
+                                    </td>
+                                    <td style=3D"width: 16px; background-co=
+lor: #ffffff" />
+                                  </tr>
+                                  <tr>
+                                   =20
+                                    <td style=3D"width: 16px; background-co=
+lor: #ffffff" />
+                                    <td style=3D"
+                width: 30%;
+                padding: 8px 0;
+                background-color: #ffffff;
+                border-bottom: 1px solid #f2f1f7;
+              "> S=E1=BB=91 ti=E1=BB=81n </td>
+                                   =20
+                                    <td style=3D"width: 16px; background-co=
+lor: #ffffff" />
+                                    <td width=3D"1px" />
+                                   =20
+                                    <td style=3D"width: 16px; background-co=
+lor: #ffffff" />
+                                    <td style=3D"
+                padding: 8px 0;
+                background-color: #ffffff;
+                border-bottom: 1px solid #f2f1f7;
+                color: #188126;
+              "> +10.000 =C4=91</td>
+                                    <td style=3D"width: 16px; background-co=
+lor: #ffffff" />
+                                  </tr>
+                                  <tr>
+                                   =20
+                                    <td style=3D"width: 16px; background-co=
+lor: #ffffff" />
+                                    <td style=3D"
+                width: 30%;
+                padding: 8px 0;
+                background-color: #ffffff;
+                border-bottom: 1px solid #f2f1f7;
+              "> Ph=C3=AD giao d=E1=BB=8Bch </td>
+                                   =20
+                                    <td style=3D"width: 16px; background-co=
+lor: #ffffff" />
+                                    <td width=3D"1px" />
+                                   =20
+                                    <td style=3D"width: 16px; background-co=
+lor: #ffffff" />
+                                    <td style=3D"
+                padding: 8px 0;
+                background-color: #ffffff;
+                border-bottom: 1px solid #f2f1f7;
+                color: #071a38;
+              "> 0 =C4=91 </td>
+                                    <td style=3D"width: 16px; background-co=
+lor: #ffffff" />
+                                  </tr>
+                                  <tr>
+                                   =20
+                                    <td style=3D"width: 16px; background-co=
+lor: #ffffff" />
+                                    <td style=3D"width: 30%; padding: 8px 0=
+; background-color: #ffffff"> N=E1=BB=99i dung giao d=E1=BB=8Bch </td>
+                                   =20
+                                    <td style=3D"width: 16px; background-co=
+lor: #ffffff" />
+                                    <td width=3D"1px" />
+                                   =20
+                                    <td style=3D"width: 16px; background-co=
+lor: #ffffff" />
+                                    <td style=3D"padding: 8px 0; background=
+-color: #ffffff; color: #071a38">
+                                      PHAN VO THANH TAI chuyen tien
+                                    </td>
+                                    <td style=3D"width: 16px; background-co=
+lor: #ffffff" />
+                                  </tr>
+                                 =20
+                                  <tr valign=3D"top" height=3D"8px" style=
+=3D"background: #ffffff">
+                                   =20
+                                    <td style=3D"border-bottom-left-radius:=
+ 12px"></td>
+                                    <td />
+                                    <td />
+                                   =20
+                                    <td width=3D"1px"></td>
+                                    <td />
+                                    <td />
+                                    <td style=3D"border-bottom-right-radius=
+: 12px"></td>
+                                  </tr>
+                                </table>
+                              </td>
+                            </tr>
+                          </tbody>
+                        </table>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+             =20
+              <div class=3D"mj-column-per-100 mj-outlook-group-fix" style=
+=3D"font-size:0px;text-align:left;direction:ltr;display:inline-block;vertic=
+al-align:top;width:100%;">
+                <table border=3D"0" cellpadding=3D"0" cellspacing=3D"0" rol=
+e=3D"presentation" width=3D"100%">
+                  <tbody>
+                    <tr>
+                      <td style=3D"vertical-align:top;padding:0;">
+                        <table border=3D"0" cellpadding=3D"0" cellspacing=
+=3D"0" role=3D"presentation" style=3D"" width=3D"100%">
+                          <tbody>
+                            <tr>
+                              <td align=3D"left" style=3D"font-size:0px;pad=
+ding:12px 16px;word-break:break-word;">
+                                <div style=3D"font-family:Be Vietnam Pro 20=
+22, sans-serif;font-size:14px;line-height:22px;text-align:left;color:#39486=
+0;"><b>C=E1=BA=A3m =C6=A1n b=E1=BA=A1n =C4=91=C3=A3 s=E1=BB=AD d=E1=BB=A5ng=
+ d=E1=BB=8Bch v=E1=BB=A5 c=E1=BB=A7a Cake by VPBank</b></div>
+                              </td>
+                            </tr>
+                          </tbody>
+                        </table>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+             =20
+              <div class=3D"mj-column-per-100 mj-outlook-group-fix" style=
+=3D"font-size:0px;text-align:left;direction:ltr;display:inline-block;vertic=
+al-align:top;width:100%;">
+                <table border=3D"0" cellpadding=3D"0" cellspacing=3D"0" rol=
+e=3D"presentation" width=3D"100%">
+                  <tbody>
+                    <tr>
+                      <td style=3D"vertical-align:top;padding:0;">
+                        <table border=3D"0" cellpadding=3D"0" cellspacing=
+=3D"0" role=3D"presentation" style=3D"" width=3D"100%">
+                          <tbody>
+                            <tr>
+                              <td align=3D"left" style=3D"font-size:0px;pad=
+ding:12px 16px 0;word-break:break-word;">
+                                <div style=3D"font-family:Be Vietnam Pro 20=
+22, sans-serif;font-size:14px;line-height:22px;text-align:left;color:#39486=
+0;">
+                                  <div>Th=C3=A2n m=E1=BA=BFn,</div>
+                                  <div>Cake Team</div>
+                                </div>
+                              </td>
+                            </tr>
+                          </tbody>
+                        </table>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+             =20
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+   =20
+    <div style=3D"background:#ffffff;background-color:#ffffff;margin:0px au=
+to;max-width:550px;">
+      <table align=3D"center" border=3D"0" cellpadding=3D"0" cellspacing=3D=
+"0" role=3D"presentation" style=3D"background:#ffffff;background-color:#fff=
+fff;width:100%;">
+        <tbody>
+          <tr>
+            <td style=3D"direction:ltr;font-size:0px;padding:24px 48px;text=
+-align:center;">
+             =20
+              <div class=3D"mj-column-per-100 mj-outlook-group-fix" style=
+=3D"font-size:0;line-height:0;text-align:left;display:inline-block;width:10=
+0%;direction:ltr;">
+               =20
+                <div class=3D"mj-column-per-50 mj-outlook-group-fix" style=
+=3D"font-size:0px;text-align:left;direction:ltr;display:inline-block;vertic=
+al-align:top;width:50%;">
+                  <table border=3D"0" cellpadding=3D"0" cellspacing=3D"0" r=
+ole=3D"presentation" width=3D"100%">
+                    <tbody>
+                      <tr>
+                        <td style=3D"vertical-align:top;padding:0;">
+                          <table border=3D"0" cellpadding=3D"0" cellspacing=
+=3D"0" role=3D"presentation" style=3D"" width=3D"100%">
+                            <tbody>
+                              <tr>
+                                <td align=3D"left" style=3D"font-size:0px;p=
+adding:0;word-break:break-word;">
+                                  <div style=3D"font-family:Be Vietnam Pro =
+2022, sans-serif;font-size:14px;font-weight:500;line-height:20px;text-align=
+:left;color:#071A38;">
+                                    <div style=3D"padding-bottom: 8px"> C=
+=E1=BA=A7n h=E1=BB=97 tr=E1=BB=A3? </div>
+                                    <div style=3D"display: flex; align-item=
+s: center; padding-bottom: 8px">
+                                      <img src=3D"https://imgcdn.be.com.vn/=
+cake/v1/email_icons/white_phone_icon.png" alt=3D"cake-phone.png" style=3D"w=
+idth: 18px; height: 18px; padding-right: 8px" />
+                                      <a href=3D"http://fqh28qh7.r.ap-south=
+east-1.awstrack.me/L0/tel:1900636686/1/010e019a7301332f-002a058b-a586-4af3-=
+9162-9e6a9ba6605f-000000/TkYXzlc6n7-bABkvabzhO3V6gVY=3D236" style=3D"color:=
+ #394860; line-height: 18px; text-decoration: none">1900 636686</a>
+                                    </div>
+                                    <div style=3D"display: flex; align-item=
+s: center; padding-bottom: 8px">
+                                      <img src=3D"https://imgcdn.be.com.vn/=
+cake/v1/email_icons/white_mail_icon.png" alt=3D"cake-email.png" style=3D"wi=
+dth: 18px; height: 18px; padding-right: 8px" />
+                                      <a href=3D"mailto:chat@cake.vn" style=
+=3D"color: #3498d3; line-height: 18px; text-decoration: none">chat@cake.vn<=
+/a>
+                                    </div>
+                                  </div>
+                                </td>
+                              </tr>
+                            </tbody>
+                          </table>
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+               =20
+                <div class=3D"mj-column-per-50 mj-outlook-group-fix" style=
+=3D"font-size:0px;text-align:left;direction:ltr;display:inline-block;vertic=
+al-align:top;width:50%;">
+                  <table border=3D"0" cellpadding=3D"0" cellspacing=3D"0" r=
+ole=3D"presentation" width=3D"100%">
+                    <tbody>
+                      <tr>
+                        <td style=3D"vertical-align:top;padding:0;">
+                          <table border=3D"0" cellpadding=3D"0" cellspacing=
+=3D"0" role=3D"presentation" style=3D"" width=3D"100%">
+                            <tbody>
+                              <tr>
+                                <td align=3D"right" style=3D"font-size:0px;=
+padding:0;word-break:break-word;">
+                                  <div style=3D"font-family:Be Vietnam Pro =
+2022, sans-serif;font-size:14px;font-weight:500;line-height:20px;text-align=
+:right;color:#071A38;">
+                                    <div style=3D"padding-bottom: 8px">K=E1=
+=BA=BFt n=E1=BB=91i v=E1=BB=9Bi ch=C3=BAng t=C3=B4i</div>
+                                    <div style=3D"line-height: 0px; padding=
+-bottom: 8px">
+                                      <div style=3D"display: inline-block; =
+margin: 6px 0 6px 6px"><a href=3D"https://fqh28qh7.r.ap-southeast-1.awstrac=
+k.me/L0/https:%2F%2Fwww.facebook.com%2Fcake.themobilebank/1/010e019a7301332=
+f-002a058b-a586-4af3-9162-9e6a9ba6605f-000000/lp5JJKkM-75DqMk6wkZkIDYwHrQ=
+=3D236" style=3D"border-radius: 50%; background-color: #f2f1f7">
+                                          <img src=3D"https://imgcdn.be.com=
+.vn/cake/v1/email_icons/white_fb_icon.png" alt=3D"cake-fb.png" style=3D"dis=
+play: block; width: 32px; height: 32px" />
+                                        </a>
+                                      </div>
+                                      <div style=3D"display: inline-block; =
+margin: 6px 0 6px 6px"><a href=3D"https://fqh28qh7.r.ap-southeast-1.awstrac=
+k.me/L0/https:%2F%2Fwww.youtube.com%2Fchannel%2FUC0V4n1B-I4iaxe9YrinPqtA/1/=
+010e019a7301332f-002a058b-a586-4af3-9162-9e6a9ba6605f-000000/m9GrSkcFIXKC0X=
+xruZgUQT4UpkM=3D236" style=3D"border-radius: 50%; background-color: #f2f1f7=
+">
+                                          <img src=3D"https://imgcdn.be.com=
+.vn/cake/v1/email_icons/white_youtube_icon.png" alt=3D"cake-youtube.png" st=
+yle=3D"display: block; width: 32px; height: 32px" />
+                                        </a>
+                                      </div>
+                                      <div style=3D"display: inline-block; =
+margin: 6px 0 6px 6px"><a href=3D"https://fqh28qh7.r.ap-southeast-1.awstrac=
+k.me/L0/https:%2F%2Fwww.instagram.com%2Fcakebyvpbank/1/010e019a7301332f-002=
+a058b-a586-4af3-9162-9e6a9ba6605f-000000/GB4JEq52gT_qV-_DsNKVz6u2pEk=3D236"=
+ style=3D"border-radius: 50%; background-color: #f2f1f7">
+                                          <img src=3D"https://imgcdn.be.com=
+.vn/cake/v1/email_icons/white_instagram_icon.png" alt=3D"cake-instagram.png=
+" style=3D"display: block; width: 32px; height: 32px" />
+                                        </a>
+                                      </div>
+                                      <div style=3D"display: inline-block; =
+margin: 6px 0 6px 6px"><a href=3D"https://fqh28qh7.r.ap-southeast-1.awstrac=
+k.me/L0/https:%2F%2Fwww.tiktok.com%2F@cakebyvpbank%3Flang=3Dvi-VN/1/010e019=
+a7301332f-002a058b-a586-4af3-9162-9e6a9ba6605f-000000/pzqT4mSYvOckM_ZwfX6B7=
+6veigk=3D236" style=3D"border-radius: 50%; background-color: #f2f1f7">
+                                          <img src=3D"https://imgcdn.be.com=
+.vn/cake/v1/email_icons/white_tiktok_icon.png" alt=3D"cake-tiktok.png" styl=
+e=3D"display: block; width: 32px; height: 32px" />
+                                        </a>
+                                      </div>
+                                    </div>
+                                    <div style=3D"line-height: 16px; paddin=
+g: 0 0 8px; color: #666F80; font-size: 11px"> All rights reserved 2023 =C2=
+=A9 Cake </div>
+                                  </div>
+                                </td>
+                              </tr>
+                            </tbody>
+                          </table>
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+               =20
+              </div>
+             =20
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+   =20
+  </div>
+<img alt=3D"" src=3D"https://fqh28qh7.r.ap-southeast-1.awstrack.me/I0/010e0=
+19a7301332f-002a058b-a586-4af3-9162-9e6a9ba6605f-000000/Wb4n9AVdqH48jV43RnZ=
+TgVuvEQU=3D236" style=3D"display: none; width: 1px; height: 1px;">
+</body>
+
+</html>
+------=_Part_72943_2007842857.1762866049839--

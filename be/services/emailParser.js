@@ -2,12 +2,16 @@ const fs = require('fs');
 const path = require('path');
 const { simpleParser } = require('mailparser');
 const { parseTpbankEmail } = require('../parsers/tpbank');
+const { parseCakeEmail } = require('../parsers/cake');
 
 function detectBank({ subject, from }) {
   const subj = (subject || '').toLowerCase();
   const sender = (from && from.text ? from.text : from || '').toLowerCase();
   if (subj.includes('tpbank') || sender.includes('tpb.com.vn') || sender.includes('tpbank')) {
     return 'TPBank';
+  }
+  if (subj.includes('cake') || sender.includes('cake.vn') || subj.includes('vpbank') || subj.includes('thông báo giao dịch')) {
+    return 'CAKE';
   }
   return 'UNKNOWN';
 }
@@ -24,6 +28,13 @@ function parseMailToTransaction(mail) {
   let parsed;
   if (bank === 'TPBank') {
     parsed = parseTpbankEmail({
+      subject: mail.subject,
+      from: fromText,
+      text: mail.text,
+      html: mail.html,
+    });
+  } else if (bank === 'CAKE') {
+    parsed = parseCakeEmail({
       subject: mail.subject,
       from: fromText,
       text: mail.text,
