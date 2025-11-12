@@ -107,10 +107,10 @@ class WebhookLog {
   }
 
   static async appendAttempt(logId, attemptData = {}) {
-    if (!logId) return;
+    if (!logId) return null;
     const collection = await this.collection();
     const _id = toObjectId(logId);
-    if (!_id) return;
+    if (!_id) return null;
 
     const attempt = {
       attemptNumber: attemptData.attemptNumber,
@@ -140,13 +140,17 @@ class WebhookLog {
     console.log(
       `📨 Webhook log ${_id.toString()} recorded attempt #${attempt.attemptNumber} (${attempt.success ? 'success' : 'failed'})`
     );
+
+    // Trả về document đã cập nhật
+    const updated = await collection.findOne({ _id });
+    return updated ? serialize(updated) : null;
   }
 
   static async markCompleted(logId, { success, finalStatusCode, errorMessage }) {
-    if (!logId) return;
+    if (!logId) return null;
     const collection = await this.collection();
     const _id = toObjectId(logId);
-    if (!_id) return;
+    if (!_id) return null;
 
     await collection.updateOne(
       { _id },
@@ -163,6 +167,10 @@ class WebhookLog {
     console.log(
       `✅ Webhook log ${_id.toString()} completed with status ${success ? 'success' : 'failed'}`
     );
+
+    // Trả về document đã cập nhật
+    const updated = await collection.findOne({ _id });
+    return updated ? serialize(updated) : null;
   }
 
   static async list({ filter = {}, page = 1, limit = 20, sort = { createdAt: -1 } } = {}) {

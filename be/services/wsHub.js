@@ -59,9 +59,47 @@ function broadcastTransaction(transaction, targetUserId) {
   }
 }
 
+function broadcastWebhookLog(webhookLog, targetUserId) {
+  const payload = {
+    event: 'webhook:new',
+    data: webhookLog,
+  };
+
+  for (const client of clients) {
+    if (!client.ws || client.ws.readyState !== WebSocket.OPEN) {
+      continue;
+    }
+
+    // Admin có thể xem tất cả, user chỉ xem của mình
+    if (client.role === 'admin' || client.userId === targetUserId) {
+      safeSend(client.ws, payload);
+    }
+  }
+}
+
+function broadcastWebhookLogUpdate(webhookLog, targetUserId) {
+  const payload = {
+    event: 'webhook:update',
+    data: webhookLog,
+  };
+
+  for (const client of clients) {
+    if (!client.ws || client.ws.readyState !== WebSocket.OPEN) {
+      continue;
+    }
+
+    // Admin có thể xem tất cả, user chỉ xem của mình
+    if (client.role === 'admin' || client.userId === targetUserId) {
+      safeSend(client.ws, payload);
+    }
+  }
+}
+
 module.exports = {
   registerClient,
   broadcastTransaction,
+  broadcastWebhookLog,
+  broadcastWebhookLogUpdate,
 };
 
 

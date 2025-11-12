@@ -1,5 +1,6 @@
 const axios = require('axios');
 const WebhookLog = require('../models/webhookLog');
+const { broadcastWebhookLog, broadcastWebhookLogUpdate } = require('./wsHub');
 
 const MAX_SERIALIZED_LENGTH = 8000;
 
@@ -93,6 +94,16 @@ async function sendWebhook(webhookUrl, payload, maxRetries = 3, meta = {}) {
     
     if (!logRecord || !logRecord._id) {
       console.warn('⚠️  Webhook log was not created (returned null/undefined) for', webhookUrl);
+    } else {
+      // Broadcast webhook log mới tạo
+      try {
+        const userIdStr = meta.userId?.toString();
+        if (userIdStr) {
+          broadcastWebhookLog(logRecord, userIdStr);
+        }
+      } catch (broadcastError) {
+        console.error('❌ [sendWebhook] Failed to broadcast webhook log:', broadcastError.message);
+      }
     }
   } catch (logError) {
     console.error('❌ [sendWebhook] Failed to create webhook log:', logError.message);
@@ -114,7 +125,7 @@ async function sendWebhook(webhookUrl, payload, maxRetries = 3, meta = {}) {
 
       lastStatusCode = response.status;
 
-      await safeLog(() =>
+      const updatedAfterAttempt = await safeLog(() =>
         WebhookLog.appendAttempt(logRecord?._id, {
           attemptNumber: attempt,
           success: true,
@@ -126,12 +137,22 @@ async function sendWebhook(webhookUrl, payload, maxRetries = 3, meta = {}) {
         })
       );
 
-      await safeLog(() =>
+      const updatedAfterComplete = await safeLog(() =>
         WebhookLog.markCompleted(logRecord?._id, {
           success: true,
           finalStatusCode: response.status,
         })
       );
+
+      // Broadcast update
+      if (updatedAfterComplete && meta.userId) {
+        try {
+          const userIdStr = meta.userId.toString();
+          broadcastWebhookLogUpdate(updatedAfterComplete, userIdStr);
+        } catch (broadcastError) {
+          console.error('❌ [sendWebhook] Failed to broadcast webhook log update:', broadcastError.message);
+        }
+      }
 
       console.log(`✅ Webhook sent successfully (attempt ${attempt}/${maxRetries}):`, webhookUrl);
       return {
@@ -149,7 +170,7 @@ async function sendWebhook(webhookUrl, payload, maxRetries = 3, meta = {}) {
 
       console.error(`❌ Webhook send failed (attempt ${attempt}/${maxRetries}):`, lastError);
 
-      await safeLog(() =>
+      const updatedAfterAttempt = await safeLog(() =>
         WebhookLog.appendAttempt(logRecord?._id, {
           attemptNumber: attempt,
           success: false,
@@ -161,6 +182,16 @@ async function sendWebhook(webhookUrl, payload, maxRetries = 3, meta = {}) {
           completedAt: new Date(),
         })
       );
+
+      // Broadcast update sau mỗi attempt
+      if (updatedAfterAttempt && meta.userId) {
+        try {
+          const userIdStr = meta.userId.toString();
+          broadcastWebhookLogUpdate(updatedAfterAttempt, userIdStr);
+        } catch (broadcastError) {
+          console.error('❌ [sendWebhook] Failed to broadcast webhook log update:', broadcastError.message);
+        }
+      }
 
       // Nếu là lỗi 4xx (client error), không retry
       if (error.response && error.response.status >= 400 && error.response.status < 500) {
@@ -176,13 +207,23 @@ async function sendWebhook(webhookUrl, payload, maxRetries = 3, meta = {}) {
     }
   }
 
-  await safeLog(() =>
+  const updatedAfterComplete = await safeLog(() =>
     WebhookLog.markCompleted(logRecord?._id, {
       success: false,
       finalStatusCode: lastStatusCode,
       errorMessage: safeString(lastError),
     })
   );
+
+  // Broadcast update khi hoàn thành (thất bại)
+  if (updatedAfterComplete && meta.userId) {
+    try {
+      const userIdStr = meta.userId.toString();
+      broadcastWebhookLogUpdate(updatedAfterComplete, userIdStr);
+    } catch (broadcastError) {
+      console.error('❌ [sendWebhook] Failed to broadcast webhook log update:', broadcastError.message);
+    }
+  }
 
   console.error(`❌ Webhook failed after ${attempts} attempts:`, webhookUrl, lastError);
 
@@ -193,72 +234,6 @@ async function sendWebhook(webhookUrl, payload, maxRetries = 3, meta = {}) {
     error: lastError,
     logId: logRecord?._id ? logRecord._id.toString() : undefined,
   };
-}
-
-module.exports = {
-  sendWebhook,
-};
-
-
-/**
- * Gửi webhook với retry logic (tối đa 3 lần)
- * @param {string} webhookUrl - URL để gửi webhook
- * @param {Object} payload - Dữ liệu gửi đi
- * @param {number} maxRetries - Số lần retry tối đa (default: 3)
- * @returns {Promise<{success: boolean, attempts: number, error?: string}>}
- */
-async function sendWebhook(webhookUrl, payload, maxRetries = 3) {
-  if (!webhookUrl) {
-    return { success: false, attempts: 0, error: 'Webhook URL is not configured' };
-  }
-
-  let lastError = null;
-  let attempts = 0;
-
-  for (let attempt = 1; attempt <= maxRetries; attempt++) {
-    attempts = attempt;
-    try {
-      const response = await axios.post(webhookUrl, payload, {
-        timeout: 10000, // 10 seconds timeout
-        headers: {
-          'Content-Type': 'application/json',
-          'User-Agent': 'Payhook/1.0',
-        },
-      });
-
-      // Xem như thành công nếu status code 2xx
-      if (response.status >= 200 && response.status < 300) {
-        console.log(`✅ Webhook sent successfully (attempt ${attempt}/${maxRetries}):`, webhookUrl);
-        return { success: true, attempts, statusCode: response.status };
-      }
-
-      // Nếu không phải 2xx, coi như lỗi và retry
-      lastError = `HTTP ${response.status}: ${response.statusText}`;
-      console.warn(`⚠️  Webhook returned non-2xx status (attempt ${attempt}/${maxRetries}):`, lastError);
-
-    } catch (error) {
-      lastError = error.response
-        ? `HTTP ${error.response.status}: ${error.response.statusText || error.message}`
-        : error.message;
-
-      console.error(`❌ Webhook send failed (attempt ${attempt}/${maxRetries}):`, lastError);
-
-      // Nếu là lỗi 4xx (client error), không retry
-      if (error.response && error.response.status >= 400 && error.response.status < 500) {
-        console.warn(`⚠️  Client error detected, stopping retries`);
-        break;
-      }
-
-      // Nếu không phải lần cuối, đợi một chút trước khi retry (exponential backoff)
-      if (attempt < maxRetries) {
-        const delay = Math.min(1000 * Math.pow(2, attempt - 1), 5000); // 1s, 2s, 4s (max 5s)
-        await new Promise(resolve => setTimeout(resolve, delay));
-      }
-    }
-  }
-
-  console.error(`❌ Webhook failed after ${attempts} attempts:`, webhookUrl, lastError);
-  return { success: false, attempts, error: lastError };
 }
 
 module.exports = {

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '@/contexts/AuthContext'
 import { emailConfigAPI, transactionsAPI, WS_BASE_URL } from '@/lib/api'
@@ -9,7 +9,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { AppLayout } from '@/components/AppLayout'
-import WebhookLogPanel from '@/components/WebhookLogPanel'
 
 export default function Dashboard() {
   const { user, logout } = useAuth()
@@ -27,7 +26,12 @@ export default function Dashboard() {
     webhookUrl: '',
   })
   const wsRef = useRef(null)
-  const MAX_TRANSACTIONS = 20
+  const MAX_RECENT_TRANSACTIONS = 5
+  const [allTransactions, setAllTransactions] = useState([])
+  const [transactionsPage, setTransactionsPage] = useState(1)
+  const [transactionsLoading, setTransactionsLoading] = useState(false)
+  const [hasMoreTransactions, setHasMoreTransactions] = useState(true)
+  const transactionsContainerRef = useRef(null)
 
   useEffect(() => {
     loadData()
@@ -61,7 +65,7 @@ export default function Dashboard() {
                 return prev
               }
               const updated = [payload.data, ...prev]
-              return updated.slice(0, MAX_TRANSACTIONS)
+              return updated.slice(0, MAX_RECENT_TRANSACTIONS)
             })
           }
         } catch (error) {
@@ -116,12 +120,58 @@ export default function Dashboard() {
 
   const loadTransactions = async () => {
     try {
-      const response = await transactionsAPI.getAll({ limit: 20 })
-      setTransactions(response.transactions || [])
+      // Load 5 transactions mới nhất cho "Giao dịch mới nhất"
+      const recentResponse = await transactionsAPI.getAll({ limit: MAX_RECENT_TRANSACTIONS })
+      setTransactions(recentResponse.transactions || [])
+      
+      // Load trang đầu cho "Chi tiết giao dịch"
+      const allResponse = await transactionsAPI.getAll({ limit: 20, page: 1 })
+      setAllTransactions(allResponse.transactions || [])
+      setHasMoreTransactions((allResponse.transactions || []).length >= 20)
+      setTransactionsPage(1)
     } catch (error) {
       console.error('Error loading transactions:', error)
     }
   }
+
+  const loadMoreTransactions = useCallback(async () => {
+    if (transactionsLoading || !hasMoreTransactions) return
+    
+    setTransactionsLoading(true)
+    try {
+      const nextPage = transactionsPage + 1
+      const response = await transactionsAPI.getAll({ limit: 20, page: nextPage })
+      const newTransactions = response.transactions || []
+      
+      if (newTransactions.length > 0) {
+        setAllTransactions(prev => [...prev, ...newTransactions])
+        setTransactionsPage(nextPage)
+        setHasMoreTransactions(newTransactions.length >= 20)
+      } else {
+        setHasMoreTransactions(false)
+      }
+    } catch (error) {
+      console.error('Error loading more transactions:', error)
+    } finally {
+      setTransactionsLoading(false)
+    }
+  }, [transactionsPage, transactionsLoading, hasMoreTransactions])
+
+  useEffect(() => {
+    const container = transactionsContainerRef.current
+    if (!container) return
+
+    const handleScroll = () => {
+      const { scrollTop, scrollHeight, clientHeight } = container
+      // Load more khi scroll đến 80% cuối
+      if (scrollHeight - scrollTop <= clientHeight * 1.2) {
+        loadMoreTransactions()
+      }
+    }
+
+    container.addEventListener('scroll', handleScroll)
+    return () => container.removeEventListener('scroll', handleScroll)
+  }, [loadMoreTransactions])
 
   const resetForm = () => {
     setNewConfig({
@@ -285,7 +335,11 @@ export default function Dashboard() {
                           type="password"
                           placeholder="Nhập Gmail App Password"
                           value={newConfig.appPassword}
-                          onChange={(e) => setNewConfig({ ...newConfig, appPassword: e.target.value })}
+                          onChange={(e) => {
+                            // Tự động xóa tất cả dấu cách (Google thường hiển thị App Password với dấu cách)
+                            const cleanedValue = e.target.value.replace(/\s/g, '')
+                            setNewConfig({ ...newConfig, appPassword: cleanedValue })
+                          }}
                           required={formMode === 'create'}
                         />
                       </div>
@@ -440,17 +494,10 @@ export default function Dashboard() {
             </CardContent>
           </Card>
 
-          <WebhookLogPanel
-            className="lg:col-span-2"
-            title="Webhook gần đây"
-            description="Theo dõi trạng thái gửi webhook đã bắn tới hệ thống của bạn"
-            pageSize={10}
-            showUserColumn={false}
-          />
         </div>
 
         {/* All Transactions Table */}
-        {transactions.length > 0 && (
+        {allTransactions.length > 0 && (
           <Card className="mt-4 sm:mt-6 shadow-sm">
             <CardHeader>
               <CardTitle className="text-lg sm:text-xl">Chi tiết giao dịch</CardTitle>
@@ -459,12 +506,16 @@ export default function Dashboard() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="overflow-x-auto -mx-6 sm:mx-0">
+              <div 
+                ref={transactionsContainerRef}
+                className="overflow-x-auto overflow-y-auto -mx-6 sm:mx-0 max-h-[600px]"
+                style={{ scrollBehavior: 'smooth' }}
+              >
                 <div className="inline-block min-w-full align-middle">
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead className="text-xs sm:text-sm">Mã GD</TableHead>
+                        <TableHead className="text-xs sm:text-sm">Transaction ID</TableHead>
                         <TableHead className="text-xs sm:text-sm">Ngân hàng</TableHead>
                         <TableHead className="text-xs sm:text-sm">Số tiền</TableHead>
                         <TableHead className="text-xs sm:text-sm min-w-[200px]">Nội dung</TableHead>
@@ -472,7 +523,7 @@ export default function Dashboard() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {transactions.map((tx) => (
+                      {allTransactions.map((tx) => (
                         <TableRow key={tx._id} className="hover:bg-gray-50/50">
                           <TableCell className="font-mono text-xs sm:text-sm">
                             {tx.transactionId || '-'}
@@ -495,6 +546,16 @@ export default function Dashboard() {
                       ))}
                     </TableBody>
                   </Table>
+                  {transactionsLoading && (
+                    <div className="text-center py-4 text-gray-500">
+                      Đang tải thêm...
+                    </div>
+                  )}
+                  {!hasMoreTransactions && allTransactions.length > 0 && (
+                    <div className="text-center py-4 text-gray-500">
+                      Đã hiển thị tất cả giao dịch
+                    </div>
+                  )}
                 </div>
               </div>
             </CardContent>

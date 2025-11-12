@@ -158,8 +158,13 @@ class MultiUserEmailMonitor {
               monitor.updateResumeFrom(transaction.emailDate || transaction.detectedAt);
               await EmailConfig.markSynced(configId, transaction.emailDate || transaction.detectedAt || new Date());
               
-              // Gửi webhook nếu có cấu hình webhookUrl
-              if (config.webhookUrl) {
+              // Gửi webhook nếu có cấu hình webhookUrl VÀ description chứa PAYHOOK_xxx
+              const description = transaction.description || '';
+              const payhookOrderMatch = description.match(/PAYHOOK_(\d+)/i);
+              
+              if (config.webhookUrl && payhookOrderMatch) {
+                const orderId = payhookOrderMatch[1];
+                console.log(`🔍 [multiUserEmailMonitor] Transaction contains PAYHOOK_${orderId}, will send webhook for order ${orderId}`);
                 console.log('🔍 [multiUserEmailMonitor] About to send webhook for transaction:', transaction.transactionId);
                 try {
                   // Lấy thông tin user email
@@ -175,6 +180,7 @@ class MultiUserEmailMonitor {
                   const webhookPayload = {
                     event: 'transaction.detected',
                     transaction: serialized,
+                    orderId: orderId, // Thêm orderId vào payload
                     timestamp: new Date().toISOString(),
                   };
                   
@@ -185,11 +191,13 @@ class MultiUserEmailMonitor {
                     emailConfigEmail: config.email,
                     transactionDocId: saved?._id?.toString(),
                     transactionId: saved?.transactionId || transaction.transactionId,
+                    orderId: orderId, // Thêm orderId vào meta
                   };
                   
                   console.log('📤 [multiUserEmailMonitor] Calling sendWebhook with meta:', {
                     userId: meta.userId,
                     transactionId: meta.transactionId,
+                    orderId: meta.orderId,
                     webhookUrl: config.webhookUrl,
                   });
                   
@@ -200,7 +208,7 @@ class MultiUserEmailMonitor {
                     meta
                   );
                   if (webhookResult.success) {
-                    console.log(`✅ Webhook sent successfully for transaction: ${transaction.transactionId}`);
+                    console.log(`✅ Webhook sent successfully for transaction: ${transaction.transactionId} (Order: ${orderId})`);
                   } else {
                     console.warn(`⚠️  Webhook failed after ${webhookResult.attempts} attempts: ${webhookResult.error}`);
                   }
@@ -208,6 +216,8 @@ class MultiUserEmailMonitor {
                   console.error('❌ Error sending webhook:', webhookError.message);
                   // Không throw để không ảnh hưởng đến flow chính
                 }
+              } else if (config.webhookUrl && !payhookOrderMatch) {
+                console.log(`⏭️  [multiUserEmailMonitor] Transaction description does not contain PAYHOOK_xxx, skipping webhook. Description: "${description}"`);
               }
             } else if (exists) {
               console.log(`⏭️  Transaction already exists: ${transaction.transactionId}`);

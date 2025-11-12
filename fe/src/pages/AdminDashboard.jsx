@@ -370,7 +370,7 @@ export default function AdminDashboard() {
                     <TableHeader>
                       <TableRow>
                         <TableHead className="text-xs sm:text-sm">User</TableHead>
-                        <TableHead className="text-xs sm:text-sm">Mã GD</TableHead>
+                        <TableHead className="text-xs sm:text-sm">Transaction ID</TableHead>
                         <TableHead className="text-xs sm:text-sm">Ngân hàng</TableHead>
                         <TableHead className="text-xs sm:text-sm">Số tiền</TableHead>
                         <TableHead className="text-xs sm:text-sm min-w-[200px]">Nội dung</TableHead>

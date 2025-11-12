@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useMemo, useState } from 'react'
+import { Fragment, useEffect, useMemo, useState, useRef, useCallback } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Button } from '@/components/ui/button'
@@ -76,16 +76,9 @@ export default function WebhookLogPanel({
 
   const filtersKey = useMemo(() => JSON.stringify(buildFilters(filters)), [filters])
   const columnCount = showUserColumn ? 8 : 7
+  const refreshRef = useRef(null)
 
-  useEffect(() => {
-    setPage(1)
-  }, [filtersKey])
-
-  useEffect(() => {
-    fetchLogs()
-  }, [page, filtersKey, statusFilter, appliedSearch]) // eslint-disable-line react-hooks/exhaustive-deps
-
-  const fetchLogs = async () => {
+  const fetchLogs = useCallback(async () => {
     setLoading(true)
     try {
       const params = {
@@ -109,7 +102,27 @@ export default function WebhookLogPanel({
     } finally {
       setLoading(false)
     }
-  }
+  }, [page, pageSize, filters, statusFilter, appliedSearch])
+
+  useEffect(() => {
+    setPage(1)
+  }, [filtersKey])
+
+  useEffect(() => {
+    fetchLogs()
+  }, [fetchLogs])
+
+  // Expose refresh function để Dashboard có thể gọi khi nhận WebSocket event
+  useEffect(() => {
+    refreshRef.current = fetchLogs
+    window.webhookLogPanelRefresh = fetchLogs
+    
+    return () => {
+      if (window.webhookLogPanelRefresh === fetchLogs) {
+        delete window.webhookLogPanelRefresh
+      }
+    }
+  }, [fetchLogs])
 
   const handleRefresh = () => {
     fetchLogs()
@@ -181,7 +194,7 @@ export default function WebhookLogPanel({
                 <TableHead>Transaction ID</TableHead>
                 <TableHead>Trạng thái</TableHead>
                 <TableHead>Lần thử</TableHead>
-                <TableHead>Mã phản hồi</TableHead>
+                <TableHead>Status Code</TableHead>
                 <TableHead className="text-right">Chi tiết</TableHead>
               </TableRow>
             </TableHeader>
@@ -290,7 +303,7 @@ export default function WebhookLogPanel({
                                           <TableHead>Attempt</TableHead>
                                           <TableHead>Thời gian</TableHead>
                                           <TableHead>Kết thúc</TableHead>
-                                          <TableHead>Mã phản hồi</TableHead>
+                                          <TableHead>Status Code</TableHead>
                                           <TableHead>Kết quả</TableHead>
                                           <TableHead>Thời lượng</TableHead>
                                           <TableHead>Thông tin</TableHead>

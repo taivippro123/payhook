@@ -6,6 +6,8 @@ import {
   IconQrcode,
   IconLogout,
   IconGauge,
+  IconFileText,
+  IconBook,
 } from '@tabler/icons-react'
 import { motion } from 'motion/react'
 
@@ -34,6 +36,18 @@ export function AppSidebar({ open, setOpen }) {
       label: 'Tạo QR',
       icon: <IconQrcode size={18} className="text-neutral-500 dark:text-neutral-200" />,
       action: () => navigate('/qr'),
+    },
+    {
+      key: 'webhooks',
+      label: 'Webhook Logs',
+      icon: <IconFileText size={18} className="text-neutral-500 dark:text-neutral-200" />,
+      action: () => navigate('/webhooks'),
+    },
+    {
+      key: 'guide',
+      label: 'Hướng dẫn',
+      icon: <IconBook size={18} className="text-neutral-500 dark:text-neutral-200" />,
+      action: () => navigate('/guide'),
     },
   ]
 
