@@ -16,6 +16,88 @@ function toObjectId(id) {
 
 router.use(authenticate);
 
+/**
+ * @swagger
+ * /api/webhook-logs:
+ *   get:
+ *     summary: Lấy danh sách webhook logs
+ *     tags: [Webhook Logs]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *         description: Số trang
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 20
+ *         description: Số lượng bản ghi mỗi trang
+ *       - in: query
+ *         name: status
+ *         schema:
+ *           type: string
+ *           enum: [pending, retrying, success, failed]
+ *         description: Lọc theo trạng thái
+ *       - in: query
+ *         name: emailConfigId
+ *         schema:
+ *           type: string
+ *         description: Lọc theo email config ID
+ *       - in: query
+ *         name: userId
+ *         schema:
+ *           type: string
+ *         description: Lọc theo user ID (chỉ admin)
+ *       - in: query
+ *         name: transactionId
+ *         schema:
+ *           type: string
+ *         description: Tìm kiếm theo transaction ID
+ *       - in: query
+ *         name: webhookUrl
+ *         schema:
+ *           type: string
+ *         description: Tìm kiếm theo webhook URL
+ *       - in: query
+ *         name: search
+ *         schema:
+ *           type: string
+ *         description: Tìm kiếm theo transaction ID, URL, email
+ *     responses:
+ *       200:
+ *         description: Danh sách webhook logs
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 logs:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/WebhookLog'
+ *                 pagination:
+ *                   type: object
+ *                   properties:
+ *                     page:
+ *                       type: integer
+ *                     limit:
+ *                       type: integer
+ *                     total:
+ *                       type: integer
+ *                     totalPages:
+ *                       type: integer
+ *       401:
+ *         description: Unauthorized
+ *       500:
+ *         description: Server error
+ */
 router.get('/', async (req, res) => {
   try {
     const {
@@ -105,6 +187,40 @@ router.get('/', async (req, res) => {
   }
 });
 
+/**
+ * @swagger
+ * /api/webhook-logs/{id}:
+ *   get:
+ *     summary: Lấy chi tiết webhook log
+ *     tags: [Webhook Logs]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Webhook log ID
+ *     responses:
+ *       200:
+ *         description: Chi tiết webhook log
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 log:
+ *                   $ref: '#/components/schemas/WebhookLog'
+ *       404:
+ *         description: Webhook log không tồn tại
+ *       403:
+ *         description: Không có quyền xem log này
+ *       500:
+ *         description: Server error
+ */
 router.get('/:id', async (req, res) => {
   try {
     const log = await WebhookLog.findById(req.params.id);

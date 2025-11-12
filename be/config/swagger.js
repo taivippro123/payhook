@@ -158,6 +158,102 @@ const options = {
             },
           },
         },
+        WebhookLog: {
+          type: 'object',
+          properties: {
+            _id: {
+              type: 'string',
+              description: 'Webhook log ID',
+            },
+            webhookUrl: {
+              type: 'string',
+              format: 'uri',
+              description: 'Webhook URL được gọi',
+            },
+            userId: {
+              type: 'string',
+              description: 'User ID',
+            },
+            userEmail: {
+              type: 'string',
+              format: 'email',
+              description: 'Email của user',
+            },
+            emailConfigId: {
+              type: 'string',
+              description: 'Email config ID',
+            },
+            emailConfigEmail: {
+              type: 'string',
+              format: 'email',
+              description: 'Email của config',
+            },
+            transactionDocId: {
+              type: 'string',
+              description: 'Transaction document ID',
+            },
+            transactionId: {
+              type: 'string',
+              description: 'Transaction ID từ ngân hàng',
+            },
+            status: {
+              type: 'string',
+              enum: ['pending', 'retrying', 'success', 'failed'],
+              description: 'Trạng thái webhook',
+            },
+            attempts: {
+              type: 'array',
+              description: 'Danh sách các lần thử gửi webhook',
+              items: {
+                type: 'object',
+                properties: {
+                  attemptNumber: {
+                    type: 'integer',
+                  },
+                  success: {
+                    type: 'boolean',
+                  },
+                  statusCode: {
+                    type: 'integer',
+                  },
+                  responseBody: {
+                    type: 'object',
+                  },
+                  error: {
+                    type: 'string',
+                  },
+                  durationMs: {
+                    type: 'integer',
+                  },
+                  requestedAt: {
+                    type: 'string',
+                    format: 'date-time',
+                  },
+                  completedAt: {
+                    type: 'string',
+                    format: 'date-time',
+                  },
+                },
+              },
+            },
+            finalStatusCode: {
+              type: 'integer',
+              description: 'HTTP status code cuối cùng',
+            },
+            finalError: {
+              type: 'string',
+              description: 'Lỗi cuối cùng (nếu có)',
+            },
+            createdAt: {
+              type: 'string',
+              format: 'date-time',
+            },
+            updatedAt: {
+              type: 'string',
+              format: 'date-time',
+            },
+          },
+        },
       },
     },
     security: [

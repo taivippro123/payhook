@@ -57,34 +57,53 @@ class WebhookLog {
     transactionDocId,
     transactionId,
   }) {
-    const collection = await this.collection();
-    const now = new Date();
+    try {
+      console.log('🔍 [WebhookLog.create] Starting...', {
+        webhookUrl,
+        userId: toPlainString(userId),
+        transactionId,
+      });
 
-    const doc = {
-      webhookUrl,
-      payload,
-      userId: toObjectId(userId),
-      userEmail: userEmail || null,
-      emailConfigId: toObjectId(emailConfigId),
-      emailConfigEmail: emailConfigEmail || null,
-      transactionDocId: toObjectId(transactionDocId),
-      transactionId: transactionId || null,
-      status: 'pending',
-      totalAttempts: 0,
-      attempts: [],
-      lastError: null,
-      finalStatusCode: null,
-      createdAt: now,
-      updatedAt: now,
-      completedAt: null,
-      lastAttemptAt: null,
-    };
+      const collection = await this.collection();
+      console.log('✅ [WebhookLog.create] Got collection');
+      
+      const now = new Date();
 
-    const result = await collection.insertOne(doc);
-    return {
-      ...doc,
-      _id: result.insertedId,
-    };
+      const doc = {
+        webhookUrl,
+        payload,
+        userId: toObjectId(userId),
+        userEmail: userEmail || null,
+        emailConfigId: toObjectId(emailConfigId),
+        emailConfigEmail: emailConfigEmail || null,
+        transactionDocId: toObjectId(transactionDocId),
+        transactionId: transactionId || null,
+        status: 'pending',
+        totalAttempts: 0,
+        attempts: [],
+        lastError: null,
+        finalStatusCode: null,
+        createdAt: now,
+        updatedAt: now,
+        completedAt: null,
+        lastAttemptAt: null,
+      };
+
+      console.log('📝 [WebhookLog.create] Inserting document...');
+      const result = await collection.insertOne(doc);
+      console.log(
+        `📦 Created webhook log ${result.insertedId.toString()} for user ${toPlainString(userId)} → ${webhookUrl}`
+      );
+      
+      return {
+        ...doc,
+        _id: result.insertedId,
+      };
+    } catch (error) {
+      console.error('❌ [WebhookLog.create] Error:', error.message);
+      console.error('❌ [WebhookLog.create] Stack:', error.stack);
+      throw error;
+    }
   }
 
   static async appendAttempt(logId, attemptData = {}) {
@@ -118,6 +137,9 @@ class WebhookLog {
         },
       }
     );
+    console.log(
+      `📨 Webhook log ${_id.toString()} recorded attempt #${attempt.attemptNumber} (${attempt.success ? 'success' : 'failed'})`
+    );
   }
 
   static async markCompleted(logId, { success, finalStatusCode, errorMessage }) {
@@ -137,6 +159,9 @@ class WebhookLog {
           lastError: success ? null : errorMessage || null,
         },
       }
+    );
+    console.log(
+      `✅ Webhook log ${_id.toString()} completed with status ${success ? 'success' : 'failed'}`
     );
   }
 

@@ -1,6 +1,7 @@
 const EmailMonitor = require('./emailMonitor');
 const EmailConfig = require('../models/emailConfig');
 const Transaction = require('../models/transaction');
+const User = require('../models/user');
 const { broadcastTransaction } = require('./wsHub');
 const { sendWebhook } = require('./webhookSender');
 
@@ -159,23 +160,44 @@ class MultiUserEmailMonitor {
               
               // Gửi webhook nếu có cấu hình webhookUrl
               if (config.webhookUrl) {
+                console.log('🔍 [multiUserEmailMonitor] About to send webhook for transaction:', transaction.transactionId);
                 try {
+                  // Lấy thông tin user email
+                  let userEmail = null;
+                  try {
+                    const userDoc = await User.findById(userId);
+                    userEmail = userDoc?.email || null;
+                    console.log('✅ [multiUserEmailMonitor] Fetched user email:', userEmail);
+                  } catch (userErr) {
+                    console.warn('⚠️  Could not fetch user email:', userErr.message);
+                  }
+
                   const webhookPayload = {
                     event: 'transaction.detected',
                     transaction: serialized,
                     timestamp: new Date().toISOString(),
                   };
+                  
+                  const meta = {
+                    userId,
+                    userEmail,
+                    emailConfigId: configId,
+                    emailConfigEmail: config.email,
+                    transactionDocId: saved?._id?.toString(),
+                    transactionId: saved?.transactionId || transaction.transactionId,
+                  };
+                  
+                  console.log('📤 [multiUserEmailMonitor] Calling sendWebhook with meta:', {
+                    userId: meta.userId,
+                    transactionId: meta.transactionId,
+                    webhookUrl: config.webhookUrl,
+                  });
+                  
                   const webhookResult = await sendWebhook(
                     config.webhookUrl,
                     webhookPayload,
                     3,
-                    {
-                      userId,
-                      emailConfigId: configId,
-                      emailConfigEmail: config.email,
-                      transactionDocId: saved?._id?.toString(),
-                      transactionId: saved?.transactionId || transaction.transactionId,
-                    }
+                    meta
                   );
                   if (webhookResult.success) {
                     console.log(`✅ Webhook sent successfully for transaction: ${transaction.transactionId}`);

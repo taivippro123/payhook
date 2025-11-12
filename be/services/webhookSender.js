@@ -35,9 +35,10 @@ function safeString(value) {
 
 async function safeLog(fn) {
   try {
-    await fn();
+    return await fn();
   } catch (error) {
-    console.error('❌ WebhookLog persistence error:', error.message);
+    console.error('❌ WebhookLog persistence error:', error.message, error.stack);
+    return null;
   }
 }
 
@@ -59,7 +60,14 @@ async function sendWebhook(webhookUrl, payload, maxRetries = 3, meta = {}) {
   let attempts = 0;
   let logRecord = null;
 
-  await safeLog(async () => {
+  console.log('🔍 [sendWebhook] About to create webhook log', {
+    webhookUrl,
+    hasMeta: !!meta,
+    userId: meta?.userId,
+    transactionId: meta?.transactionId,
+  });
+
+  try {
     logRecord = await WebhookLog.create({
       webhookUrl,
       payload: safeClone(payload),
@@ -70,7 +78,16 @@ async function sendWebhook(webhookUrl, payload, maxRetries = 3, meta = {}) {
       transactionDocId: meta.transactionDocId,
       transactionId: meta.transactionId,
     });
-  });
+    console.log('✅ [sendWebhook] Webhook log created:', logRecord?._id?.toString());
+    
+    if (!logRecord || !logRecord._id) {
+      console.warn('⚠️  Webhook log was not created (returned null/undefined) for', webhookUrl);
+    }
+  } catch (logError) {
+    console.error('❌ [sendWebhook] Failed to create webhook log:', logError.message);
+    console.error('❌ [sendWebhook] Stack:', logError.stack);
+    // Tiếp tục gửi webhook dù không log được
+  }
 
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     attempts = attempt;
