@@ -7,7 +7,7 @@ class EmailConfig {
    * @param {Object} configData - { userId, email, appPassword, scanInterval }
    * @returns {Promise<Object>}
    */
-  static async create({ userId, email, appPassword, scanInterval = 30000 }) {
+  static async create({ userId, email, appPassword, scanInterval = 30000, webhookUrl }) {
     const db = await getDB();
     const configs = db.collection('email_configs');
 
@@ -25,6 +25,7 @@ class EmailConfig {
       email,
       appPassword, // Lưu plain text (có thể encrypt sau nếu cần)
       scanInterval: parseInt(scanInterval, 10),
+      webhookUrl: webhookUrl || null,
       isActive: true,
       lastSyncedAt: null,
       createdAt: new Date(),
@@ -88,6 +89,11 @@ class EmailConfig {
       ...updates,
       updatedAt: new Date(),
     };
+    
+    // Xử lý webhookUrl: nếu là empty string thì set null
+    if (updateData.webhookUrl === '') {
+      updateData.webhookUrl = null;
+    }
 
     const result = await configs.findOneAndUpdate(
       { _id: new ObjectId(configId) },

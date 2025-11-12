@@ -108,7 +108,7 @@ router.get('/', async (req, res) => {
  */
 router.post('/', async (req, res) => {
   try {
-    const { email, appPassword, scanInterval } = req.body;
+    const { email, appPassword, scanInterval, webhookUrl } = req.body;
 
     if (!email || !appPassword) {
       return res.status(400).json({
@@ -121,6 +121,7 @@ router.post('/', async (req, res) => {
       email,
       appPassword,
       scanInterval: scanInterval || 30000,
+      webhookUrl: webhookUrl || null,
     });
 
     // Không trả về appPassword
@@ -240,13 +241,14 @@ router.put('/:id', async (req, res) => {
       return res.status(403).json({ error: 'Access denied' });
     }
 
-    const { email, appPassword, scanInterval, isActive } = req.body;
+    const { email, appPassword, scanInterval, isActive, webhookUrl } = req.body;
     const updates = {};
 
     if (email !== undefined) updates.email = email;
     if (appPassword !== undefined) updates.appPassword = appPassword;
     if (scanInterval !== undefined) updates.scanInterval = parseInt(scanInterval, 10);
     if (isActive !== undefined) updates.isActive = Boolean(isActive);
+    if (webhookUrl !== undefined) updates.webhookUrl = webhookUrl || null;
 
     const updated = await EmailConfig.update(req.params.id, updates);
 

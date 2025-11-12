@@ -2,6 +2,7 @@ const EmailMonitor = require('./emailMonitor');
 const EmailConfig = require('../models/emailConfig');
 const Transaction = require('../models/transaction');
 const { broadcastTransaction } = require('./wsHub');
+const { sendWebhook } = require('./webhookSender');
 
 const DEFAULT_RESUME_LOOKBACK_MS = Number(process.env.EMAIL_MONITOR_LOOKBACK_MS) || 30 * 60 * 1000; // 30 phút
 
@@ -155,6 +156,26 @@ class MultiUserEmailMonitor {
               console.log(`💾 Saved transaction to DB: ${transaction.transactionId}`);
               monitor.updateResumeFrom(transaction.emailDate || transaction.detectedAt);
               await EmailConfig.markSynced(configId, transaction.emailDate || transaction.detectedAt || new Date());
+              
+              // Gửi webhook nếu có cấu hình webhookUrl
+              if (config.webhookUrl) {
+                try {
+                  const webhookPayload = {
+                    event: 'transaction.detected',
+                    transaction: serialized,
+                    timestamp: new Date().toISOString(),
+                  };
+                  const webhookResult = await sendWebhook(config.webhookUrl, webhookPayload, 3);
+                  if (webhookResult.success) {
+                    console.log(`✅ Webhook sent successfully for transaction: ${transaction.transactionId}`);
+                  } else {
+                    console.warn(`⚠️  Webhook failed after ${webhookResult.attempts} attempts: ${webhookResult.error}`);
+                  }
+                } catch (webhookError) {
+                  console.error('❌ Error sending webhook:', webhookError.message);
+                  // Không throw để không ảnh hưởng đến flow chính
+                }
+              }
             } else if (exists) {
               console.log(`⏭️  Transaction already exists: ${transaction.transactionId}`);
             }
