@@ -131,6 +131,22 @@ class Transaction {
     const query = userId ? { userId: new ObjectId(userId) } : {};
     return await transactions.countDocuments(query);
   }
+
+  /**
+   * Lấy transaction mới nhất theo emailConfigId
+   * @param {string} emailConfigId
+   * @returns {Promise<Object|null>}
+   */
+  static async findLatestByEmailConfigId(emailConfigId) {
+    const db = await getDB();
+    const transactions = db.collection('transactions');
+
+    return await transactions
+      .find({ emailConfigId: new ObjectId(emailConfigId) })
+      .sort({ detectedAt: -1, createdAt: -1 })
+      .limit(1)
+      .next();
+  }
 }
 
 module.exports = Transaction;

@@ -26,6 +26,7 @@ class EmailConfig {
       appPassword, // Lưu plain text (có thể encrypt sau nếu cần)
       scanInterval: parseInt(scanInterval, 10),
       isActive: true,
+      lastSyncedAt: null,
       createdAt: new Date(),
       updatedAt: new Date(),
     };
@@ -95,6 +96,26 @@ class EmailConfig {
     );
 
     return result.value;
+  }
+
+  static async markSynced(configId, syncedAt = new Date()) {
+    const db = await getDB();
+    const configs = db.collection('email_configs');
+
+    let resolvedDate = syncedAt instanceof Date ? syncedAt : new Date(syncedAt);
+    if (Number.isNaN(resolvedDate.getTime())) {
+      resolvedDate = new Date();
+    }
+
+    await configs.updateOne(
+      { _id: new ObjectId(configId) },
+      {
+        $set: {
+          lastSyncedAt: resolvedDate,
+          updatedAt: new Date(),
+        },
+      }
+    );
   }
 
   /**

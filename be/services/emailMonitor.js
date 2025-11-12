@@ -5,10 +5,16 @@ class EmailMonitor {
   constructor(email, appPassword, options = {}) {
     this.email = email;
     this.appPassword = appPassword;
-    this.startTime = new Date(); // Thời điểm app khởi động
+    const now = Date.now();
+    const resumeFrom = options.resumeFrom
+      ? new Date(options.resumeFrom)
+      : new Date(now - (options.lookbackMs || 5 * 60 * 1000)); // mặc định lùi 5 phút
+    this.resumeFrom = Number.isNaN(resumeFrom.getTime()) ? new Date(now - 5 * 60 * 1000) : resumeFrom;
+    this.startTime = new Date(now); // Thời điểm app khởi động
     this.isRunning = false;
     this.intervalId = null;
     this.scanInterval = options.scanInterval || Number(process.env.SCAN_INTERVAL_MS) || 1000; // default 1s
+    this.batchSize = options.batchSize || 50;
     this.isScanning = false; // Flag để tránh scan đồng thời 
     this.onTransactionCallback = options.onTransaction || null;
     this.processedUids = new Set(); // Lưu UID đã xử lý để tránh duplicate
@@ -27,6 +33,7 @@ class EmailMonitor {
     console.log(`🚀 Starting email monitor for: ${this.email}`);
     console.log(`⏰ Monitoring emails since: ${this.startTime.toISOString()}`);
     console.log(`🔄 Scan interval: ${this.scanInterval / 1000} seconds`);
+    console.log(`📬 Resume from: ${this.resumeFrom.toISOString()}`);
 
     // Chạy ngay lần đầu
     this.scan();
@@ -65,9 +72,9 @@ class EmailMonitor {
     this.isScanning = true;
     try {
       const emails = await scanGmail(this.email, this.appPassword, {
-        limit: 10, // đủ để phát hiện nhanh
+        limit: this.batchSize, // đủ để phát hiện nhanh
         searchCriteria: ['UNSEEN'],
-        sinceDate: this.startTime,
+        sinceDate: this.resumeFrom,
       });
 
       if (emails.length === 0) {
@@ -107,6 +114,8 @@ class EmailMonitor {
             console.log('\n✅ New transaction detected:');
             console.log(JSON.stringify(transaction, null, 2));
 
+            this.updateResumeFrom(emailData.date);
+
             // Gọi callback nếu có
             if (this.onTransactionCallback) {
               try {
@@ -140,7 +149,21 @@ class EmailMonitor {
       startTime: this.startTime.toISOString(),
       scanInterval: this.scanInterval,
       processedCount: this.processedUids.size,
+      resumeFrom: this.resumeFrom.toISOString(),
     };
+  }
+
+  updateResumeFrom(date) {
+    const fallback = new Date();
+    const parsedDate = date ? new Date(date) : fallback;
+    if (Number.isNaN(parsedDate.getTime())) {
+      this.resumeFrom = fallback;
+      return;
+    }
+    if (!this.resumeFrom || Number.isNaN(this.resumeFrom.getTime()) || parsedDate > this.resumeFrom) {
+      // Lùi 5 giây để đảm bảo không bỏ sót email có timestamp bằng nhau
+      this.resumeFrom = new Date(parsedDate.getTime() + 5000);
+    }
   }
 }
 

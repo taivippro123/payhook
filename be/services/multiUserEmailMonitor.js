@@ -3,6 +3,8 @@ const EmailConfig = require('../models/emailConfig');
 const Transaction = require('../models/transaction');
 const { broadcastTransaction } = require('./wsHub');
 
+const DEFAULT_RESUME_LOOKBACK_MS = Number(process.env.EMAIL_MONITOR_LOOKBACK_MS) || 30 * 60 * 1000; // 30 phút
+
 function serializeTransaction(tx) {
   if (!tx) return null;
   const { raw, ...rest } = tx;
@@ -117,8 +119,23 @@ class MultiUserEmailMonitor {
       const configId = config._id.toString();
       const userId = config.userId.toString();
 
+      const lastSyncedAt = config.lastSyncedAt ? new Date(config.lastSyncedAt) : null;
+      const latestTransaction = await Transaction.findLatestByEmailConfigId(configId);
+
+      let resumeFrom = lastSyncedAt
+        || (latestTransaction
+          ? new Date(latestTransaction.detectedAt || latestTransaction.createdAt || Date.now())
+          : null);
+
+      if (!resumeFrom || Number.isNaN(resumeFrom.getTime())) {
+        resumeFrom = new Date(Date.now() - DEFAULT_RESUME_LOOKBACK_MS);
+      }
+
       const monitor = new EmailMonitor(config.email, config.appPassword, {
         scanInterval: config.scanInterval || Number(process.env.SCAN_INTERVAL_MS) || 1000,
+        resumeFrom,
+        lookbackMs: DEFAULT_RESUME_LOOKBACK_MS,
+        batchSize: Math.max(20, Math.min(100, Math.floor((config.scanInterval || 1000) / 100))),
         onTransaction: async (transaction) => {
           // Lưu transaction vào DB
           try {
@@ -136,6 +153,8 @@ class MultiUserEmailMonitor {
                 broadcastTransaction(serialized, userId);
               }
               console.log(`💾 Saved transaction to DB: ${transaction.transactionId}`);
+              monitor.updateResumeFrom(transaction.emailDate || transaction.detectedAt);
+              await EmailConfig.markSynced(configId, transaction.emailDate || transaction.detectedAt || new Date());
             } else if (exists) {
               console.log(`⏭️  Transaction already exists: ${transaction.transactionId}`);
             }
