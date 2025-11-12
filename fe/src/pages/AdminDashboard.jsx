@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Input } from '@/components/ui/input'
 import { AppLayout } from '@/components/AppLayout'
+import WebhookLogPanel from '@/components/WebhookLogPanel'
 
 export default function AdminDashboard() {
   const { user, logout } = useAuth()
@@ -338,6 +339,19 @@ export default function AdminDashboard() {
               )}
             </CardContent>
           </Card>
+
+          <WebhookLogPanel
+            className="lg:col-span-2"
+            title="Webhook gần đây"
+            description={
+              selectedUserId
+                ? `Log webhook dành cho user: ${getUsernameById(selectedUserId)}`
+                : 'Tất cả webhook đã gửi trong hệ thống'
+            }
+            filters={{ userId: selectedUserId || undefined }}
+            pageSize={15}
+            showUserColumn
+          />
         </div>
 
         {/* All Transactions Table */}

@@ -86,6 +86,17 @@ export const transactionsAPI = {
   },
 }
 
+export const webhookLogsAPI = {
+  list: async (params = {}) => {
+    const response = await api.get('/api/webhook-logs', { params })
+    return response.data
+  },
+  getById: async (id) => {
+    const response = await api.get(`/api/webhook-logs/${id}`)
+    return response.data
+  },
+}
+
 // Users API
 export const usersAPI = {
   getAll: async (params = {}) => {

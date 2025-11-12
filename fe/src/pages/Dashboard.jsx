@@ -9,6 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { AppLayout } from '@/components/AppLayout'
+import WebhookLogPanel from '@/components/WebhookLogPanel'
 
 export default function Dashboard() {
   const { user, logout } = useAuth()
@@ -438,6 +439,14 @@ export default function Dashboard() {
               )}
             </CardContent>
           </Card>
+
+          <WebhookLogPanel
+            className="lg:col-span-2"
+            title="Webhook gần đây"
+            description="Theo dõi trạng thái gửi webhook đã bắn tới hệ thống của bạn"
+            pageSize={10}
+            showUserColumn={false}
+          />
         </div>
 
         {/* All Transactions Table */}

@@ -54,12 +54,14 @@ const emailConfigRoutes = require('./routes/emailConfigs');
 const transactionRoutes = require('./routes/transactions');
 const userRoutes = require('./routes/users');
 const qrRoutes = require('./routes/qr');
+const webhookLogRoutes = require('./routes/webhookLogs');
 
 app.use('/api/auth', authRoutes);
 app.use('/api/email-configs', emailConfigRoutes);
 app.use('/api/transactions', transactionRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/qr', qrRoutes);
+app.use('/api/webhook-logs', webhookLogRoutes);
 
 // Swagger documentation
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {

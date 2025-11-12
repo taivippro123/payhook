@@ -165,7 +165,18 @@ class MultiUserEmailMonitor {
                     transaction: serialized,
                     timestamp: new Date().toISOString(),
                   };
-                  const webhookResult = await sendWebhook(config.webhookUrl, webhookPayload, 3);
+                  const webhookResult = await sendWebhook(
+                    config.webhookUrl,
+                    webhookPayload,
+                    3,
+                    {
+                      userId,
+                      emailConfigId: configId,
+                      emailConfigEmail: config.email,
+                      transactionDocId: saved?._id?.toString(),
+                      transactionId: saved?.transactionId || transaction.transactionId,
+                    }
+                  );
                   if (webhookResult.success) {
                     console.log(`✅ Webhook sent successfully for transaction: ${transaction.transactionId}`);
                   } else {
