@@ -13,8 +13,8 @@ const options = {
     },
     servers: [
       {
-        url: `http://localhost:${process.env.PORT || 3000}`,
-        description: 'Development server',
+        url: process.env.SWAGGER_BASE_URL || `http://localhost:${process.env.PORT || 3000}`,
+        description: process.env.SWAGGER_BASE_URL ? 'Deployed server' : 'Development server',
       },
     ],
     components: {
