@@ -82,30 +82,63 @@ class EmailConfig {
    * @returns {Promise<Object>}
    */
   static async update(configId, updates) {
-    const db = await getDB();
-    const configs = db.collection('email_configs');
-    
-    const updateData = {
-      ...updates,
-      updatedAt: new Date(),
-    };
-    
-    // Xử lý webhookUrl: nếu là empty string thì set null
-    if (updateData.webhookUrl === '') {
-      updateData.webhookUrl = null;
+    try {
+      const db = await getDB();
+      const configs = db.collection('email_configs');
+      
+      // Validate ObjectId
+      let objectId;
+      try {
+        objectId = new ObjectId(configId);
+      } catch (idError) {
+        console.error(`❌ Invalid ObjectId: ${configId}`, idError);
+        throw new Error(`Invalid config ID: ${configId}`);
+      }
+      
+      const updateData = {
+        ...updates,
+        updatedAt: new Date(),
+      };
+      
+      // Xử lý webhookUrl: nếu là empty string thì set null
+      if (updateData.webhookUrl === '') {
+        updateData.webhookUrl = null;
+      }
+
+      console.log(`🔄 Updating config ${configId} with data:`, { ...updateData, appPassword: updateData.appPassword ? '[REDACTED]' : undefined });
+
+      // Dùng updateOne để update, sau đó findOne để lấy document mới
+      const updateResult = await configs.updateOne(
+        { _id: objectId },
+        { $set: updateData }
+      );
+
+      console.log(`🔍 updateOne result:`, {
+        matchedCount: updateResult.matchedCount,
+        modifiedCount: updateResult.modifiedCount,
+        acknowledged: updateResult.acknowledged,
+      });
+
+      // Kiểm tra xem có document nào được match không
+      if (updateResult.matchedCount === 0) {
+        console.error(`❌ Config ${configId} not found (matchedCount: 0)`);
+        throw new Error('Email config not found or update failed');
+      }
+
+      // Lấy document sau khi update
+      const updatedConfig = await configs.findOne({ _id: objectId });
+
+      if (!updatedConfig) {
+        console.error(`❌ Config ${configId} not found after update`);
+        throw new Error('Email config not found or update failed');
+      }
+
+      console.log(`✅ Config ${configId} updated successfully`);
+      return updatedConfig;
+    } catch (error) {
+      console.error(`❌ Error updating config ${configId}:`, error.message);
+      throw error;
     }
-
-    const result = await configs.findOneAndUpdate(
-      { _id: new ObjectId(configId) },
-      { $set: updateData },
-      { returnDocument: 'after' }
-    );
-
-    if (!result.value) {
-      throw new Error('Email config not found or update failed');
-    }
-
-    return result.value;
   }
 
   static async markSynced(configId, syncedAt = new Date()) {
