@@ -262,6 +262,10 @@ router.put('/:id', async (req, res) => {
 
     const updated = await EmailConfig.update(req.params.id, updates);
 
+    if (!updated) {
+      return res.status(404).json({ error: 'Email config not found or update failed' });
+    }
+
     // Không trả về appPassword
     const { appPassword: _, ...safeConfig } = updated;
 

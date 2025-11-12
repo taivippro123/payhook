@@ -101,6 +101,10 @@ class EmailConfig {
       { returnDocument: 'after' }
     );
 
+    if (!result.value) {
+      throw new Error('Email config not found or update failed');
+    }
+
     return result.value;
   }
 

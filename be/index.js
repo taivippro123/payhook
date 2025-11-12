@@ -17,13 +17,25 @@ require('dotenv').config();
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// CORS configuration
-app.use(cors({
-  origin: process.env.FRONTEND_URL,
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
-}));
+// CORS configuration - different policies for different endpoints
+app.use((req, res, next) => {
+  // Public QR endpoint - allow all origins
+  if (req.path.startsWith('/api/qr')) {
+    return cors({
+      origin: '*', // Allow all origins for QR endpoint
+      methods: ['GET', 'OPTIONS'],
+      allowedHeaders: ['Content-Type'],
+    })(req, res, next);
+  }
+  
+  // Other endpoints - restricted to frontend URL
+  return cors({
+    origin: process.env.FRONTEND_URL,
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+  })(req, res, next);
+});
 
 app.use(express.json());
 
