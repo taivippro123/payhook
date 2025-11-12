@@ -51,7 +51,18 @@ async function safeLog(fn) {
  * @returns {Promise<{success: boolean, attempts: number, statusCode?: number, error?: string, logId?: string}>}
  */
 async function sendWebhook(webhookUrl, payload, maxRetries = 3, meta = {}) {
+  console.log('🚀 [sendWebhook] FUNCTION CALLED - Version with logging enabled');
+  console.log('🚀 [sendWebhook] Parameters:', {
+    webhookUrl,
+    hasPayload: !!payload,
+    maxRetries,
+    hasMeta: !!meta,
+    userId: meta?.userId,
+    transactionId: meta?.transactionId,
+  });
+
   if (!webhookUrl) {
+    console.warn('⚠️ [sendWebhook] No webhook URL provided');
     return { success: false, attempts: 0, error: 'Webhook URL is not configured' };
   }
 
