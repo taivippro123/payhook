@@ -87,6 +87,11 @@ router.get('/', async (req, res) => {
  *                 default: 30000
  *                 description: Scan interval in milliseconds
  *                 example: 30000
+ *               webhookUrl:
+ *                 type: string
+ *                 format: uri
+ *                 nullable: true
+ *                 description: Webhook URL để nhận thông báo giao dịch (tùy chọn)
  *     responses:
  *       201:
  *         description: Email config created
@@ -220,6 +225,11 @@ router.get('/:id', async (req, res) => {
  *                 type: integer
  *               isActive:
  *                 type: boolean
+ *               webhookUrl:
+ *                 type: string
+ *                 format: uri
+ *                 nullable: true
+ *                 description: Webhook URL để nhận thông báo giao dịch (tùy chọn)
  *     responses:
  *       200:
  *         description: Email config updated

@@ -17,10 +17,13 @@ export default function Dashboard() {
   const [transactions, setTransactions] = useState([])
   const [loading, setLoading] = useState(false)
   const [showAddConfig, setShowAddConfig] = useState(false)
+  const [formMode, setFormMode] = useState('create') // 'create' | 'edit'
+  const [editingConfigId, setEditingConfigId] = useState(null)
   const [newConfig, setNewConfig] = useState({
     email: '',
     appPassword: '',
     scanInterval: Number(import.meta.env.VITE_SCAN_INTERVAL_MS) || 1000,
+    webhookUrl: '',
   })
   const wsRef = useRef(null)
   const MAX_TRANSACTIONS = 20
@@ -119,20 +122,66 @@ export default function Dashboard() {
     }
   }
 
-  const handleAddConfig = async (e) => {
+  const resetForm = () => {
+    setNewConfig({
+      email: '',
+      appPassword: '',
+      scanInterval: Number(import.meta.env.VITE_SCAN_INTERVAL_MS) || 1000,
+      webhookUrl: '',
+    })
+    setFormMode('create')
+    setEditingConfigId(null)
+    setShowAddConfig(false)
+  }
+
+  const handleSubmitConfig = async (e) => {
     e.preventDefault()
+    const payload = {
+      email: newConfig.email.trim(),
+      scanInterval: Number(newConfig.scanInterval),
+      webhookUrl: newConfig.webhookUrl?.trim() || null,
+    }
+
+    if (Number.isNaN(payload.scanInterval) || payload.scanInterval <= 0) {
+      alert('Scan interval phải lớn hơn 0')
+      return
+    }
+
     try {
-      await emailConfigAPI.create(newConfig)
-      setNewConfig({
-        email: '',
-        appPassword: '',
-        scanInterval: Number(import.meta.env.VITE_SCAN_INTERVAL_MS) || 1000,
-      })
-      setShowAddConfig(false)
+      if (formMode === 'create') {
+        if (!newConfig.appPassword.trim()) {
+          alert('Vui lòng nhập App Password')
+          return
+        }
+        await emailConfigAPI.create({
+          ...payload,
+          appPassword: newConfig.appPassword,
+        })
+      } else if (editingConfigId) {
+        const updatePayload = { ...payload }
+        if (newConfig.appPassword.trim()) {
+          updatePayload.appPassword = newConfig.appPassword
+        }
+        await emailConfigAPI.update(editingConfigId, updatePayload)
+      }
+
+      resetForm()
       await loadConfigs()
     } catch (error) {
-      alert(error.response?.data?.error || 'Lỗi khi thêm cấu hình')
+      alert(error.response?.data?.error || 'Lỗi khi lưu cấu hình')
     }
+  }
+
+  const handleEditConfig = (config) => {
+    setFormMode('edit')
+    setEditingConfigId(config._id || config.id)
+    setNewConfig({
+      email: config.email || '',
+      appPassword: '',
+      scanInterval: config.scanInterval || Number(import.meta.env.VITE_SCAN_INTERVAL_MS) || 1000,
+      webhookUrl: config.webhookUrl || '',
+    })
+    setShowAddConfig(true)
   }
 
   const handleToggleConfig = async (config) => {
@@ -149,6 +198,9 @@ export default function Dashboard() {
     if (!confirm('Bạn có chắc muốn xóa cấu hình này?')) return
     try {
       await emailConfigAPI.delete(id)
+      if (editingConfigId === id) {
+        resetForm()
+      }
       await loadConfigs()
     } catch (error) {
       alert(error.response?.data?.error || 'Lỗi khi xóa')
@@ -187,9 +239,17 @@ export default function Dashboard() {
                 <Button 
                   size="sm"
                   className="w-full sm:w-auto shrink-0"
-                  onClick={() => setShowAddConfig(!showAddConfig)}
+                  onClick={() => {
+                    if (showAddConfig) {
+                      resetForm()
+                    } else {
+                      setFormMode('create')
+                      setEditingConfigId(null)
+                      setShowAddConfig(true)
+                    }
+                  }}
                 >
-                  {showAddConfig ? 'Hủy' : '+ Thêm mới'}
+                  {showAddConfig ? 'Đóng' : '+ Thêm mới'}
                 </Button>
               </div>
             </CardHeader>
@@ -197,7 +257,17 @@ export default function Dashboard() {
               {showAddConfig && (
                 <Card className="bg-gray-50/50 border-2 border-dashed border-gray-300">
                   <CardContent className="pt-6">
-                    <form onSubmit={handleAddConfig} className="space-y-4">
+                    <form onSubmit={handleSubmitConfig} className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <h4 className="text-sm font-semibold">
+                          {formMode === 'create' ? 'Thêm cấu hình mới' : 'Cập nhật cấu hình'}
+                        </h4>
+                        {formMode === 'edit' && (
+                          <span className="text-xs text-gray-500">
+                            Để trống App Password nếu không muốn thay đổi
+                          </span>
+                        )}
+                      </div>
                       <div className="space-y-2">
                         <Label>Email</Label>
                         <Input
@@ -215,7 +285,7 @@ export default function Dashboard() {
                           placeholder="Nhập Gmail App Password"
                           value={newConfig.appPassword}
                           onChange={(e) => setNewConfig({ ...newConfig, appPassword: e.target.value })}
-                          required
+                          required={formMode === 'create'}
                         />
                       </div>
                       <div className="space-y-2">
@@ -227,7 +297,28 @@ export default function Dashboard() {
                           required
                         />
                       </div>
-                      <Button type="submit" className="w-full">Thêm cấu hình</Button>
+                      <div className="space-y-2">
+                        <Label>Webhook URL (tùy chọn)</Label>
+                        <Input
+                          type="url"
+                          placeholder="https://your-domain.com/webhook/payhook"
+                          value={newConfig.webhookUrl}
+                          onChange={(e) => setNewConfig({ ...newConfig, webhookUrl: e.target.value })}
+                        />
+                      </div>
+                      <div className="flex flex-col sm:flex-row gap-2">
+                        <Button type="submit" className="w-full sm:flex-1">
+                          {formMode === 'create' ? 'Thêm cấu hình' : 'Cập nhật cấu hình'}
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className="w-full sm:w-auto"
+                          onClick={resetForm}
+                        >
+                          Hủy
+                        </Button>
+                      </div>
                     </form>
                   </CardContent>
                 </Card>
@@ -252,10 +343,32 @@ export default function Dashboard() {
                               </Badge>
                             </div>
                             <p className="text-xs sm:text-sm text-gray-600">
-                              Quét mỗi {config.scanInterval / 1000}s
+                              Quét mỗi {Math.round(config.scanInterval / 1000)}s
+                            </p>
+                            <p className="text-xs text-gray-500 break-all mt-1">
+                              Webhook: {config.webhookUrl ? (
+                                <a
+                                  href={config.webhookUrl}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-blue-600 hover:underline"
+                                >
+                                  {config.webhookUrl}
+                                </a>
+                              ) : (
+                                <span className="italic text-gray-400">Chưa cấu hình</span>
+                              )}
                             </p>
                           </div>
                           <div className="flex gap-2 shrink-0">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="text-xs sm:text-sm"
+                              onClick={() => handleEditConfig(config)}
+                            >
+                              Sửa
+                            </Button>
                             <Button
                               variant="outline"
                               size="sm"

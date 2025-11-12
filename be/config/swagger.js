@@ -74,6 +74,12 @@ const options = {
               description: 'Scan interval in milliseconds',
               default: 30000,
             },
+            webhookUrl: {
+              type: 'string',
+              format: 'uri',
+              nullable: true,
+              description: 'Optional webhook endpoint to receive transaction notifications',
+            },
             isActive: {
               type: 'boolean',
               description: 'Whether monitoring is active',
