@@ -4,6 +4,23 @@ const { authenticate } = require('../middleware/auth');
 
 const router = express.Router();
 
+// Helper function để serialize MongoDB object thành JSON-safe object
+function serializeConfig(config) {
+  if (!config) return null;
+  
+  return {
+    _id: config._id ? config._id.toString() : config._id,
+    userId: config.userId ? (config.userId.toString ? config.userId.toString() : String(config.userId)) : config.userId,
+    email: config.email,
+    scanInterval: config.scanInterval,
+    webhookUrl: config.webhookUrl,
+    isActive: config.isActive,
+    lastSyncedAt: config.lastSyncedAt ? (config.lastSyncedAt instanceof Date ? config.lastSyncedAt.toISOString() : config.lastSyncedAt) : config.lastSyncedAt,
+    createdAt: config.createdAt ? (config.createdAt instanceof Date ? config.createdAt.toISOString() : config.createdAt) : config.createdAt,
+    updatedAt: config.updatedAt ? (config.updatedAt instanceof Date ? config.updatedAt.toISOString() : config.updatedAt) : config.updatedAt,
+  };
+}
+
 // Tất cả routes cần authentication
 router.use(authenticate);
 
@@ -38,11 +55,8 @@ router.get('/', async (req, res) => {
   try {
     const configs = await EmailConfig.findByUserId(req.user.userId);
     
-    // Không trả về appPassword trong response
-    const safeConfigs = configs.map(config => {
-      const { appPassword, ...safeConfig } = config;
-      return safeConfig;
-    });
+    // Serialize MongoDB objects thành JSON-safe objects
+    const safeConfigs = configs.map(config => serializeConfig(config));
 
     res.json({
       success: true,
@@ -129,8 +143,8 @@ router.post('/', async (req, res) => {
       webhookUrl: webhookUrl || null,
     });
 
-    // Không trả về appPassword
-    const { appPassword: _, ...safeConfig } = config;
+    // Serialize MongoDB object thành JSON-safe object
+    const safeConfig = serializeConfig(config);
 
     res.status(201).json({
       success: true,
@@ -182,8 +196,8 @@ router.get('/:id', async (req, res) => {
       return res.status(403).json({ error: 'Access denied' });
     }
 
-    // Không trả về appPassword
-    const { appPassword, ...safeConfig } = config;
+    // Serialize MongoDB object thành JSON-safe object
+    const safeConfig = serializeConfig(config);
 
     res.json({
       success: true,
@@ -253,6 +267,7 @@ router.put('/:id', async (req, res) => {
 
     const { email, appPassword, scanInterval, isActive, webhookUrl } = req.body;
     const updates = {};
+    const configId = req.params.id;
 
     if (email !== undefined) updates.email = email;
     if (appPassword !== undefined) updates.appPassword = appPassword;
@@ -260,14 +275,33 @@ router.put('/:id', async (req, res) => {
     if (isActive !== undefined) updates.isActive = Boolean(isActive);
     if (webhookUrl !== undefined) updates.webhookUrl = webhookUrl || null;
 
-    const updated = await EmailConfig.update(req.params.id, updates);
+    const updated = await EmailConfig.update(configId, updates);
 
     if (!updated) {
       return res.status(404).json({ error: 'Email config not found or update failed' });
     }
 
-    // Không trả về appPassword
-    const { appPassword: _, ...safeConfig } = updated;
+    // Serialize MongoDB object thành JSON-safe object
+    const safeConfig = serializeConfig(updated);
+
+    // Restart monitor để load config mới (nếu monitor đang chạy)
+    try {
+      // Lấy multiUserEmailMonitor từ app context
+      const multiUserEmailMonitor = req.app.get('multiUserEmailMonitor');
+      if (multiUserEmailMonitor) {
+        // Nếu config đang active, restart monitor để load config mới
+        if (updated.isActive) {
+          console.log(`🔄 Restarting monitor for config ${configId} to load updated webhook URL`);
+          multiUserEmailMonitor.restartMonitorForConfig(configId);
+        } else {
+          // Nếu config bị deactivate, stop monitor
+          multiUserEmailMonitor.stopMonitorForConfig(configId);
+        }
+      }
+    } catch (monitorError) {
+      console.warn('⚠️  Could not restart monitor (non-critical):', monitorError.message);
+      // Không fail request nếu không restart được monitor
+    }
 
     res.json({
       success: true,

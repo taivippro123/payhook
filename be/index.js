@@ -48,6 +48,9 @@ connectDB().catch((error) => {
 // Khởi tạo Multi-User Email Monitor
 const multiUserEmailMonitor = new MultiUserEmailMonitor();
 
+// Lưu multiUserEmailMonitor vào app để routes có thể truy cập
+app.set('multiUserEmailMonitor', multiUserEmailMonitor);
+
 // Routes
 const authRoutes = require('./routes/auth');
 const emailConfigRoutes = require('./routes/emailConfigs');

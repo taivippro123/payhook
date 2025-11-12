@@ -159,10 +159,22 @@ class MultiUserEmailMonitor {
               await EmailConfig.markSynced(configId, transaction.emailDate || transaction.detectedAt || new Date());
               
               // Gửi webhook nếu có cấu hình webhookUrl VÀ description chứa PAYHOOKxxx
+              // Reload config từ DB để đảm bảo dùng webhook URL mới nhất
+              let currentConfig = config;
+              try {
+                const freshConfig = await EmailConfig.findById(configId);
+                if (freshConfig) {
+                  currentConfig = freshConfig;
+                  console.log(`🔄 Reloaded config ${configId} from DB for webhook (webhookUrl: ${freshConfig.webhookUrl || 'null'})`);
+                }
+              } catch (reloadError) {
+                console.warn(`⚠️  Could not reload config from DB, using cached config:`, reloadError.message);
+              }
+
               const description = transaction.description || '';
               const payhookOrderMatch = description.match(/PAYHOOK(\d+)/i);
               
-              if (config.webhookUrl && payhookOrderMatch) {
+              if (currentConfig.webhookUrl && payhookOrderMatch) {
                 const orderId = payhookOrderMatch[1];
                 console.log(`🔍 [multiUserEmailMonitor] Transaction contains PAYHOOK${orderId}, will send webhook for order ${orderId}`);
                 console.log('🔍 [multiUserEmailMonitor] About to send webhook for transaction:', transaction.transactionId);
@@ -198,11 +210,11 @@ class MultiUserEmailMonitor {
                     userId: meta.userId,
                     transactionId: meta.transactionId,
                     orderId: meta.orderId,
-                    webhookUrl: config.webhookUrl,
+                    webhookUrl: currentConfig.webhookUrl,
                   });
                   
                   const webhookResult = await sendWebhook(
-                    config.webhookUrl,
+                    currentConfig.webhookUrl,
                     webhookPayload,
                     3,
                     meta
@@ -216,7 +228,7 @@ class MultiUserEmailMonitor {
                   console.error('❌ Error sending webhook:', webhookError.message);
                   // Không throw để không ảnh hưởng đến flow chính
                 }
-              } else if (config.webhookUrl && !payhookOrderMatch) {
+              } else if (currentConfig.webhookUrl && !payhookOrderMatch) {
                 console.log(`⏭️  [multiUserEmailMonitor] Transaction description does not contain PAYHOOKxxx, skipping webhook. Description: "${description}"`);
               }
             } else if (exists) {
@@ -246,6 +258,33 @@ class MultiUserEmailMonitor {
       monitor.stop();
       this.monitors.delete(configId);
       console.log(`🛑 Stopped monitor for config: ${configId}`);
+    }
+  }
+
+  /**
+   * Restart monitor cho một config cụ thể (để load config mới từ DB)
+   */
+  async restartMonitorForConfig(configId) {
+    try {
+      // Stop monitor cũ nếu đang chạy
+      this.stopMonitorForConfig(configId);
+
+      // Load config mới từ DB
+      const config = await EmailConfig.findById(configId);
+      if (!config) {
+        console.warn(`⚠️  Config ${configId} not found, cannot restart monitor`);
+        return;
+      }
+
+      // Chỉ start lại nếu config đang active
+      if (config.isActive) {
+        await this.startMonitorForConfig(config);
+        console.log(`✅ Restarted monitor for config: ${configId}`);
+      } else {
+        console.log(`⏭️  Config ${configId} is not active, monitor not restarted`);
+      }
+    } catch (error) {
+      console.error(`❌ Error restarting monitor for config ${configId}:`, error.message);
     }
   }
 
