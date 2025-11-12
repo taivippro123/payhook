@@ -34,7 +34,8 @@ export default function WebhookGuide() {
             <Alert className="mt-3 bg-blue-50 border-blue-200">
               <IconAlertCircle className="h-4 w-4 text-blue-600" />
               <AlertDescription className="text-blue-800">
-                <strong>Cơ chế xác minh đơn hàng:</strong> Payhook chỉ bắn webhook khi nội dung chuyển khoản chứa mã đơn hàng theo định dạng <code className="bg-blue-100 px-1 rounded text-xs">PAYHOOK_xxx</code> (ví dụ: <code className="bg-blue-100 px-1 rounded text-xs">PAYHOOK_123</code>). 
+                <strong>Cơ chế xác minh đơn hàng:</strong> Payhook chỉ bắn webhook khi nội dung chuyển khoản chứa mã đơn hàng theo định dạng <code className="bg-blue-100 px-1 rounded text-xs">PAYHOOKxxx</code> (ví dụ: <code className="bg-blue-100 px-1 rounded text-xs">PAYHOOK123</code>). 
+                Lưu ý: Ngân hàng CAKE không cho phép dấu gạch dưới (_) trong nội dung, nên sử dụng format không có dấu gạch dưới. 
                 Điều này đảm bảo chỉ các giao dịch có liên quan đến đơn hàng cụ thể mới được xử lý, tránh nhầm lẫn khi có nhiều giao dịch cùng số tiền.
               </AlertDescription>
             </Alert>
@@ -125,7 +126,7 @@ export default function WebhookGuide() {
     "transactionId": "FT123456789",
     "bank": "CAKE",
     "amountVND": 1500000,
-    "description": "PAYHOOK_123",
+    "description": "PAYHOOK123",
     "emailUid": 1234,
     "emailDate": "2025-11-12T12:33:45.000Z",
     "detectedAt": "2025-11-12T12:34:56.789Z",
@@ -142,8 +143,8 @@ export default function WebhookGuide() {
                 </p>
                 <ul className="list-disc list-inside text-sm text-yellow-800 mt-1 ml-4 space-y-1">
                   <li>Trường <code className="bg-yellow-100 px-1 rounded">transactionId</code> và <code className="bg-yellow-100 px-1 rounded">emailUid</code> có thể dùng để chống xử lý trùng.</li>
-                  <li>Trường <code className="bg-yellow-100 px-1 rounded">orderId</code> được trích xuất từ <code className="bg-yellow-100 px-1 rounded">description</code> nếu chứa <code className="bg-yellow-100 px-1 rounded">PAYHOOK_xxx</code>.</li>
-                  <li><strong>Quan trọng:</strong> Webhook chỉ được bắn khi <code className="bg-yellow-100 px-1 rounded">description</code> chứa mã đơn hàng theo định dạng <code className="bg-yellow-100 px-1 rounded">PAYHOOK_xxx</code>.</li>
+                  <li>Trường <code className="bg-yellow-100 px-1 rounded">orderId</code> được trích xuất từ <code className="bg-yellow-100 px-1 rounded">description</code> nếu chứa <code className="bg-yellow-100 px-1 rounded">PAYHOOKxxx</code> (ví dụ: <code className="bg-yellow-100 px-1 rounded">PAYHOOK123</code>).</li>
+                  <li><strong>Quan trọng:</strong> Webhook chỉ được bắn khi <code className="bg-yellow-100 px-1 rounded">description</code> chứa mã đơn hàng theo định dạng <code className="bg-yellow-100 px-1 rounded">PAYHOOKxxx</code> (không có dấu gạch dưới vì ngân hàng CAKE không cho phép).</li>
                 </ul>
               </div>
             </div>

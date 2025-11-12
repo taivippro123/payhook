@@ -158,13 +158,13 @@ class MultiUserEmailMonitor {
               monitor.updateResumeFrom(transaction.emailDate || transaction.detectedAt);
               await EmailConfig.markSynced(configId, transaction.emailDate || transaction.detectedAt || new Date());
               
-              // Gửi webhook nếu có cấu hình webhookUrl VÀ description chứa PAYHOOK_xxx
+              // Gửi webhook nếu có cấu hình webhookUrl VÀ description chứa PAYHOOKxxx
               const description = transaction.description || '';
-              const payhookOrderMatch = description.match(/PAYHOOK_(\d+)/i);
+              const payhookOrderMatch = description.match(/PAYHOOK(\d+)/i);
               
               if (config.webhookUrl && payhookOrderMatch) {
                 const orderId = payhookOrderMatch[1];
-                console.log(`🔍 [multiUserEmailMonitor] Transaction contains PAYHOOK_${orderId}, will send webhook for order ${orderId}`);
+                console.log(`🔍 [multiUserEmailMonitor] Transaction contains PAYHOOK${orderId}, will send webhook for order ${orderId}`);
                 console.log('🔍 [multiUserEmailMonitor] About to send webhook for transaction:', transaction.transactionId);
                 try {
                   // Lấy thông tin user email
@@ -217,7 +217,7 @@ class MultiUserEmailMonitor {
                   // Không throw để không ảnh hưởng đến flow chính
                 }
               } else if (config.webhookUrl && !payhookOrderMatch) {
-                console.log(`⏭️  [multiUserEmailMonitor] Transaction description does not contain PAYHOOK_xxx, skipping webhook. Description: "${description}"`);
+                console.log(`⏭️  [multiUserEmailMonitor] Transaction description does not contain PAYHOOKxxx, skipping webhook. Description: "${description}"`);
               }
             } else if (exists) {
               console.log(`⏭️  Transaction already exists: ${transaction.transactionId}`);
