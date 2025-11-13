@@ -17,7 +17,7 @@ export default function WebhookGuide() {
           <div>
             <h3 className="font-semibold text-lg mb-3">1. Tổng quan</h3>
             <p className="text-gray-600 mb-3">
-              Khi Payhook quét email ngân hàng và phát hiện giao dịch mới, hệ thống sẽ lập tức gửi một yêu cầu <code className="bg-gray-100 px-2 py-1 rounded text-sm">POST</code> chứa thông tin giao dịch đến địa chỉ webhook mà bạn cấu hình.
+              Ngay khi Gmail gửi push notification cho Payhook về một email giao dịch mới, hệ thống sẽ lập tức gửi một yêu cầu <code className="bg-gray-100 px-2 py-1 rounded text-sm">POST</code> chứa thông tin giao dịch đến địa chỉ webhook mà bạn cấu hình.
             </p>
             <p className="text-gray-600 mb-3">Nhờ vậy, ứng dụng của bạn có thể:</p>
             <ul className="list-disc list-inside space-y-1 text-gray-600 ml-4">
@@ -34,8 +34,7 @@ export default function WebhookGuide() {
             <Alert className="mt-3 bg-blue-50 border-blue-200">
               <IconAlertCircle className="h-4 w-4 text-blue-600" />
               <AlertDescription className="text-blue-800">
-                <strong>Cơ chế xác minh đơn hàng:</strong> Payhook chỉ bắn webhook khi nội dung chuyển khoản chứa mã đơn hàng theo định dạng <code className="bg-blue-100 px-1 rounded text-xs">PAYHOOKxxx</code> (ví dụ: <code className="bg-blue-100 px-1 rounded text-xs">PAYHOOK123</code>). 
-                Lưu ý: Ngân hàng CAKE không cho phép dấu gạch dưới (_) trong nội dung, nên sử dụng format không có dấu gạch dưới. 
+                <strong>Cơ chế xác minh đơn hàng:</strong> Payhook chỉ bắn webhook khi nội dung chuyển khoản chứa mã đơn hàng theo định dạng <code className="bg-blue-100 px-1 rounded text-xs">PAYHOOKxxx</code> (ví dụ: <code className="bg-blue-100 px-1 rounded text-xs">PAYHOOK123</code>).
                 Điều này đảm bảo chỉ các giao dịch có liên quan đến đơn hàng cụ thể mới được xử lý, tránh nhầm lẫn khi có nhiều giao dịch cùng số tiền.
               </AlertDescription>
             </Alert>
@@ -47,28 +46,17 @@ export default function WebhookGuide() {
               <IconSettings className="w-5 h-5" />
               2. Các bước cấu hình trên Payhook
             </h3>
-            
+
             <div className="space-y-4">
               <div>
                 <h4 className="font-medium mb-2 text-gray-700">Trên giao diện Dashboard</h4>
                 <ol className="list-decimal list-inside space-y-2 text-gray-600 ml-4">
-                  <li>Đăng nhập Payhook với tài khoản của bạn</li>
-                  <li>Vào menu <strong>Cấu hình Email</strong> → chọn cấu hình hiện có hoặc nhấn <strong>Thêm cấu hình</strong></li>
-                  <li>Nhập/kiểm tra các trường sau:
-                    <ul className="list-disc list-inside ml-6 mt-1 space-y-1">
-                      <li><strong>Email:</strong> Gmail nhận thông báo ngân hàng</li>
-                      <li><strong>App Password:</strong> Mật khẩu ứng dụng Gmail tương ứng</li>
-                      <li><strong>Webhook URL:</strong> Địa chỉ HTTPS của webhook nhận giao dịch (ví dụ <code className="bg-gray-100 px-1 rounded text-xs">https://pos.example.com/webhook/payhook</code>)</li>
-                      <li><strong>Scan Interval</strong> (tùy chọn): chu kỳ quét email (1000 = 1 giây)</li>
-                    </ul>
-                  </li>
-                  <li>Nhấn <strong>Lưu</strong>. Kể từ lúc này, mỗi giao dịch mới đọc được từ hộp thư sẽ được gửi tới webhook</li>
+                  <li>Đăng nhập Payhook với tài khoản của bạn.</li>
+                  <li>Nhấn <strong>Kết nối Gmail</strong> trên Dashboard → Google mở trang xác nhận quyền → chọn đúng tài khoản Gmail CAKE và bấm <strong>Allow</strong>.</li>
+                  <li>Sau khi quay lại Payhook, Gmail của bạn sẽ hiển thị trong danh sách cấu hình. Nhập <strong>Webhook URL</strong> (ví dụ <code className="bg-gray-100 px-1 rounded text-xs">https://pos.example.com/webhook/payhook</code>) và nhấn <strong>Lưu webhook</strong>.</li>
+                  <li>Theo dõi nhãn thời gian “Hết hạn trong ...”. Payhook auto gia hạn trước khi hết hạn, nếu trạng thái báo lỗi hãy kết nối lại Gmail.</li>
                 </ol>
-                <div className="bg-blue-50 border border-blue-200 rounded-md p-3 mt-3">
-                  <p className="text-sm text-blue-800">
-                    <strong>Mẹo:</strong> Khi muốn chỉnh sửa webhook, nhấn nút <strong>Sửa</strong> tại cấu hình tương ứng, cập nhật URL rồi lưu lại.
-                  </p>
-                </div>
+
               </div>
             </div>
           </div>
@@ -115,7 +103,7 @@ export default function WebhookGuide() {
               <h4 className="font-medium mb-2 text-gray-700">3.1. Cấu trúc JSON gửi đi</h4>
               <div className="bg-gray-900 text-gray-100 rounded-md p-4 font-mono text-sm overflow-x-auto">
                 <pre className="text-gray-300">
-{`{
+                  {`{
   "event": "transaction.detected",
   "timestamp": "2025-11-12T12:34:56.789Z",
   "orderId": "123",
@@ -139,12 +127,12 @@ export default function WebhookGuide() {
               </div>
               <div className="bg-yellow-50 border border-yellow-200 rounded-md p-3 mt-3">
                 <p className="text-sm text-yellow-800">
-                  <strong>Ghi chú:</strong> 
+                  <strong>Ghi chú:</strong>
                 </p>
                 <ul className="list-disc list-inside text-sm text-yellow-800 mt-1 ml-4 space-y-1">
                   <li>Trường <code className="bg-yellow-100 px-1 rounded">transactionId</code> và <code className="bg-yellow-100 px-1 rounded">emailUid</code> có thể dùng để chống xử lý trùng.</li>
                   <li>Trường <code className="bg-yellow-100 px-1 rounded">orderId</code> được trích xuất từ <code className="bg-yellow-100 px-1 rounded">description</code> nếu chứa <code className="bg-yellow-100 px-1 rounded">PAYHOOKxxx</code> (ví dụ: <code className="bg-yellow-100 px-1 rounded">PAYHOOK123</code>).</li>
-                  <li><strong>Quan trọng:</strong> Webhook chỉ được bắn khi <code className="bg-yellow-100 px-1 rounded">description</code> chứa mã đơn hàng theo định dạng <code className="bg-yellow-100 px-1 rounded">PAYHOOKxxx</code> (không có dấu gạch dưới vì ngân hàng CAKE không cho phép).</li>
+                  <li><strong>Quan trọng:</strong> Webhook chỉ được bắn khi <code className="bg-yellow-100 px-1 rounded">description</code> chứa mã đơn hàng theo định dạng <code className="bg-yellow-100 px-1 rounded">PAYHOOKxxx</code></li>
                 </ul>
               </div>
             </div>
@@ -193,7 +181,7 @@ export default function WebhookGuide() {
             <h3 className="font-semibold text-lg mb-3">5. Ví dụ code nhận webhook</h3>
             <div className="bg-gray-900 text-gray-100 rounded-md p-4 font-mono text-sm overflow-x-auto">
               <pre className="text-gray-300">
-{`const express = require('express');
+                {`const express = require('express');
 const app = express();
 
 app.use(express.json());
@@ -266,7 +254,7 @@ app.listen(3000, () => console.log('Webhook server listening on port 3000'));`}
             </ul>
             <div className="bg-red-50 border border-red-200 rounded-md p-3 mt-3">
               <p className="text-sm text-red-800">
-                <strong>⚠️ Cảnh báo:</strong> Nếu không kiểm tra <code className="bg-red-100 px-1 rounded text-xs">orderId</code> và số tiền, hệ thống có thể nhầm lẫn khi có nhiều giao dịch cùng số tiền. 
+                <strong>⚠️ Cảnh báo:</strong> Nếu không kiểm tra <code className="bg-red-100 px-1 rounded text-xs">orderId</code> và số tiền, hệ thống có thể nhầm lẫn khi có nhiều giao dịch cùng số tiền.
                 Luôn xác minh đơn hàng trước khi cập nhật trạng thái thanh toán.
               </p>
             </div>

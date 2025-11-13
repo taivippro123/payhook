@@ -6,13 +6,13 @@ Tài liệu này hướng dẫn chi tiết cách cấu hình và tích hợp web
 
 ## 1. Tổng quan
 
-Khi Payhook quét email ngân hàng và phát hiện giao dịch mới, hệ thống sẽ lập tức gửi một yêu cầu `POST` chứa thông tin giao dịch đến địa chỉ webhook mà bạn cấu hình. Nhờ vậy, ứng dụng của bạn có thể:
+Payhook đăng ký Gmail Push Notifications. Ngay khi Gmail thông báo có email giao dịch mới từ ngân hàng, hệ thống sẽ lập tức gửi một yêu cầu `POST` chứa thông tin giao dịch đến địa chỉ webhook mà bạn cấu hình. Nhờ vậy, ứng dụng của bạn có thể:
 
 - Tự động đổi trạng thái đơn hàng sang “đã thanh toán”.
 - Gửi thông báo nội bộ, kích hoạt workflow tự động.
 - Đồng bộ dữ liệu giao dịch với các hệ thống kế toán/BI khác.
 
-Payhook tích hợp cơ chế retry tối đa **3 lần** nếu webhook trả về lỗi hoặc không phản hồi.  
+Payhook tích hợp cơ chế retry tối đa **5 lần** với Fibonacci delay (10s → 10s → 20s → 30s → 50s) nếu webhook trả về lỗi hoặc không phản hồi.  
 
 ---
 
@@ -20,23 +20,17 @@ Payhook tích hợp cơ chế retry tối đa **3 lần** nếu webhook trả v�
 
 ### 2.1. Trên giao diện Dashboard
 
-1. Đăng nhập Payhook với tài khoản có quyền quản trị.  
-2. Vào menu **Email Configs** → chọn cấu hình hiện có hoặc nhấn **Thêm cấu hình**.  
-3. Nhập/kiểm tra các trường sau:
-   - **Email**: Gmail nhận thông báo ngân hàng.
-   - **App Password**: Mật khẩu ứng dụng Gmail tương ứng.
-   - **Webhook URL**: Địa chỉ HTTPS của webhook nhận giao dịch (ví dụ `https://pos.example.com/webhook/payhook`).
-   - **Scan Interval** (tuỳ chọn): chu kỳ quét email.
-4. Nhấn **Lưu**. Kể từ lúc này, mỗi giao dịch mới đọc được từ hộp thư sẽ được gửi tới webhook.
-
-> **Mẹo:** Khi muốn chỉnh sửa webhook, nhấn nút **Sửa** tại cấu hình tương ứng, cập nhật URL rồi lưu lại.
+1. Đăng nhập Payhook với tài khoản của bạn.  
+2. Nhấn **Kết nối Gmail** → Google mở trang xác nhận quyền → chọn đúng Gmail CAKE và bấm **Allow**.  
+3. Sau khi quay lại Dashboard, Gmail của bạn sẽ xuất hiện trong danh sách cấu hình. Điền trường **Webhook URL** (ví dụ `https://pos.example.com/webhook/payhook`) và nhấn **Lưu webhook**.  
+4. Payhook tự gia hạn Gmail push trước khi hết hạn ~7 ngày. Theo dõi nhãn “Hết hạn trong ...”; nếu thấy lỗi, reconnect Gmail.
 
 ### 2.2. Qua API Payhook
 
-- Tạo mới: `POST /api/email-configs`
-- Cập nhật: `PUT /api/email-configs/:id`
-
-Trong payload gửi lên API, bổ sung trường `webhookUrl` để Payhook biết địa chỉ cần gửi.
+- Lấy link OAuth: `GET /api/auth/google` (trả về `authUrl`).  
+- Xử lý callback: `GET /api/auth/google/callback?code=...&state=USER_ID` (server-side).  
+- Cập nhật webhook: `PUT /api/email-configs/:id` với payload `{ "webhookUrl": "https://..." }`.  
+- Gia hạn push: `POST /api/email-configs/:id/renew-watch` (Gmail yêu cầu renew ~7 ngày/lần).
 
 ---
 
@@ -137,7 +131,7 @@ app.listen(3000, () => console.log('Webhook server listening on port 3000'));
 
 | Tình huống                          | Cách xử lý                                                                                        |
 |------------------------------------|----------------------------------------------------------------------------------------------------|
-| Không thấy webhook được gọi       | Kiểm tra cấu hình có `webhookUrl`, xem log Payhook (`multiUserEmailMonitor`) để biết lý do.       |
+| Không thấy webhook được gọi       | Kiểm tra cấu hình có `webhookUrl`, xem log Payhook (`services/gmailPushHandler.js`) để biết lý do. |
 | Nghi ngờ bị trùng giao dịch        | Dựa vào `transactionId`, `emailUid` hoặc `detectedAt` để kiểm tra và ngăn xử lý trùng.            |
 | Nhận 5xx/timeout                   | Xem log hệ thống của bạn, tối ưu thời gian xử lý, dùng queue/background job nếu cần.              |
 | Muốn giả lập giao dịch             | Tạo email test giống ngân hàng gửi vào hộp thư đang monitor hoặc dùng môi trường sandbox (nếu có).|
@@ -155,7 +149,7 @@ app.listen(3000, () => console.log('Webhook server listening on port 3000'));
 
 ## 8. Liên hệ & tài nguyên
 
-- Mã nguồn xử lý webhook: `services/webhookSender.js`, `services/multiUserEmailMonitor.js`.  
+- Mã nguồn xử lý webhook: `services/webhookSender.js`, `services/gmailPushHandler.js`.  
 - Thắc mắc hoặc cần hỗ trợ thêm, vui lòng liên hệ đội ngũ Payhook hoặc đội phát triển nội bộ.
 
 Chúc bạn tích hợp thành công! 💪

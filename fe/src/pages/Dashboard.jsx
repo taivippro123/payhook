@@ -1,13 +1,14 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '@/contexts/AuthContext'
-import { emailConfigAPI, transactionsAPI, WS_BASE_URL } from '@/lib/api'
+import { emailConfigAPI, transactionsAPI, WS_BASE_URL, gmailAPI } from '@/lib/api'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog'
 import { AppLayout } from '@/components/AppLayout'
 
@@ -17,15 +18,10 @@ export default function Dashboard() {
   const [emailConfigs, setEmailConfigs] = useState([])
   const [transactions, setTransactions] = useState([])
   const [loading, setLoading] = useState(false)
-  const [showAddConfig, setShowAddConfig] = useState(false)
-  const [formMode, setFormMode] = useState('create') // 'create' | 'edit'
-  const [editingConfigId, setEditingConfigId] = useState(null)
-  const [newConfig, setNewConfig] = useState({
-    email: '',
-    appPassword: '',
-    scanInterval: Number(import.meta.env.VITE_SCAN_INTERVAL_MS) || 1000,
-    webhookUrl: '',
-  })
+  const [webhookDrafts, setWebhookDrafts] = useState({})
+  const [editingWebhookId, setEditingWebhookId] = useState(null)
+  const [updatingConfigId, setUpdatingConfigId] = useState(null)
+  const [isConnectingGmail, setIsConnectingGmail] = useState(false)
   const wsRef = useRef(null)
   const MAX_RECENT_TRANSACTIONS = 5
   const [allTransactions, setAllTransactions] = useState([])
@@ -44,7 +40,7 @@ export default function Dashboard() {
   // Dialog sẽ luôn hiện mỗi lần vào Dashboard cho đến khi user add email config lần đầu
   useEffect(() => {
     if (!user || !configsLoaded) return
-    
+
     // Chỉ hiển thị nếu:
     // 1. Đã load xong configs (configsLoaded = true)
     // 2. Không có email config nào
@@ -77,11 +73,11 @@ export default function Dashboard() {
         try {
           const payload = JSON.parse(event.data)
           console.log('📨 WS message received:', payload.event, payload.data)
-          
+
           if (payload.event === 'transaction:new' && payload.data) {
             const newTransaction = payload.data
             const incomingId = newTransaction._id?.$oid || newTransaction._id
-            
+
             if (!incomingId) {
               console.warn('⚠️ Transaction missing _id:', newTransaction)
               return
@@ -165,7 +161,16 @@ export default function Dashboard() {
   const loadConfigs = async () => {
     try {
       const response = await emailConfigAPI.getAll()
-      setEmailConfigs(response.configs || [])
+      const configs = response.configs || []
+      setEmailConfigs(configs)
+      const drafts = {}
+      configs.forEach((config) => {
+        const id = config._id || config.id
+        if (id) {
+          drafts[id] = config.webhookUrl || ''
+        }
+      })
+      setWebhookDrafts(drafts)
       setConfigsLoaded(true) // Đánh dấu đã load xong configs
     } catch (error) {
       console.error('Error loading configs:', error)
@@ -178,7 +183,7 @@ export default function Dashboard() {
       // Load 5 transactions mới nhất cho "Giao dịch mới nhất"
       const recentResponse = await transactionsAPI.getAll({ limit: MAX_RECENT_TRANSACTIONS })
       setTransactions(recentResponse.transactions || [])
-      
+
       // Load trang đầu cho "Chi tiết giao dịch"
       const allResponse = await transactionsAPI.getAll({ limit: 20, page: 1 })
       setAllTransactions(allResponse.transactions || [])
@@ -191,13 +196,13 @@ export default function Dashboard() {
 
   const loadMoreTransactions = useCallback(async () => {
     if (transactionsLoading || !hasMoreTransactions) return
-    
+
     setTransactionsLoading(true)
     try {
       const nextPage = transactionsPage + 1
       const response = await transactionsAPI.getAll({ limit: 20, page: nextPage })
       const newTransactions = response.transactions || []
-      
+
       if (newTransactions.length > 0) {
         setAllTransactions(prev => [...prev, ...newTransactions])
         setTransactionsPage(nextPage)
@@ -228,75 +233,73 @@ export default function Dashboard() {
     return () => container.removeEventListener('scroll', handleScroll)
   }, [loadMoreTransactions])
 
-  const resetForm = () => {
-    setNewConfig({
-      email: '',
-      appPassword: '',
-      scanInterval: Number(import.meta.env.VITE_SCAN_INTERVAL_MS) || 1000,
-      webhookUrl: '',
-    })
-    setFormMode('create')
-    setEditingConfigId(null)
-    setShowAddConfig(false)
-  }
-
-  const handleSubmitConfig = async (e) => {
-    e.preventDefault()
-    const payload = {
-      email: newConfig.email.trim(),
-      scanInterval: Number(newConfig.scanInterval),
-      webhookUrl: newConfig.webhookUrl?.trim() || null,
-    }
-
-    if (Number.isNaN(payload.scanInterval) || payload.scanInterval <= 0) {
-      alert('Scan interval phải lớn hơn 0')
-      return
-    }
-
+  const handleConnectGmail = async () => {
+    setIsConnectingGmail(true)
     try {
-      if (formMode === 'create') {
-        if (!newConfig.appPassword.trim()) {
-          alert('Vui lòng nhập App Password')
-          return
-        }
-        await emailConfigAPI.create({
-          ...payload,
-          appPassword: newConfig.appPassword,
-        })
-      } else if (editingConfigId) {
-        const updatePayload = { ...payload }
-        if (newConfig.appPassword.trim()) {
-          updatePayload.appPassword = newConfig.appPassword
-        }
-        await emailConfigAPI.update(editingConfigId, updatePayload)
+      const response = await gmailAPI.getAuthUrl()
+      if (response?.authUrl) {
+        window.location.href = response.authUrl
+      } else {
+        alert('Không lấy được liên kết kết nối Gmail. Vui lòng thử lại.')
       }
-
-      resetForm()
-      await loadConfigs()
     } catch (error) {
-      alert(error.response?.data?.error || 'Lỗi khi lưu cấu hình')
+      console.error('Error generating Gmail auth URL:', error)
+      alert(error.response?.data?.error || 'Không thể tạo liên kết Google OAuth. Kiểm tra cấu hình backend.')
+    } finally {
+      setIsConnectingGmail(false)
     }
   }
 
-  const handleEditConfig = (config) => {
-    setFormMode('edit')
-    setEditingConfigId(config._id || config.id)
-    setNewConfig({
-      email: config.email || '',
-      appPassword: '',
-      scanInterval: config.scanInterval || Number(import.meta.env.VITE_SCAN_INTERVAL_MS) || 1000,
-      webhookUrl: config.webhookUrl || '',
+  const handleWebhookChange = (configId, value) => {
+    setWebhookDrafts((prev) => ({
+      ...prev,
+      [configId]: value,
+    }))
+  }
+
+  const handleEditWebhook = (configId, currentValue) => {
+    setEditingWebhookId(configId)
+    setWebhookDrafts((prev) => ({
+      ...prev,
+      [configId]: currentValue || '',
+    }))
+  }
+
+  const handleCancelWebhookEdit = (configId) => {
+    setWebhookDrafts((prev) => {
+      const next = { ...prev }
+      next[configId] = emailConfigs.find((cfg) => (cfg._id || cfg.id) === configId)?.webhookUrl || ''
+      return next
     })
-    setShowAddConfig(true)
+    setEditingWebhookId(null)
+  }
+
+  const handleSaveWebhook = async (configId) => {
+    try {
+      setUpdatingConfigId(configId)
+      const webhookUrl = webhookDrafts[configId]?.trim() || null
+      await emailConfigAPI.update(configId, { webhookUrl })
+      await loadConfigs()
+      setEditingWebhookId(null)
+    } catch (error) {
+      console.error('Error saving webhook:', error)
+      alert(error.response?.data?.error || 'Lỗi khi cập nhật webhook')
+    } finally {
+      setUpdatingConfigId(null)
+    }
   }
 
   const handleToggleConfig = async (config) => {
     try {
       const configId = config._id || config.id
+      setUpdatingConfigId(configId)
       await emailConfigAPI.update(configId, { isActive: !config.isActive })
       await loadConfigs()
     } catch (error) {
-      alert(error.response?.data?.error || 'Lỗi khi cập nhật')
+      console.error('Error toggling config:', error)
+      alert(error.response?.data?.error || 'Lỗi khi cập nhật trạng thái')
+    } finally {
+      setUpdatingConfigId(null)
     }
   }
 
@@ -304,12 +307,10 @@ export default function Dashboard() {
     if (!confirm('Bạn có chắc muốn xóa cấu hình này?')) return
     try {
       await emailConfigAPI.delete(id)
-      if (editingConfigId === id) {
-        resetForm()
-      }
       await loadConfigs()
     } catch (error) {
-      alert(error.response?.data?.error || 'Lỗi khi xóa')
+      console.error('Error deleting config:', error)
+      alert(error.response?.data?.error || 'Lỗi khi xóa cấu hình')
     }
   }
 
@@ -324,6 +325,45 @@ export default function Dashboard() {
   const formatDate = (dateString) => {
     if (!dateString) return '-'
     return new Date(dateString).toLocaleString('vi-VN')
+  }
+
+  const getWatchStatus = (isoString) => {
+    if (!isoString) {
+      return {
+        text: 'Chưa đăng ký push',
+        expired: true,
+      }
+    }
+    const expiry = new Date(isoString)
+    if (Number.isNaN(expiry.getTime())) {
+      return {
+        text: 'Không xác định',
+        expired: true,
+      }
+    }
+    const diffMs = expiry.getTime() - Date.now()
+    if (diffMs <= 0) {
+      return {
+        text: 'Đã hết hạn',
+        expired: true,
+      }
+    }
+    const diffMinutes = Math.floor(diffMs / (1000 * 60))
+    const days = Math.floor(diffMinutes / (60 * 24))
+    const hours = Math.floor((diffMinutes % (60 * 24)) / 60)
+    const minutes = diffMinutes % 60
+    let text = 'Hết hạn trong '
+    if (days > 0) {
+      text += `${days} ngày `
+    }
+    if (hours > 0 || days > 0) {
+      text += `${hours} giờ `
+    }
+    text += `${minutes} phút`
+    return {
+      text,
+      expired: false,
+    }
   }
 
   const handleCloseWelcomeDialog = () => {
@@ -345,16 +385,13 @@ export default function Dashboard() {
             <DialogDescription>
               <div className="space-y-3 mt-4 text-base">
                 <p>
-                  <strong>Payhook</strong> là hệ thống quét email dựa vào <strong>App Password</strong> để nhận thông báo giao dịch từ ngân hàng <strong>CAKE</strong>.
+                  <strong>Payhook</strong> sử dụng <strong>Gmail Push Notifications</strong> để nhận giao dịch tức thời thông qua email được gửi từ ngân hàng Cake by VPBank. Bạn chỉ cần kết nối gmail đã dùng để đăng nhập Cake qua Google OAuth.
                 </p>
-                <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4">
-                  <p className="text-yellow-800 dark:text-yellow-200">
-                    <strong>⚠️ Lưu ý quan trọng:</strong> Có sự delay giữa server Gmail và server Payhook, nên có thể mất từ <strong>10-20 giây</strong> để nhận thông tin giao dịch sau khi email được gửi.
+                <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+                  <p className="text-blue-800 dark:text-blue-200">
+                    <strong>⚠️ Lưu ý:</strong> Đọc kỹ hướng dẫn trước khi sử dụng.
                   </p>
                 </div>
-                <p>
-                  Vui lòng đọc <strong>hướng dẫn</strong> trước khi sử dụng để đảm bảo cấu hình đúng cách.
-                </p>
               </div>
             </DialogDescription>
           </DialogHeader>
@@ -373,175 +410,142 @@ export default function Dashboard() {
         title="Payhook Monitor"
         subtitle="Theo dõi giao dịch ngân hàng theo thời gian thực"
       >
-      <div className="grid gap-4 sm:gap-6 lg:grid-cols-2">
-                {/* Email Configs Section */}
+        <div className="grid gap-4 sm:gap-6 lg:grid-cols-2">
+          {/* Email Configs Section */}
           <Card className="shadow-sm">
             <CardHeader>
               <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3">
                 <div className="flex-1">
-                  <CardTitle className="text-lg sm:text-xl">Cấu hình Email</CardTitle>
+                  <CardTitle className="text-lg sm:text-xl">Kết nối Gmail</CardTitle>
                   <CardDescription className="text-xs sm:text-sm mt-1">
-                    Quản lý email để nhận thông báo giao dịch
+                    Sử dụng Google OAuth và Gmail Push Notifications để nhận giao dịch tức thời.
                   </CardDescription>
                 </div>
-                <Button 
+                <Button
                   size="sm"
                   className="w-full sm:w-auto shrink-0"
-                  onClick={() => {
-                    if (showAddConfig) {
-                      resetForm()
-                    } else {
-                      setFormMode('create')
-                      setEditingConfigId(null)
-                      setShowAddConfig(true)
-                    }
-                  }}
+                  onClick={handleConnectGmail}
+                  disabled={isConnectingGmail}
                 >
-                  {showAddConfig ? 'Đóng' : '+ Thêm mới'}
+                  {isConnectingGmail ? 'Đang mở Google...' : 'Kết nối Gmail'}
                 </Button>
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
-              {showAddConfig && (
-                <Card className="bg-gray-50/50 border-2 border-dashed border-gray-300">
-                  <CardContent className="pt-6">
-                    <form onSubmit={handleSubmitConfig} className="space-y-4">
-                      <div className="flex items-center justify-between">
-                        <h4 className="text-sm font-semibold">
-                          {formMode === 'create' ? 'Thêm cấu hình mới' : 'Cập nhật cấu hình'}
-                        </h4>
-                        {formMode === 'edit' && (
-                          <span className="text-xs text-gray-500">
-                            Để trống App Password nếu không muốn thay đổi
-                          </span>
-                        )}
-                      </div>
-                      <div className="space-y-2">
-                        <Label>Email đã đăng ký với ngân hàng Cake by VPBank</Label>
-                        <Input
-                          type="email"
-                          placeholder="your-email@gmail.com"
-                          value={newConfig.email}
-                          onChange={(e) => setNewConfig({ ...newConfig, email: e.target.value })}
-                          required
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label>App Password</Label>
-                        <Input
-                          type="password"
-                          placeholder="Nhập Gmail App Password"
-                          value={newConfig.appPassword}
-                          onChange={(e) => {
-                            // Tự động xóa tất cả dấu cách (Google thường hiển thị App Password với dấu cách)
-                            const cleanedValue = e.target.value.replace(/\s/g, '')
-                            setNewConfig({ ...newConfig, appPassword: cleanedValue })
-                          }}
-                          required={formMode === 'create'}
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label>Scan Interval (ms)</Label>
-                        <Input
-                          type="number"
-                          value={newConfig.scanInterval}
-                          onChange={(e) => setNewConfig({ ...newConfig, scanInterval: parseInt(e.target.value) })}
-                          required
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label>Webhook URL (tùy chọn)</Label>
-                        <Input
-                          type="url"
-                          placeholder="https://your-domain.com/webhook/payhook"
-                          value={newConfig.webhookUrl}
-                          onChange={(e) => setNewConfig({ ...newConfig, webhookUrl: e.target.value })}
-                        />
-                      </div>
-                      <div className="flex flex-col sm:flex-row gap-2">
-                        <Button type="submit" className="w-full sm:flex-1">
-                          {formMode === 'create' ? 'Thêm cấu hình' : 'Cập nhật cấu hình'}
-                        </Button>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          className="w-full sm:w-auto"
-                          onClick={resetForm}
-                        >
-                          Hủy
-                        </Button>
-                      </div>
-                    </form>
-                  </CardContent>
-                </Card>
-              )}
 
               {emailConfigs.length === 0 ? (
-                <p className="text-center text-gray-500 py-4">Chưa có cấu hình nào</p>
+                <p className="text-center text-gray-500 py-4">
+                  Chưa có Gmail nào được kết nối. Nhấn <strong>Kết nối Gmail</strong> để ủy quyền cho Payhook theo dõi hộp thư CAKE của bạn.
+                </p>
               ) : (
                 <div className="space-y-3">
-                  {emailConfigs.map((config) => (
-                    <Card key={config._id || config.id} className="bg-white border border-gray-200 hover:shadow-md transition-shadow">
-                      <CardContent className="pt-4 pb-4">
-                        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3">
-                          <div className="flex-1 min-w-0">
-                            <div className="flex flex-wrap items-center gap-2 mb-2">
-                              <span className="font-medium text-sm sm:text-base break-words">{config.email}</span>
-                              <Badge 
-                                variant={config.isActive ? 'success' : 'secondary'}
-                                className="text-xs px-1.5 py-0.5 shrink-0"
-                              >
-                                {config.isActive ? 'Đang hoạt động' : 'Tạm dừng'}
-                              </Badge>
-                            </div>
-                            <p className="text-xs sm:text-sm text-gray-600">
-                              Quét mỗi {Math.round(config.scanInterval / 1000)}s
-                            </p>
-                            <p className="text-xs text-gray-500 break-all mt-1">
-                              Webhook: {config.webhookUrl ? (
-                                <a
-                                  href={config.webhookUrl}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="text-blue-600 hover:underline"
+                  {emailConfigs.map((config) => {
+                    const configId = config._id || config.id
+                    const watchStatus = getWatchStatus(config.watchExpiration)
+                    const lastSyncedText = config.lastSyncedAt ? formatDate(config.lastSyncedAt) : 'Chưa nhận dữ liệu'
+                    const watchExpiresAt = config.watchExpiration ? formatDate(config.watchExpiration) : 'Chưa đăng ký'
+                    const isEditingWebhook = editingWebhookId === configId
+                    return (
+                      <Card key={configId} className="bg-white border border-gray-200 hover:shadow-md transition-shadow">
+                        <CardContent className="pt-4 pb-4 space-y-4">
+                          <div className="flex flex-col gap-3">
+                            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                              <div className="flex flex-wrap items-center gap-2">
+                                <span className="font-medium text-sm sm:text-base break-words">{config.email}</span>
+                                <Badge
+                                  variant={config.isActive ? 'success' : 'secondary'}
+                                  className="text-xs px-1.5 py-0.5 shrink-0"
                                 >
-                                  {config.webhookUrl}
-                                </a>
+                                  {config.isActive ? 'Đang nhận push' : 'Tạm dừng'}
+                                </Badge>
+                                <Badge
+                                  variant={watchStatus.expired ? 'destructive' : 'secondary'}
+                                  className="text-xs px-1.5 py-0.5 shrink-0"
+                                >
+                                  {watchStatus.text}
+                                </Badge>
+                              </div>
+                              <div className="flex flex-wrap gap-2 shrink-0">
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="text-xs sm:text-sm"
+                                  onClick={() => handleToggleConfig(config)}
+                                  disabled={updatingConfigId === configId}
+                                >
+                                  {config.isActive ? 'Tạm dừng' : 'Kích hoạt'}
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="text-xs sm:text-sm"
+                                  onClick={() => handleDeleteConfig(configId)}
+                                >
+                                  Xóa
+                                </Button>
+                              </div>
+                            </div>
+
+                            <div className="space-y-1 text-xs text-gray-600">
+                              <p>
+                                Lần đồng bộ gần nhất: <span className="font-medium">{lastSyncedText}</span>
+                              </p>
+                              <p>
+                                Hết hạn push lúc: <span className={watchStatus.expired ? 'text-red-600 font-medium' : 'font-medium'}>{watchExpiresAt}</span>
+                                {watchStatus.expired && ' • Payhook đang tự gia hạn, nếu gặp sự cố hãy kết nối lại Gmail.'}
+                              </p>
+                            </div>
+
+                            <div className="space-y-2">
+                              <Label htmlFor={`webhook-${configId}`}>Webhook URL</Label>
+                              {isEditingWebhook ? (
+                                <div className="flex flex-col sm:flex-row gap-2 sm:items-center">
+                                  <Input
+                                    id={`webhook-${configId}`}
+                                    type="url"
+                                    placeholder="https://your-domain.com/webhook/payhook"
+                                    value={webhookDrafts[configId] ?? ''}
+                                    onChange={(e) => handleWebhookChange(configId, e.target.value)}
+                                  />
+                                  <div className="flex gap-2">
+                                    <Button
+                                      size="sm"
+                                      onClick={() => handleSaveWebhook(configId)}
+                                      disabled={updatingConfigId === configId}
+                                    >
+                                      {updatingConfigId === configId ? 'Đang lưu...' : 'Lưu'}
+                                    </Button>
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      onClick={() => handleCancelWebhookEdit(configId)}
+                                      disabled={updatingConfigId === configId}
+                                    >
+                                      Hủy
+                                    </Button>
+                                  </div>
+                                </div>
                               ) : (
-                                <span className="italic text-gray-400">Chưa cấu hình</span>
+                                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                                  <span className="text-sm text-gray-700 break-all">
+                                    {config.webhookUrl || <span className="italic text-gray-400">Chưa cấu hình</span>}
+                                  </span>
+                                  <div className="flex gap-2 shrink-0">
+                                    <Button
+                                      size="sm"
+                                      onClick={() => handleEditWebhook(configId, config.webhookUrl || '')}
+                                    >
+                                      {config.webhookUrl ? 'Chỉnh sửa' : 'Thêm webhook'}
+                                    </Button>
+                                  </div>
+                                </div>
                               )}
-                            </p>
+                            </div>
                           </div>
-                          <div className="flex gap-2 shrink-0">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="text-xs sm:text-sm"
-                              onClick={() => handleEditConfig(config)}
-                            >
-                              Sửa
-                            </Button>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="text-xs sm:text-sm"
-                              onClick={() => handleToggleConfig(config)}
-                            >
-                              {config.isActive ? 'Tạm dừng' : 'Kích hoạt'}
-                            </Button>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="text-xs sm:text-sm"
-                              onClick={() => handleDeleteConfig(config._id || config.id)}
-                            >
-                              Xóa
-                            </Button>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
+                        </CardContent>
+                      </Card>
+                    )
+                  })}
                 </div>
               )}
             </CardContent>
@@ -603,7 +607,7 @@ export default function Dashboard() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div 
+              <div
                 ref={transactionsContainerRef}
                 className="overflow-x-auto overflow-y-auto -mx-6 sm:mx-0 max-h-[600px]"
                 style={{ scrollBehavior: 'smooth' }}
@@ -662,4 +666,5 @@ export default function Dashboard() {
     </>
   )
 }
+
 

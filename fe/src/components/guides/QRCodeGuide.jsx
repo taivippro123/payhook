@@ -98,7 +98,6 @@ export default function QRCodeGuide() {
                 <AlertDescription className="text-yellow-800">
                   <strong>Quan trọng:</strong> Để kích hoạt webhook tự động, nội dung chuyển khoản (<code className="bg-yellow-100 px-1 rounded text-xs">des</code>) 
                   phải chứa mã đơn hàng theo định dạng <code className="bg-yellow-100 px-1 rounded text-xs">PAYHOOKxxx</code> (ví dụ: <code className="bg-yellow-100 px-1 rounded text-xs">PAYHOOK123</code>). 
-                  Lưu ý: Ngân hàng CAKE không cho phép dấu gạch dưới (_) trong nội dung, nên sử dụng format không có dấu gạch dưới. 
                   Nếu không có mã này, Payhook sẽ chỉ lưu giao dịch mà không bắn webhook.
                 </AlertDescription>
               </Alert>
@@ -155,7 +154,7 @@ export default function QRCodeGuide() {
               <h3 className="font-semibold text-lg mb-3">Ví dụ code JavaScript/React</h3>
               <div className="bg-gray-900 text-gray-100 rounded-md p-4 font-mono text-sm overflow-x-auto">
                 <pre className="text-gray-300">
-{`// Tạo URL QR Code với mã đơn hàng PAYHOOKxxx (không có dấu gạch dưới)
+{`// Tạo URL QR Code với mã đơn hàng PAYHOOKxxx
 const qrUrl = \`https://payhook-taivippro123.fly.dev/api/qr/img?acc=\${accountNumber}&bank=\${bank}&amount=\${amount}&des=PAYHOOK\${orderId}\`;
 
 // Sử dụng trong React component
@@ -163,7 +162,7 @@ const qrUrl = \`https://payhook-taivippro123.fly.dev/api/qr/img?acc=\${accountNu
                 </pre>
               </div>
               <p className="text-sm text-gray-600 mt-2">
-                <strong>Lưu ý:</strong> Mã đơn hàng phải có prefix <code className="bg-gray-100 px-1 rounded text-xs">PAYHOOK</code> (không có dấu gạch dưới) để Payhook nhận diện và bắn webhook tự động. 
+                <strong>Lưu ý:</strong> Mã đơn hàng phải có prefix <code className="bg-gray-100 px-1 rounded text-xs">PAYHOOK</code> để Payhook nhận diện và bắn webhook tự động. 
                 Ví dụ: <code className="bg-gray-100 px-1 rounded text-xs">PAYHOOK123</code> cho đơn hàng số 123.
               </p>
             </div>

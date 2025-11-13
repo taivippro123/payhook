@@ -30,9 +30,12 @@ Lưu cấu hình email của mỗi user
   _id: ObjectId,
   userId: ObjectId,        // Reference to users._id
   email: String,           // Gmail address
-  appPassword: String,     // Gmail App Password (plain text)
-  scanInterval: Number,    // Milliseconds (default: 30000 = 30s)
-  isActive: Boolean,       // Enable/disable monitoring
+  refreshToken: String,    // OAuth refresh token để gọi Gmail API
+  webhookUrl: String|null, // Địa chỉ webhook nhận giao dịch
+  watchHistoryId: String,  // History ID hiện tại (users.watch)
+  watchExpiration: Date,   // Thời điểm Gmail hết hạn push notification (~7 ngày)
+  lastSyncedAt: Date|null, // Thời điểm xử lý email gần nhất
+  isActive: Boolean,       // Cho phép/khóa nhận push notification
   createdAt: Date,
   updatedAt: Date
 }

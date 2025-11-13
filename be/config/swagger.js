@@ -67,23 +67,39 @@ const options = {
             email: {
               type: 'string',
               format: 'email',
-              description: 'Gmail address',
-            },
-            scanInterval: {
-              type: 'integer',
-              description: 'Scan interval in milliseconds',
-              default: 30000,
+              description: 'Gmail address đang theo dõi',
             },
             webhookUrl: {
               type: 'string',
               format: 'uri',
               nullable: true,
-              description: 'Optional webhook endpoint to receive transaction notifications',
+              description: 'Webhook endpoint để nhận giao dịch (tùy chọn)',
             },
             isActive: {
               type: 'boolean',
-              description: 'Whether monitoring is active',
+              description: 'Cho biết Gmail này có đang nhận push notification hay không',
               default: true,
+            },
+            lastSyncedAt: {
+              type: 'string',
+              format: 'date-time',
+              nullable: true,
+              description: 'Thời điểm Payhook xử lý email gần nhất',
+            },
+            watchHistoryId: {
+              type: 'string',
+              nullable: true,
+              description: 'History ID được sử dụng cho Gmail users.watch',
+            },
+            watchExpiration: {
+              type: 'string',
+              format: 'date-time',
+              nullable: true,
+              description: 'Thời điểm push notification hết hạn (cần gia hạn ~7 ngày/lần)',
+            },
+            hasRefreshToken: {
+              type: 'boolean',
+              description: 'Chỉ báo cấu hình này còn refresh_token hợp lệ hay không',
             },
             createdAt: {
               type: 'string',

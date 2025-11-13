@@ -19,6 +19,8 @@ function serializeConfig(config) {
       lastSyncedAt: config.lastSyncedAt ? (config.lastSyncedAt instanceof Date ? config.lastSyncedAt.toISOString() : (typeof config.lastSyncedAt === 'string' ? config.lastSyncedAt : new Date(config.lastSyncedAt).toISOString())) : null,
       createdAt: config.createdAt ? (config.createdAt instanceof Date ? config.createdAt.toISOString() : (typeof config.createdAt === 'string' ? config.createdAt : new Date(config.createdAt).toISOString())) : null,
       updatedAt: config.updatedAt ? (config.updatedAt instanceof Date ? config.updatedAt.toISOString() : (typeof config.updatedAt === 'string' ? config.updatedAt : new Date(config.updatedAt).toISOString())) : null,
+      watchExpiration: config.watchExpiration ? (config.watchExpiration instanceof Date ? config.watchExpiration.toISOString() : (typeof config.watchExpiration === 'string' ? config.watchExpiration : new Date(config.watchExpiration).toISOString())) : null,
+      hasRefreshToken: Boolean(config.refreshToken),
     };
   } catch (error) {
     console.error('❌ Error in serializeConfig:', error, 'Config:', config);
@@ -78,91 +80,18 @@ router.get('/', async (req, res) => {
  * @swagger
  * /api/email-configs:
  *   post:
- *     summary: Create a new email config
+ *     summary: (Deprecated) Create a new email config
+ *     description: Kể từ phiên bản Gmail push notifications, endpoint này không còn được sử dụng. Vui lòng sử dụng OAuth 2.0 để kết nối Gmail.
  *     tags: [Email Configs]
- *     security:
- *       - bearerAuth: []
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required:
- *               - email
- *               - appPassword
- *             properties:
- *               email:
- *                 type: string
- *                 format: email
- *                 example: "user@gmail.com"
- *               appPassword:
- *                 type: string
- *                 format: password
- *                 description: Gmail App Password
- *                 example: "abcd efgh ijkl mnop"
- *               scanInterval:
- *                 type: integer
- *                 default: 30000
- *                 description: Scan interval in milliseconds
- *                 example: 30000
- *               webhookUrl:
- *                 type: string
- *                 format: uri
- *                 nullable: true
- *                 description: Webhook URL để nhận thông báo giao dịch (tùy chọn)
+ *     deprecated: true
  *     responses:
- *       201:
- *         description: Email config created
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                 message:
- *                   type: string
- *                 config:
- *                   $ref: '#/components/schemas/EmailConfig'
- *       400:
- *         description: Missing required fields
- *       409:
- *         description: Email already configured
+ *       410:
+ *         description: Endpoint deprecated - use Google OAuth flow
  */
 router.post('/', async (req, res) => {
-  try {
-    const { email, appPassword, scanInterval, webhookUrl } = req.body;
-
-    if (!email || !appPassword) {
-      return res.status(400).json({
-        error: 'Missing required fields: email, appPassword',
-      });
-    }
-
-    const config = await EmailConfig.create({
-      userId: req.user.userId,
-      email,
-      appPassword,
-      scanInterval: scanInterval || 30000,
-      webhookUrl: webhookUrl || null,
-    });
-
-    // Serialize MongoDB object thành JSON-safe object
-    const safeConfig = serializeConfig(config);
-
-    res.status(201).json({
-      success: true,
-      message: 'Email config created successfully',
-      config: safeConfig,
-    });
-  } catch (error) {
-    if (error.message === 'Email already configured for this user') {
-      return res.status(409).json({ error: error.message });
-    }
-    console.error('Create email config error:', error);
-    res.status(500).json({ error: error.message });
-  }
+  return res.status(410).json({
+    error: 'This endpoint has been deprecated. Please use Google OAuth to connect Gmail.',
+  });
 });
 
 /**
@@ -280,16 +209,21 @@ router.put('/:id', async (req, res) => {
       return res.status(403).json({ error: 'Access denied' });
     }
 
-    const { email, appPassword, scanInterval, isActive, webhookUrl } = req.body;
+    const { webhookUrl, isActive } = req.body;
     const updates = {};
 
-    if (email !== undefined) updates.email = email;
-    if (appPassword !== undefined) updates.appPassword = appPassword;
-    if (scanInterval !== undefined) updates.scanInterval = parseInt(scanInterval, 10);
-    if (isActive !== undefined) updates.isActive = Boolean(isActive);
     if (webhookUrl !== undefined) updates.webhookUrl = webhookUrl || null;
+    if (isActive !== undefined) updates.isActive = Boolean(isActive);
 
-    console.log(`🔄 Updating config ${configId} with updates:`, { ...updates, appPassword: updates.appPassword ? '[REDACTED]' : undefined });
+    if (Object.keys(updates).length === 0) {
+      return res.json({
+        success: true,
+        message: 'No changes applied',
+        config: serializeConfig(config),
+      });
+    }
+
+    console.log(`🔄 Updating config ${configId} with updates:`, updates);
 
     const updated = await EmailConfig.update(configId, updates);
     console.log(`✅ Config updated, result:`, updated ? `ID: ${updated._id}` : 'NULL');
@@ -311,28 +245,6 @@ router.put('/:id', async (req, res) => {
         error: 'Failed to serialize config response',
         details: serializeError.message 
       });
-    }
-
-    // Restart monitor để load config mới (nếu monitor đang chạy)
-    // Chạy async, không block response
-    const multiUserEmailMonitor = req.app.get('multiUserEmailMonitor');
-    if (multiUserEmailMonitor) {
-      // Chạy trong background, không await để không block response
-      (async () => {
-        try {
-          // Nếu config đang active, restart monitor để load config mới
-          if (updated.isActive) {
-            console.log(`🔄 Restarting monitor for config ${configId} to load updated webhook URL`);
-            await multiUserEmailMonitor.restartMonitorForConfig(configId);
-          } else {
-            // Nếu config bị deactivate, stop monitor
-            multiUserEmailMonitor.stopMonitorForConfig(configId);
-          }
-        } catch (monitorError) {
-          console.warn('⚠️  Could not restart monitor (non-critical):', monitorError.message);
-          // Không fail request nếu không restart được monitor
-        }
-      })();
     }
 
     res.json({

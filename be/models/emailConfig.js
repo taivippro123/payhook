@@ -4,10 +4,10 @@ const { ObjectId } = require('mongodb');
 class EmailConfig {
   /**
    * Tạo email config mới
-   * @param {Object} configData - { userId, email, appPassword, scanInterval }
+   * @param {Object} configData - { userId, email, refreshToken?, webhookUrl?, watchHistoryId?, watchExpiration? }
    * @returns {Promise<Object>}
    */
-  static async create({ userId, email, appPassword, scanInterval = 30000, webhookUrl }) {
+  static async create({ userId, email, appPassword, scanInterval = 30000, webhookUrl, refreshToken, watchHistoryId, watchExpiration }) {
     const db = await getDB();
     const configs = db.collection('email_configs');
 
@@ -23,9 +23,12 @@ class EmailConfig {
     const config = {
       userId: new ObjectId(userId),
       email,
-      appPassword, // Lưu plain text (có thể encrypt sau nếu cần)
+      appPassword: appPassword || null, // Có thể null nếu dùng OAuth
+      refreshToken: refreshToken || null, // OAuth refresh token
       scanInterval: parseInt(scanInterval, 10),
       webhookUrl: webhookUrl || null,
+      watchHistoryId: watchHistoryId || null, // Gmail watch history ID
+      watchExpiration: watchExpiration || null, // Gmail watch expiration
       isActive: true,
       lastSyncedAt: null,
       createdAt: new Date(),

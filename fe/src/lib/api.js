@@ -64,16 +64,19 @@ export const emailConfigAPI = {
     const response = await api.get('/api/email-configs')
     return response.data
   },
-  create: async (data) => {
-    const response = await api.post('/api/email-configs', data)
-    return response.data
-  },
   update: async (id, data) => {
     const response = await api.put(`/api/email-configs/${id}`, data)
     return response.data
   },
   delete: async (id) => {
     const response = await api.delete(`/api/email-configs/${id}`)
+    return response.data
+  },
+}
+
+export const gmailAPI = {
+  getAuthUrl: async () => {
+    const response = await api.get('/api/auth/google')
     return response.data
   },
 }

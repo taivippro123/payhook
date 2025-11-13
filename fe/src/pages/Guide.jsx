@@ -3,12 +3,12 @@ import { useNavigate, useLocation } from 'react-router-dom'
 import { AppLayout } from '@/components/AppLayout'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import AppPasswordGuide from '@/components/guides/AppPasswordGuide'
+import GmailConnection from '@/components/guides/GmailConnection'
 import QRCodeGuide from '@/components/guides/QRCodeGuide'
 import WebhookGuide from '@/components/guides/WebhookGuide'
 
 const GUIDE_TABS = [
-  { id: 'app-password', label: 'Lấy App Password', component: AppPasswordGuide },
+  { id: 'gmail', label: 'Kết nối Gmail', component: GmailConnection },
   { id: 'qr-code', label: 'Tạo QR động', component: QRCodeGuide },
   { id: 'webhook', label: 'Tích hợp Webhooks', component: WebhookGuide },
 ]
@@ -17,7 +17,7 @@ export default function Guide() {
   const navigate = useNavigate()
   const location = useLocation()
   const searchParams = new URLSearchParams(location.search)
-  const initialTab = searchParams.get('tab') || 'app-password'
+  const initialTab = searchParams.get('tab') || 'gmail'
   const [activeTab, setActiveTab] = useState(initialTab)
 
   const handleTabChange = (tabId) => {
@@ -25,7 +25,7 @@ export default function Guide() {
     navigate(`/guide?tab=${tabId}`, { replace: true })
   }
 
-  const ActiveComponent = GUIDE_TABS.find(tab => tab.id === activeTab)?.component || AppPasswordGuide
+  const ActiveComponent = GUIDE_TABS.find(tab => tab.id === activeTab)?.component || GmailConnection
 
   return (
     <AppLayout
