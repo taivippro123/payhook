@@ -11,6 +11,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog'
 import { AppLayout } from '@/components/AppLayout'
+import { cn } from '@/lib/utils'
 
 export default function Dashboard() {
   const { user, logout } = useAuth()
@@ -32,6 +33,10 @@ export default function Dashboard() {
   const [configsLoaded, setConfigsLoaded] = useState(false) // Track xem đã load configs lần đầu chưa
   const [recentLimit, setRecentLimit] = useState(5)
   const recentLimitRef = useRef(5)
+  const [highlightedRecentIds, setHighlightedRecentIds] = useState({})
+  const [highlightedAllIds, setHighlightedAllIds] = useState({})
+  const recentHighlightTimersRef = useRef(new Map())
+  const allHighlightTimersRef = useRef(new Map())
 
   useEffect(() => {
     loadData()
@@ -102,6 +107,7 @@ export default function Dashboard() {
               }
               const updated = [newTransaction, ...prev]
               const limit = recentLimitRef.current || 5
+              triggerRecentHighlight(incomingId)
               return updated.slice(0, limit)
             })
 
@@ -115,6 +121,7 @@ export default function Dashboard() {
                 console.log('⏭️ Transaction already in all transactions list')
                 return prev
               }
+              triggerAllHighlight(incomingId)
               return [newTransaction, ...prev]
             })
           } else if (payload.event === 'ws.connected') {
@@ -345,6 +352,41 @@ export default function Dashboard() {
     if (!dateString) return '-'
     return new Date(dateString).toLocaleString('vi-VN')
   }
+
+  const getTransactionKey = (tx) => tx?._id?.$oid || tx?._id || tx?.id
+
+  const triggerHighlight = (id, type) => {
+    if (!id) return
+    const setState = type === 'recent' ? setHighlightedRecentIds : setHighlightedAllIds
+    const timersRef = type === 'recent' ? recentHighlightTimersRef : allHighlightTimersRef
+
+    setState((prev) => ({ ...prev, [id]: true }))
+
+    if (timersRef.current.has(id)) {
+      clearTimeout(timersRef.current.get(id))
+    }
+
+    const timer = setTimeout(() => {
+      setState((prev) => {
+        const next = { ...prev }
+        delete next[id]
+        return next
+      })
+      timersRef.current.delete(id)
+    }, 2000)
+
+    timersRef.current.set(id, timer)
+  }
+
+  const triggerRecentHighlight = (id) => triggerHighlight(id, 'recent')
+  const triggerAllHighlight = (id) => triggerHighlight(id, 'all')
+
+  useEffect(() => {
+    return () => {
+      recentHighlightTimersRef.current.forEach((timer) => clearTimeout(timer))
+      allHighlightTimersRef.current.forEach((timer) => clearTimeout(timer))
+    }
+  }, [])
 
   const getWatchStatus = (isoString) => {
     if (!isoString) {
@@ -595,7 +637,13 @@ export default function Dashboard() {
                     </TableHeader>
                     <TableBody>
                       {transactions.map((tx) => (
-                        <TableRow key={tx._id}>
+                        <TableRow
+                          key={getTransactionKey(tx)}
+                          className={cn(
+                            'hover:bg-gray-50/50 transition-colors',
+                            highlightedRecentIds[getTransactionKey(tx)] && 'realtime-highlight-row'
+                          )}
+                        >
                           <TableCell>
                             <Badge variant="default">{tx.bank}</Badge>
                           </TableCell>
@@ -644,7 +692,13 @@ export default function Dashboard() {
                     </TableHeader>
                     <TableBody>
                       {allTransactions.map((tx) => (
-                        <TableRow key={tx._id} className="hover:bg-gray-50/50">
+                        <TableRow
+                          key={getTransactionKey(tx)}
+                          className={cn(
+                            'hover:bg-gray-50/50 transition-colors',
+                            highlightedAllIds[getTransactionKey(tx)] && 'realtime-highlight-row'
+                          )}
+                        >
                           <TableCell className="font-mono text-xs sm:text-sm">
                             {tx.transactionId || '-'}
                           </TableCell>

@@ -9,6 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Input } from '@/components/ui/input'
 import { AppLayout } from '@/components/AppLayout'
 import WebhookLogPanel from '@/components/WebhookLogPanel'
+import { cn } from '@/lib/utils'
 
 export default function AdminDashboard() {
   const { user, logout } = useAuth()
@@ -21,6 +22,8 @@ export default function AdminDashboard() {
 
   const wsRef = useRef(null)
   const MAX_TRANSACTIONS = 100
+  const [highlightedTransactionIds, setHighlightedTransactionIds] = useState({})
+  const highlightTimersRef = useRef(new Map())
 
   useEffect(() => {
     if (user?.role === 'admin') {
@@ -33,6 +36,12 @@ export default function AdminDashboard() {
       loadTransactions()
     }
   }, [selectedUserId])
+
+  useEffect(() => {
+    return () => {
+      highlightTimersRef.current.forEach((timer) => clearTimeout(timer))
+    }
+  }, [])
 
   useEffect(() => {
     if (user?.role !== 'admin') return
@@ -79,6 +88,7 @@ export default function AdminDashboard() {
                 console.log('⏭️ Transaction already in list')
                 return prev
               }
+              triggerTransactionHighlight(incomingId)
               const updated = [newTransaction, ...prev]
               return updated.slice(0, MAX_TRANSACTIONS)
             })
@@ -203,6 +213,29 @@ export default function AdminDashboard() {
   const formatDate = (dateString) => {
     if (!dateString) return '-'
     return new Date(dateString).toLocaleString('vi-VN')
+  }
+
+  const getTransactionKey = (tx) => tx?._id?.$oid || tx?._id || tx?.id
+
+  const triggerTransactionHighlight = (id) => {
+    if (!id) return
+
+    setHighlightedTransactionIds((prev) => ({ ...prev, [id]: true }))
+
+    if (highlightTimersRef.current.has(id)) {
+      clearTimeout(highlightTimersRef.current.get(id))
+    }
+
+    const timer = setTimeout(() => {
+      setHighlightedTransactionIds((prev) => {
+        const next = { ...prev }
+        delete next[id]
+        return next
+      })
+      highlightTimersRef.current.delete(id)
+    }, 2000)
+
+    highlightTimersRef.current.set(id, timer)
   }
 
   const filteredUsers = users.filter(u =>
@@ -339,7 +372,13 @@ export default function AdminDashboard() {
                     </TableHeader>
                     <TableBody>
                       {filteredTransactions.slice(0, 10).map((tx) => (
-                        <TableRow key={tx._id} className="hover:bg-gray-50/50">
+                        <TableRow
+                          key={getTransactionKey(tx)}
+                          className={cn(
+                            'hover:bg-gray-50/50 transition-colors',
+                            highlightedTransactionIds[getTransactionKey(tx)] && 'realtime-highlight-row'
+                          )}
+                        >
                           <TableCell className="text-xs sm:text-sm">
                             {getUsernameById(tx.userId)}
                           </TableCell>
@@ -400,7 +439,13 @@ export default function AdminDashboard() {
                     </TableHeader>
                     <TableBody>
                       {filteredTransactions.map((tx) => (
-                        <TableRow key={tx._id} className="hover:bg-gray-50/50">
+                        <TableRow
+                          key={getTransactionKey(tx)}
+                          className={cn(
+                            'hover:bg-gray-50/50 transition-colors',
+                            highlightedTransactionIds[getTransactionKey(tx)] && 'realtime-highlight-row'
+                          )}
+                        >
                           <TableCell className="text-xs sm:text-sm font-medium">
                             {getUsernameById(tx.userId)}
                           </TableCell>

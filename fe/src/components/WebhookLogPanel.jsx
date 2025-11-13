@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { webhookLogsAPI } from '@/lib/api'
+import { cn } from '@/lib/utils'
 
 const statusLabels = {
   pending: 'Đang xử lý',
@@ -73,10 +74,35 @@ export default function WebhookLogPanel({
   const [searchTerm, setSearchTerm] = useState('')
   const [appliedSearch, setAppliedSearch] = useState('')
   const [expandedLogId, setExpandedLogId] = useState(null)
+  const [highlightedLogIds, setHighlightedLogIds] = useState({})
 
   const filtersKey = useMemo(() => JSON.stringify(buildFilters(filters)), [filters])
   const columnCount = showUserColumn ? 8 : 7
   const refreshRef = useRef(null)
+  const highlightTimersRef = useRef(new Map())
+  const previousLogsRef = useRef([])
+  const isInitialLoadRef = useRef(true)
+
+  const triggerLogHighlight = (id) => {
+    if (!id) return
+
+    setHighlightedLogIds((prev) => ({ ...prev, [id]: true }))
+
+    if (highlightTimersRef.current.has(id)) {
+      clearTimeout(highlightTimersRef.current.get(id))
+    }
+
+    const timer = setTimeout(() => {
+      setHighlightedLogIds((prev) => {
+        const next = { ...prev }
+        delete next[id]
+        return next
+      })
+      highlightTimersRef.current.delete(id)
+    }, 2000)
+
+    highlightTimersRef.current.set(id, timer)
+  }
 
   const fetchLogs = useCallback(async () => {
     setLoading(true)
@@ -91,7 +117,22 @@ export default function WebhookLogPanel({
 
       const response = await webhookLogsAPI.list(params)
       if (response.success) {
-        setLogs(response.logs || [])
+        const newLogs = response.logs || []
+        const prevIds = new Set(previousLogsRef.current.map((log) => log._id))
+
+        if (!isInitialLoadRef.current) {
+          newLogs.forEach((log) => {
+            const logId = log?._id
+            if (logId && !prevIds.has(logId)) {
+              triggerLogHighlight(logId)
+            }
+          })
+        } else {
+          isInitialLoadRef.current = false
+        }
+
+        previousLogsRef.current = newLogs
+        setLogs(newLogs)
         setPagination(response.pagination || { total: 0, totalPages: 1, page: 1, limit: pageSize })
       } else {
         setLogs([])
@@ -123,6 +164,12 @@ export default function WebhookLogPanel({
       }
     }
   }, [fetchLogs])
+
+  useEffect(() => {
+    return () => {
+      highlightTimersRef.current.forEach((timer) => clearTimeout(timer))
+    }
+  }, [])
 
   const handleRefresh = () => {
     fetchLogs()
@@ -213,7 +260,12 @@ export default function WebhookLogPanel({
                   const badgeVariant = statusVariants[log.status] || 'secondary'
                   return (
                     <Fragment key={log._id}>
-                      <TableRow className="hover:bg-gray-50">
+                      <TableRow
+                        className={cn(
+                          'hover:bg-gray-50 transition-colors',
+                          highlightedLogIds[log._id] && 'realtime-highlight-row'
+                        )}
+                      >
                         <TableCell className="whitespace-nowrap text-sm">{formatDate(log.createdAt)}</TableCell>
                         {showUserColumn && (
                           <TableCell className="text-sm">
