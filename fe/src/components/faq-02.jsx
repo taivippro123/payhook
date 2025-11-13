@@ -94,9 +94,9 @@ function FAQItem({
                   duration: 0.3,
                   ease: "easeOut",
                 }}
-                className="text-sm text-gray-800 dark:text-gray-200 leading-relaxed">
-                {answer}
-              </motion.p>
+                className="text-sm text-gray-800 dark:text-gray-200 leading-relaxed"
+                dangerouslySetInnerHTML={{ __html: answer }}
+              />
             </div>
           </motion.div>
         )}
@@ -115,7 +115,7 @@ function Faq02() {
     {
       question: "Tôi cần chuẩn bị gì trước khi dùng Payhook?",
       answer:
-        "Bạn chỉ cần một tài khoản Gmail đã liên kết với ngân hàng CAKE. Sau khi đăng ký Payhook, kết nối Gmail bằng Google OAuth và cấu hình webhook là có thể nhận giao dịch ngay lập tức.",
+        "Bạn chỉ cần một tài khoản Gmail <strong>đã liên kết</strong> với ngân hàng CAKE. Sau khi đăng ký Payhook, kết nối Gmail bằng Google OAuth và cấu hình webhook là có thể nhận giao dịch ngay lập tức.",
     },
     {
       question: "Payhook lưu trữ dữ liệu của tôi như thế nào?",
