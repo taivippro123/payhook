@@ -18,30 +18,45 @@ export default function WebhookLogs() {
 
     const connect = () => {
       if (!isMounted) return
+      console.log('🔌 Connecting to WebSocket:', wsUrl)
       const socket = new WebSocket(wsUrl)
       wsRef.current = socket
+
+      socket.onopen = () => {
+        console.log('✅ WebSocket connected')
+      }
 
       socket.onmessage = (event) => {
         try {
           const payload = JSON.parse(event.data)
+          console.log('📨 WS message received:', payload.event, payload.data)
+          
           if (payload.event === 'webhook:new' || payload.event === 'webhook:update') {
+            console.log('🔄 Triggering webhook log refresh')
             // Trigger refresh cho WebhookLogPanel
             if (window.webhookLogPanelRefresh) {
               window.webhookLogPanelRefresh()
+            } else {
+              console.warn('⚠️ webhookLogPanelRefresh function not found')
             }
+          } else if (payload.event === 'ws.connected') {
+            console.log('🔌 WebSocket connected:', payload.data)
           }
         } catch (error) {
-          console.error('WS message parse error:', error)
+          console.error('❌ WS message parse error:', error)
         }
       }
 
-      socket.onclose = () => {
+      socket.onclose = (event) => {
+        console.log('🔌 WebSocket closed:', event.code, event.reason)
         if (isMounted) {
+          console.log('🔄 Reconnecting in 3 seconds...')
           reconnectTimer = setTimeout(connect, 3000)
         }
       }
 
-      socket.onerror = () => {
+      socket.onerror = (error) => {
+        console.error('❌ WebSocket error:', error)
         socket.close()
       }
     }

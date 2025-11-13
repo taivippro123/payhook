@@ -28,7 +28,7 @@ export default function WebhookGuide() {
             <Alert className="mt-3">
               <IconAlertCircle className="h-4 w-4" />
               <AlertDescription>
-                Payhook tích hợp cơ chế retry tối đa <strong>3 lần</strong> nếu webhook trả về lỗi hoặc không phản hồi.
+                Payhook tích hợp cơ chế retry tối đa <strong>5 lần</strong> với Fibonacci delay (10s → 10s → 20s → 30s → 50s) nếu webhook trả về lỗi hoặc không phản hồi.
               </AlertDescription>
             </Alert>
             <Alert className="mt-3 bg-blue-50 border-blue-200">
@@ -105,7 +105,7 @@ export default function WebhookGuide() {
                   </tr>
                   <tr>
                     <td className="px-4 py-3 text-sm font-medium text-gray-900">Retry</td>
-                    <td className="px-4 py-3 text-sm text-gray-600">Tối đa 3 lần với backoff 1s → 2s → 4s nếu lỗi mạng hoặc không nhận mã 2xx</td>
+                    <td className="px-4 py-3 text-sm text-gray-600">Tối đa 5 lần với Fibonacci delay: 10s → 10s → 20s → 30s → 50s nếu lỗi mạng hoặc không nhận mã 2xx</td>
                   </tr>
                 </tbody>
               </table>
@@ -172,7 +172,7 @@ export default function WebhookGuide() {
                   </tr>
                   <tr>
                     <td className="px-4 py-3 text-sm font-medium text-gray-900">HTTP 5xx hoặc timeout</td>
-                    <td className="px-4 py-3 text-sm text-gray-600">Retry tối đa 3 lần (1s → 2s → 4s)</td>
+                    <td className="px-4 py-3 text-sm text-gray-600">Retry tối đa 5 lần với Fibonacci delay: 10s → 10s → 20s → 30s → 50s</td>
                   </tr>
                 </tbody>
               </table>

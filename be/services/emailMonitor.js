@@ -66,16 +66,21 @@ class EmailMonitor {
   async scan() {
     // Tránh scan đồng thời
     if (this.isScanning) {
+      console.log(`⏸️  [${this.email}] Scan already in progress, skipping...`);
       return;
     }
 
     this.isScanning = true;
+    const scanStartTime = new Date();
     try {
+      console.log(`🔍 [${this.email}] Starting Gmail scan at ${scanStartTime.toISOString()}`);
       const emails = await scanGmail(this.email, this.appPassword, {
         limit: this.batchSize, // đủ để phát hiện nhanh
         searchCriteria: ['UNSEEN'],
         sinceDate: this.resumeFrom,
       });
+
+      console.log(`✅ [${this.email}] Gmail scan completed. Found ${emails.length} email(s)`);
 
       if (emails.length === 0) {
         return; // Không log gì nếu không có email mới

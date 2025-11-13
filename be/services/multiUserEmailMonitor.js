@@ -79,7 +79,9 @@ class MultiUserEmailMonitor {
    */
   async loadAndStartAll() {
     try {
+      console.log('📋 Loading active email configs...');
       const activeConfigs = await EmailConfig.findActive();
+      console.log(`📊 Found ${activeConfigs.length} active email config(s)`);
 
       // Start monitors cho configs mới hoặc chưa được start
       for (const config of activeConfigs) {
@@ -216,7 +218,7 @@ class MultiUserEmailMonitor {
                   const webhookResult = await sendWebhook(
                     currentConfig.webhookUrl,
                     webhookPayload,
-                    3,
+                    5, // Retry 5 lần với Fibonacci delay: 10s, 10s, 20s, 30s, 50s
                     meta
                   );
                   if (webhookResult.success) {

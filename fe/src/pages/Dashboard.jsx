@@ -47,39 +47,74 @@ export default function Dashboard() {
 
     const connect = () => {
       if (!isMounted) return
+      console.log('🔌 Connecting to WebSocket:', wsUrl)
       const socket = new WebSocket(wsUrl)
       wsRef.current = socket
+
+      socket.onopen = () => {
+        console.log('✅ WebSocket connected')
+      }
 
       socket.onmessage = (event) => {
         try {
           const payload = JSON.parse(event.data)
+          console.log('📨 WS message received:', payload.event, payload.data)
+          
           if (payload.event === 'transaction:new' && payload.data) {
+            const newTransaction = payload.data
+            const incomingId = newTransaction._id?.$oid || newTransaction._id
+            
+            if (!incomingId) {
+              console.warn('⚠️ Transaction missing _id:', newTransaction)
+              return
+            }
+
+            console.log('✅ New transaction received via WS:', incomingId)
+
+            // Cập nhật recent transactions
             setTransactions((prev) => {
-              const incomingId = payload.data._id?.$oid || payload.data._id
-              if (!incomingId) return prev
               const exists = prev.some((tx) => {
                 const existingId = tx?._id?.$oid || tx?._id
                 return existingId === incomingId
               })
               if (exists) {
+                console.log('⏭️ Transaction already in recent list')
                 return prev
               }
-              const updated = [payload.data, ...prev]
+              const updated = [newTransaction, ...prev]
               return updated.slice(0, MAX_RECENT_TRANSACTIONS)
             })
+
+            // Cập nhật all transactions
+            setAllTransactions((prev) => {
+              const exists = prev.some((tx) => {
+                const existingId = tx?._id?.$oid || tx?._id
+                return existingId === incomingId
+              })
+              if (exists) {
+                console.log('⏭️ Transaction already in all transactions list')
+                return prev
+              }
+              return [newTransaction, ...prev]
+            })
+          } else if (payload.event === 'ws.connected') {
+            console.log('🔌 WebSocket connected:', payload.data)
           }
         } catch (error) {
-          console.error('WS message parse error:', error)
+          console.error('❌ WS message parse error:', error)
         }
       }
 
-      socket.onclose = () => {
+      socket.onclose = (event) => {
+        console.log('🔌 WebSocket closed:', event.code, event.reason)
         if (isMounted) {
+          console.log('🔄 Reconnecting in 3 seconds...')
           reconnectTimer = setTimeout(connect, 3000)
         }
       }
 
-      socket.onerror = () => {
+      socket.onerror = (error) => {
+        console.error('❌ WebSocket error:', error)
         socket.close()
       }
     }

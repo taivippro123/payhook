@@ -22,19 +22,23 @@ async function scanGmail(email, appPassword, options = {}) {
       port: 993,
       tls: true,
       tlsOptions: { rejectUnauthorized: false },
-      authTimeout: 10000,
-      connTimeout: 10000,
+      authTimeout: 30000, // Tăng từ 10s lên 30s để tránh timeout trên Fly.io
+      connTimeout: 30000, // Tăng từ 10s lên 30s để tránh timeout trên Fly.io
       keepalive: false, // Tắt keepalive để tránh giữ connection
     },
   };
 
   let connection;
   try {
-    // Kết nối IMAP (không log mỗi lần)
+    // Kết nối IMAP
+    console.log(`🔌 [${email}] Connecting to Gmail IMAP...`);
     connection = await imap.connect(config);
+    console.log(`✅ [${email}] Successfully connected to Gmail IMAP`);
 
     // Mở inbox
+    console.log(`📂 [${email}] Opening INBOX...`);
     await connection.openBox('INBOX', true);
+    console.log(`✅ [${email}] INBOX opened successfully`);
 
     // Tìm email theo tiêu chí
     let searchCriteriaArray = Array.isArray(searchCriteria) 

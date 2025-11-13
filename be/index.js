@@ -201,6 +201,31 @@ app.post('/monitor/start', authenticate, async (req, res) => {
   res.json({ success: true, message: 'Email monitor started' });
 });
 
+/**
+ * @swagger
+ * /monitor/reload:
+ *   post:
+ *     summary: Reload and restart all email monitors
+ *     tags: [Monitor]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Monitors reloaded
+ *       401:
+ *         description: Unauthorized
+ */
+app.post('/monitor/reload', authenticate, async (req, res) => {
+  try {
+    console.log('🔄 Manual reload triggered via API');
+    await multiUserEmailMonitor.loadAndStartAll();
+    res.json({ success: true, message: 'Email monitors reloaded', stats: multiUserEmailMonitor.getStats() });
+  } catch (error) {
+    console.error('❌ Error reloading monitors:', error.message);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 const server = http.createServer(app);
 
 const wss = new WebSocketServer({ server, path: '/ws' });
@@ -267,6 +292,7 @@ server.listen(PORT, async () => {
   console.log(`   GET  /monitor/status - Email monitor status (auth required)`);
   console.log(`   POST /monitor/stop - Stop email monitor (auth required)`);
   console.log(`   POST /monitor/start - Start email monitor (auth required)`);
+  console.log(`   POST /monitor/reload - Reload email monitors (auth required)`);
   console.log(`   GET  /parse/eml - Parse .eml file (testing only)`);
   console.log(`   GET  /api-docs - Swagger API documentation\n`);
 });

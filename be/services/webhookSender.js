@@ -44,14 +44,74 @@ async function safeLog(fn) {
 }
 
 /**
- * Gửi webhook với retry logic (tối đa 3 lần) và ghi log chi tiết
+ * Tính số Fibonacci thứ n (bắt đầu từ 0: 1, 1, 2, 3, 5, 8, ...)
+ * @param {number} n - Vị trí trong dãy Fibonacci (0-indexed)
+ * @returns {number} Số Fibonacci thứ n
+ */
+function fibonacci(n) {
+  if (n <= 0) return 1;
+  if (n === 1) return 1;
+  let a = 1, b = 1;
+  for (let i = 2; i <= n; i++) {
+    [a, b] = [b, a + b];
+  }
+  return b;
+}
+
+/**
+ * Chuyển đổi error message sang tiếng Việt
+ * @param {string} errorMessage - Error message gốc
+ * @returns {string} Error message đã được dịch sang tiếng Việt
+ */
+function translateErrorMessage(errorMessage) {
+  if (!errorMessage) return errorMessage;
+  
+  const errorMap = {
+    'timeout of 10000ms exceeded': 'Đã vượt quá thời gian chờ 10 giây',
+    'timeout of': 'Đã vượt quá thời gian chờ',
+    'ECONNREFUSED': 'Không thể kết nối đến máy chủ',
+    'ENOTFOUND': 'Không tìm thấy máy chủ',
+    'ETIMEDOUT': 'Hết thời gian kết nối',
+    'ECONNABORTED': 'Kết nối bị hủy',
+    'Network Error': 'Lỗi mạng',
+  };
+
+  // Kiểm tra exact match trước
+  if (errorMap[errorMessage]) {
+    return errorMap[errorMessage];
+  }
+
+  // Kiểm tra partial match (cho timeout với các giá trị khác nhau)
+  if (errorMessage.includes('timeout of') && errorMessage.includes('exceeded')) {
+    const timeoutMatch = errorMessage.match(/timeout of (\d+)ms exceeded/);
+    if (timeoutMatch) {
+      const timeoutMs = parseInt(timeoutMatch[1], 10);
+      const timeoutSeconds = timeoutMs / 1000;
+      return `Đã vượt quá thời gian chờ ${timeoutSeconds} giây`;
+    }
+    return 'Đã vượt quá thời gian chờ';
+  }
+
+  // Kiểm tra các error code khác
+  for (const [key, value] of Object.entries(errorMap)) {
+    if (errorMessage.includes(key)) {
+      return value;
+    }
+  }
+
+  return errorMessage; // Trả về nguyên bản nếu không tìm thấy
+}
+
+/**
+ * Gửi webhook với retry logic (tối đa 5 lần) và ghi log chi tiết
+ * Retry delay theo dãy Fibonacci × 10: 10s, 10s, 20s, 30s, 50s
  * @param {string} webhookUrl - URL để gửi webhook
  * @param {Object} payload - Dữ liệu gửi đi
- * @param {number} maxRetries - Số lần retry tối đa (default: 3)
+ * @param {number} maxRetries - Số lần retry tối đa (default: 5)
  * @param {Object} meta - Thông tin bổ sung { userId, userEmail, emailConfigId, emailConfigEmail, transactionDocId, transactionId }
  * @returns {Promise<{success: boolean, attempts: number, statusCode?: number, error?: string, logId?: string}>}
  */
-async function sendWebhook(webhookUrl, payload, maxRetries = 3, meta = {}) {
+async function sendWebhook(webhookUrl, payload, maxRetries = 5, meta = {}) {
   console.log('🚀 [sendWebhook] FUNCTION CALLED - Version with logging enabled');
   console.log('🚀 [sendWebhook] Parameters:', {
     webhookUrl,
@@ -164,9 +224,12 @@ async function sendWebhook(webhookUrl, payload, maxRetries = 3, meta = {}) {
       };
     } catch (error) {
       lastStatusCode = error.response?.status ?? null;
-      lastError = error.response
+      const rawError = error.response
         ? `HTTP ${error.response.status}: ${error.response.statusText || error.message}`
         : error.message;
+      
+      // Chuyển đổi error message sang tiếng Việt
+      lastError = translateErrorMessage(rawError);
 
       console.error(`❌ Webhook send failed (attempt ${attempt}/${maxRetries}):`, lastError);
 
@@ -199,9 +262,13 @@ async function sendWebhook(webhookUrl, payload, maxRetries = 3, meta = {}) {
         break;
       }
 
-      // Nếu không phải lần cuối, đợi một chút trước khi retry (exponential backoff)
+      // Nếu không phải lần cuối, đợi một chút trước khi retry (Fibonacci × 10 delay)
+      // Delay: 10s, 10s, 20s, 30s, 50s (Fibonacci: 1, 1, 2, 3, 5 × 10)
       if (attempt < maxRetries) {
-        const delay = Math.min(1000 * Math.pow(2, attempt - 1), 5000); // 1s, 2s, 4s (max 5s)
+        const fibIndex = attempt - 1; // attempt 1 -> index 0, attempt 2 -> index 1, ...
+        const fibValue = fibonacci(fibIndex);
+        const delay = fibValue * 10000; // Fibonacci × 10 seconds (convert to milliseconds)
+        console.log(`⏳ Waiting ${delay / 1000}s before retry ${attempt + 1}/${maxRetries} (Fibonacci delay)`);
         await new Promise((resolve) => setTimeout(resolve, delay));
       }
     }

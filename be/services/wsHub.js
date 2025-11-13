@@ -48,12 +48,21 @@ function broadcastTransaction(transaction, targetUserId) {
     data: transaction,
   };
 
+  // Normalize userId để so sánh (convert sang string)
+  const targetUserIdStr = targetUserId?.toString();
+
+  console.log(`📡 Broadcasting transaction to userId: ${targetUserIdStr}, clients: ${clients.size}`);
+
   for (const client of clients) {
     if (!client.ws || client.ws.readyState !== WebSocket.OPEN) {
       continue;
     }
 
-    if (client.userId === targetUserId || client.role === 'admin') {
+    const clientUserIdStr = client.userId?.toString();
+    const shouldSend = client.role === 'admin' || clientUserIdStr === targetUserIdStr;
+
+    if (shouldSend) {
+      console.log(`✅ Sending transaction to client: userId=${clientUserIdStr}, role=${client.role}`);
       safeSend(client.ws, payload);
     }
   }
@@ -65,13 +74,22 @@ function broadcastWebhookLog(webhookLog, targetUserId) {
     data: webhookLog,
   };
 
+  // Normalize userId để so sánh
+  const targetUserIdStr = targetUserId?.toString();
+
+  console.log(`📡 Broadcasting webhook log to userId: ${targetUserIdStr}, clients: ${clients.size}`);
+
   for (const client of clients) {
     if (!client.ws || client.ws.readyState !== WebSocket.OPEN) {
       continue;
     }
 
+    const clientUserIdStr = client.userId?.toString();
     // Admin có thể xem tất cả, user chỉ xem của mình
-    if (client.role === 'admin' || client.userId === targetUserId) {
+    const shouldSend = client.role === 'admin' || clientUserIdStr === targetUserIdStr;
+
+    if (shouldSend) {
+      console.log(`✅ Sending webhook log to client: userId=${clientUserIdStr}, role=${client.role}`);
       safeSend(client.ws, payload);
     }
   }
@@ -83,13 +101,19 @@ function broadcastWebhookLogUpdate(webhookLog, targetUserId) {
     data: webhookLog,
   };
 
+  // Normalize userId để so sánh
+  const targetUserIdStr = targetUserId?.toString();
+
   for (const client of clients) {
     if (!client.ws || client.ws.readyState !== WebSocket.OPEN) {
       continue;
     }
 
+    const clientUserIdStr = client.userId?.toString();
     // Admin có thể xem tất cả, user chỉ xem của mình
-    if (client.role === 'admin' || client.userId === targetUserId) {
+    const shouldSend = client.role === 'admin' || clientUserIdStr === targetUserIdStr;
+
+    if (shouldSend) {
       safeSend(client.ws, payload);
     }
   }
