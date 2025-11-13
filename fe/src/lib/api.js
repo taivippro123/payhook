@@ -1,4 +1,5 @@
 import axios from 'axios'
+import { rateLimitManager } from './rateLimitManager'
 
 const stripTrailingSlash = (value) => {
   if (!value) return value
@@ -41,6 +42,29 @@ api.interceptors.response.use(
       if (!window.location.pathname.includes('/login') && !window.location.pathname.includes('/register')) {
         window.location.href = '/login'
       }
+    } else if (error.response?.status === 429) {
+      // Rate limit exceeded
+      const url = error.config?.url || ''
+      let rateLimitType = 'api'
+      
+      // Determine rate limit type based on endpoint
+      if (url.includes('/api/auth/login') || url.includes('/api/auth/register')) {
+        rateLimitType = 'auth'
+      } else if (url.includes('/api/webhook') || url.includes('/api/email-configs')) {
+        rateLimitType = 'webhook'
+      }
+      
+      // Get Retry-After header if available
+      const retryAfter = error.response?.headers?.['retry-after'] 
+        ? parseInt(error.response.headers['retry-after'], 10)
+        : null
+      
+      // Set rate limit
+      rateLimitManager.setRateLimit(rateLimitType, retryAfter)
+      
+      // Show Vietnamese alert message
+      const message = 'Too many request, vui lòng thử lại sau'
+      alert(message)
     }
     return Promise.reject(error)
   }

@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '@/contexts/AuthContext'
+import { useRateLimit } from '@/contexts/RateLimitContext'
 import { getRedirectPath } from '@/utils/redirect'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -19,6 +20,10 @@ export default function Register() {
   const [loading, setLoading] = useState(false)
   const { register } = useAuth()
   const navigate = useNavigate()
+  const { isRateLimited, rateLimitType } = useRateLimit()
+  
+  // Check if auth is rate limited
+  const isAuthRateLimited = isRateLimited && rateLimitType === 'auth'
 
   const handleChange = (e) => {
     setFormData({
@@ -29,6 +34,8 @@ export default function Register() {
 
   const handleSubmit = async (e) => {
     e.preventDefault()
+    if (isAuthRateLimited) return
+    
     setError('')
     setLoading(true)
 
@@ -83,7 +90,7 @@ export default function Register() {
                 value={formData.username}
                 onChange={handleChange}
                 required
-                disabled={loading}
+                disabled={loading || isAuthRateLimited}
               />
             </div>
 
@@ -97,7 +104,7 @@ export default function Register() {
                 value={formData.email}
                 onChange={handleChange}
                 required
-                disabled={loading}
+                disabled={loading || isAuthRateLimited}
               />
             </div>
 
@@ -111,12 +118,12 @@ export default function Register() {
                 value={formData.password}
                 onChange={handleChange}
                 required
-                disabled={loading}
+                disabled={loading || isAuthRateLimited}
               />
             </div>
 
-            <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? 'Đang đăng ký...' : 'Đăng ký'}
+            <Button type="submit" className="w-full" disabled={loading || isAuthRateLimited}>
+              {loading ? 'Đang đăng ký...' : isAuthRateLimited ? 'Too many request, vui lòng thử lại sau' : 'Đăng ký'}
             </Button>
 
             <div className="text-center text-sm text-gray-600">

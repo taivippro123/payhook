@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider, useAuth } from '@/contexts/AuthContext'
+import { RateLimitProvider } from '@/contexts/RateLimitContext'
 import ProtectedRoute from '@/components/ProtectedRoute'
 import Login from '@/pages/Login'
 import Register from '@/pages/Register'
@@ -30,8 +31,9 @@ function RootRedirect() {
 function App() {
   return (
     <AuthProvider>
-      <BrowserRouter>
-        <Routes>
+      <RateLimitProvider>
+        <BrowserRouter>
+          <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/privacy" element={<Privacy />} />
           <Route path="/login" element={<Login />} />
@@ -79,6 +81,7 @@ function App() {
           <Route path="/app" element={<RootRedirect />} />
         </Routes>
       </BrowserRouter>
+      </RateLimitProvider>
     </AuthProvider>
   )
 }

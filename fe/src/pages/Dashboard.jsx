@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '@/contexts/AuthContext'
+import { useRateLimit } from '@/contexts/RateLimitContext'
 import { emailConfigAPI, transactionsAPI, WS_BASE_URL, gmailAPI } from '@/lib/api'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -17,8 +18,12 @@ import { IconCopy, IconEye, IconEyeOff, IconCheck } from '@tabler/icons-react'
 
 export default function Dashboard() {
   const { user, logout } = useAuth()
+  const { isRateLimited, rateLimitType } = useRateLimit()
   const navigate = useNavigate()
   const [emailConfigs, setEmailConfigs] = useState([])
+  
+  // Check if API or webhook is rate limited
+  const isApiRateLimited = isRateLimited && (rateLimitType === 'api' || rateLimitType === 'webhook')
   const [transactions, setTransactions] = useState([])
   const [loading, setLoading] = useState(false)
   const [webhookDrafts, setWebhookDrafts] = useState({})
@@ -302,6 +307,7 @@ export default function Dashboard() {
   }
 
   const handleSaveWebhook = async (configId) => {
+    if (isApiRateLimited) return
     try {
       setUpdatingConfigId(configId)
       const webhookUrl = webhookDrafts[configId]?.trim() || null
@@ -337,6 +343,7 @@ export default function Dashboard() {
   }
 
   const handleToggleConfig = async (config) => {
+    if (isApiRateLimited) return
     try {
       const configId = config._id || config.id
       setUpdatingConfigId(configId)
@@ -352,6 +359,7 @@ export default function Dashboard() {
   }
 
   const handleDeleteConfig = async (id) => {
+    if (isApiRateLimited) return
     if (!confirm('Bạn có chắc muốn xóa cấu hình này?')) return
     try {
       await emailConfigAPI.delete(id)
@@ -528,9 +536,9 @@ export default function Dashboard() {
                   size="sm"
                   className="w-full sm:w-auto shrink-0"
                   onClick={handleConnectGmail}
-                  disabled={isConnectingGmail}
+                  disabled={isConnectingGmail || isApiRateLimited}
                 >
-                  {isConnectingGmail ? 'Đang mở Google...' : 'Kết nối Gmail'}
+                  {isConnectingGmail ? 'Đang mở Google...' : isApiRateLimited ? 'Too many request, vui lòng thử lại sau' : 'Kết nối Gmail'}
                 </Button>
               </div>
             </CardHeader>
@@ -574,7 +582,7 @@ export default function Dashboard() {
                                   size="sm"
                                   className="text-xs sm:text-sm"
                                   onClick={() => handleToggleConfig(config)}
-                                  disabled={updatingConfigId === configId}
+                                  disabled={updatingConfigId === configId || isApiRateLimited}
                                 >
                                   {config.isActive ? 'Tạm dừng' : 'Kích hoạt'}
                                 </Button>
@@ -583,6 +591,7 @@ export default function Dashboard() {
                                   size="sm"
                                   className="text-xs sm:text-sm"
                                   onClick={() => handleDeleteConfig(configId)}
+                                  disabled={isApiRateLimited}
                                 >
                                   Xóa
                                 </Button>
@@ -614,9 +623,9 @@ export default function Dashboard() {
                                     <Button
                                       size="sm"
                                       onClick={() => handleSaveWebhook(configId)}
-                                      disabled={updatingConfigId === configId}
+                                      disabled={updatingConfigId === configId || isApiRateLimited}
                                     >
-                                      {updatingConfigId === configId ? 'Đang lưu...' : 'Lưu'}
+                                      {updatingConfigId === configId ? 'Đang lưu...' : isApiRateLimited ? 'Too many request' : 'Lưu'}
                                     </Button>
                                     <Button
                                       size="sm"
@@ -637,6 +646,7 @@ export default function Dashboard() {
                                     <Button
                                       size="sm"
                                       onClick={() => handleEditWebhook(configId, config.webhookUrl || '')}
+                                      disabled={isApiRateLimited}
                                     >
                                       {config.webhookUrl ? 'Chỉnh sửa' : 'Thêm webhook'}
                                     </Button>

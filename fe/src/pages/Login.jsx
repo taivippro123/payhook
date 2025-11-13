@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '@/contexts/AuthContext'
+import { useRateLimit } from '@/contexts/RateLimitContext'
 import { getRedirectPath } from '@/utils/redirect'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -16,10 +17,14 @@ export default function Login() {
   const [loading, setLoading] = useState(false)
   const navigate = useNavigate()
   const { login } = useAuth()
+  const { isRateLimited, rateLimitType } = useRateLimit()
+  
+  // Check if auth is rate limited
+  const isAuthRateLimited = isRateLimited && rateLimitType === 'auth'
 
   const handleSubmit = async (event) => {
     event.preventDefault()
-    if (loading) return
+    if (loading || isAuthRateLimited) return
 
     setError('')
     setLoading(true)
@@ -66,7 +71,7 @@ export default function Login() {
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 required
-                disabled={loading}
+                disabled={loading || isAuthRateLimited}
               />
             </div>
 
@@ -79,12 +84,12 @@ export default function Login() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
-                disabled={loading}
+                disabled={loading || isAuthRateLimited}
               />
             </div>
 
-            <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? 'Đang đăng nhập...' : 'Đăng nhập'}
+            <Button type="submit" className="w-full" disabled={loading || isAuthRateLimited}>
+              {loading ? 'Đang đăng nhập...' : isAuthRateLimited ? 'Too many request, vui lòng thử lại sau' : 'Đăng nhập'}
             </Button>
 
             <div className="text-center text-sm text-gray-600">

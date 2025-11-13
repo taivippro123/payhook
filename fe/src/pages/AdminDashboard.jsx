@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '@/contexts/AuthContext'
+import { useRateLimit } from '@/contexts/RateLimitContext'
 import { usersAPI, transactionsAPI, WS_BASE_URL } from '@/lib/api'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -14,8 +15,12 @@ import { cn } from '@/lib/utils'
 
 export default function AdminDashboard() {
   const { user, logout } = useAuth()
+  const { isRateLimited, rateLimitType } = useRateLimit()
   const navigate = useNavigate()
   const [users, setUsers] = useState([])
+  
+  // Check if API is rate limited
+  const isApiRateLimited = isRateLimited && rateLimitType === 'api'
   const [transactions, setTransactions] = useState([])
   const [loading, setLoading] = useState(false)
   const [selectedUserId, setSelectedUserId] = useState(null)
@@ -163,6 +168,7 @@ export default function AdminDashboard() {
   }
 
   const handleUpdateRole = async (userId, newRole) => {
+    if (isApiRateLimited) return
     try {
       await usersAPI.updateRole(userId, newRole)
       await loadUsers()
@@ -172,6 +178,7 @@ export default function AdminDashboard() {
   }
 
   const handleDeleteUser = async (userId) => {
+    if (isApiRateLimited) return
     if (!confirm('Bạn có chắc muốn xóa user này?')) return
     try {
       await usersAPI.delete(userId)
@@ -327,6 +334,7 @@ export default function AdminDashboard() {
                               size="sm"
                               className="text-xs sm:text-sm"
                               onClick={() => handleUpdateRole(u._id?.toString() || u.id, u.role === 'admin' ? 'user' : 'admin')}
+                              disabled={isApiRateLimited}
                             >
                               {u.role === 'admin' ? '→ User' : '→ Admin'}
                             </Button>
@@ -335,7 +343,7 @@ export default function AdminDashboard() {
                               size="sm"
                               className="text-xs sm:text-sm text-red-600 hover:text-red-700"
                               onClick={() => handleDeleteUser(u._id?.toString() || u.id)}
-                              disabled={u._id?.toString() === user._id?.toString()}
+                              disabled={u._id?.toString() === user._id?.toString() || isApiRateLimited}
                             >
                               Xóa
                             </Button>
