@@ -3,6 +3,11 @@ import { Link } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import Silk from '@/components/Silk'
 import PillNav from '@/components/PillNav'
+import Faq02 from '@/components/faq-02'
+import { HoverEffect } from '@/components/ui/card-hover-effect'
+import { PageSEO, generateOrganizationSchema } from '@/components/SEO'
+import ogImage from '@/assets/Payhook.png'
+import GradientText from '@/components/GradientText'
 
 export default function Home() {
   const navItems = useMemo(
@@ -14,8 +19,86 @@ export default function Home() {
     []
   )
 
+  const featureItems = useMemo(
+    () => [
+      {
+        title: 'Kết nối Gmail an toàn',
+        description:
+          'Ủy quyền qua Google OAuth, Payhook chỉ đọc email từ ngân hàng CAKE và mã hóa refresh token để đảm bảo bảo mật.',
+        link: '/guide',
+      },
+      {
+        title: 'Push realtime',
+        description:
+          'Nhận giao dịch trong vài giây nhờ Gmail Push Notifications, không cần cron hay polling thủ công.',
+        link: '/guide',
+      },
+      {
+        title: 'Webhook linh hoạt',
+        description:
+          'Payload đơn giản, retry tối đa 5 lần với độ trễ tăng dần. Theo dõi log dễ dàng để kiểm tra trạng thái.',
+        link: '/guide',
+      },
+      {
+        title: 'Dashboard rõ ràng',
+        description:
+          'Theo dõi trạng thái push, thời gian hết hạn, webhook URL và giao dịch mới nhất trong một giao diện trực quan.',
+        link: '/dashboard',
+      },
+      {
+        title: 'Auto gia hạn Gmail watch',
+        description:
+          'Scheduler nền tự gia hạn `users.watch()` trước khi hết hạn 24 giờ, không cần thao tác thủ công.',
+        link: '/guide',
+      },
+      {
+        title: 'Tài liệu tiếng Việt chi tiết',
+        description:
+          'Hướng dẫn tích hợp từng bước, mô tả payload mẫu, chính sách bảo mật rõ ràng và cập nhật liên tục.',
+        link: '/guide',
+      },
+    ],
+    []
+  )
+
+  const organizationSchema = useMemo(() => generateOrganizationSchema(), [])
+
   return (
     <div className="min-h-screen bg-white text-gray-900">
+      <PageSEO
+        title="Nhận giao dịch CAKE theo thời gian thực"
+        description="Kết nối Gmail CAKE của bạn với Payhook để nhận giao dịch trong vài giây, webhook realtime và dashboard giám sát tiện lợi."
+        pathname="/"
+        image={ogImage}
+        structuredData={{
+          '@context': 'https://schema.org',
+          '@type': 'WebSite',
+          name: 'Payhook',
+          url: 'https://payhook.vercel.app/',
+          description:
+            'Payhook giúp nhận giao dịch ngân hàng CAKE theo thời gian thực thông qua Gmail Push Notifications và webhook.',
+          potentialAction: {
+            '@type': 'SearchAction',
+            target: {
+              '@type': 'EntryPoint',
+              urlTemplate: 'https://payhook.vercel.app/guide?q={search_term_string}',
+            },
+            'query-input': 'required name=search_term_string',
+          },
+          inLanguage: 'vi-VN',
+          author: {
+            '@type': 'Organization',
+            name: 'Payhook',
+            url: 'https://payhook.vercel.app/',
+          },
+          publisher: {
+            '@type': 'Organization',
+            name: 'Payhook',
+            url: 'https://payhook.vercel.app/',
+          },
+          mainEntity: organizationSchema,
+        }}
+      />
       <main className="bg-white">
         <section className="relative overflow-hidden border-b border-gray-200 bg-black text-white">
           <div className="absolute inset-0">
@@ -36,9 +119,19 @@ export default function Home() {
           </div>
           <div className="relative z-10 mx-auto flex max-w-4xl flex-col items-center gap-8 px-6 py-24 text-center sm:px-12">
             <h1 className="text-3xl font-bold sm:text-4xl md:text-5xl">
+              Payhook
+            </h1>
+            <h1 className="text-3xl font-bold sm:text-4xl md:text-5xl">
               Nhận thông báo giao dịch
             </h1>
-            <p className="text-3xl font-bold sm:text-4xl md:text-5xl">trong vài giây</p>
+            <GradientText
+              colors={['#40ffaa', '#4079ff', '#40ffaa', '#4079ff', '#40ffaa']}
+              animationSpeed={3}
+              showBorder={false}
+              className="text-3xl font-bold sm:text-4xl md:text-5xl"
+            >
+              ngay lập tức
+            </GradientText>
             <div className="flex flex-wrap items-center justify-center gap-4">
               <Link to="/register">
                 <Button size="lg">Tạo tài khoản</Button>
@@ -54,40 +147,10 @@ export default function Home() {
 
         <section id="features" className="bg-white">
           <div className="mx-auto max-w-6xl px-4 py-16">
-            <h2 className="text-2xl font-semibold text-gray-900">Tính năng nổi bật</h2>
-            <div className="mt-8 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-              {[
-                {
-                  title: 'Kết nối Gmail an toàn',
-                  desc: 'Người dùng ủy quyền qua Google OAuth, Payhook chỉ đọc email từ CAKE và lưu refresh_token mã hóa.',
-                },
-                {
-                  title: 'Push real-time',
-                  desc: 'Gmail gửi push tới Pub/Sub → Payhook xử lý email → phát webhook / WebSocket ngay lập tức.',
-                },
-                {
-                  title: 'Webhook linh hoạt',
-                  desc: 'Payload đơn giản, retry tối đa 5 lần (10s→10s→20s→30s→50s). Ghi log để kiểm tra dễ dàng.',
-                },
-                {
-                  title: 'Dashboard rõ ràng',
-                  desc: 'Hiển thị trạng thái push, thời gian hết hạn, webhook URL, log giao dịch mới nhất.',
-                },
-                {
-                  title: 'Auto gia hạn Gmail watch',
-                  desc: 'Scheduler chạy nền, tự renew trước 24 giờ. Không cần thao tác thủ công.',
-                },
-                {
-                  title: 'Tài liệu tiếng Việt chi tiết',
-                  desc: 'Guide tích hợp từng bước, mô tả payload, ví dụ webhook và chính sách bảo mật rõ ràng.',
-                },
-              ].map((item) => (
-                <div key={item.title} className="rounded-xl border border-gray-200 bg-gray-50 p-5 shadow-sm">
-                  <h3 className="text-lg font-semibold text-gray-900">{item.title}</h3>
-                  <p className="mt-2 text-sm text-gray-600">{item.desc}</p>
-                </div>
-              ))}
+            <div className="max-w-3xl">
+              <h2 className="text-2xl font-semibold text-gray-900">Tính năng nổi bật</h2>
             </div>
+            <HoverEffect items={featureItems} className="mt-8" />
           </div>
         </section>
 
@@ -121,6 +184,8 @@ export default function Home() {
             </div>
           </div>
         </section>
+
+        <Faq02 />
       </main>
 
       <footer className="border-t border-gray-200 bg-white">

@@ -3,6 +3,8 @@ import { Link } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import PillNav from '@/components/PillNav'
 import Silk from '@/components/Silk'
+import { PageSEO } from '@/components/SEO'
+import ogImage from '@/assets/Payhook.png'
 
 export default function Privacy() {
   const navItems = useMemo(
@@ -16,6 +18,27 @@ export default function Privacy() {
 
   return (
     <div className="min-h-screen bg-white text-gray-900">
+      <PageSEO
+        title="Chính sách bảo mật"
+        description="Tìm hiểu cách Payhook thu thập, sử dụng và bảo vệ dữ liệu giao dịch từ ngân hàng CAKE, cùng quyền kiểm soát của người dùng."
+        pathname="/privacy"
+        image={ogImage}
+        type="article"
+        structuredData={{
+          '@context': 'https://schema.org',
+          '@type': 'PrivacyPolicy',
+          name: 'Chính sách bảo mật Payhook',
+          url: 'https://payhook.vercel.app/privacy',
+          publisher: {
+            '@type': 'Organization',
+            name: 'Payhook',
+            url: 'https://payhook.vercel.app/',
+          },
+          datePublished: '2025-11-13',
+          dateModified: new Date().toISOString().split('T')[0],
+          inLanguage: 'vi-VN',
+        }}
+      />
       <main>
         <section className="relative overflow-hidden border-b border-gray-200 bg-black text-white">
           <div className="absolute inset-0">

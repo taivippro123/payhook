@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import PayhookLogo from '@/assets/Payhook.png'
+import { PageSEO } from '@/components/SEO'
 
 export default function Register() {
   const [formData, setFormData] = useState({
@@ -50,6 +51,12 @@ export default function Register() {
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 p-4">
+      <PageSEO
+        title="Đăng ký"
+        description="Tạo tài khoản Payhook để tự động nhận giao dịch CAKE qua webhook, dashboard realtime và log chi tiết."
+        pathname="/register"
+        robots="noindex,nofollow"
+      />
       <img src={PayhookLogo} alt="Payhook" className="mb-6 h-32 w-32" />
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-1 text-center">

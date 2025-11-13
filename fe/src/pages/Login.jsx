@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import PayhookLogo from '@/assets/Payhook.png'
+import { PageSEO } from '@/components/SEO'
 
 export default function Login() {
   const [username, setUsername] = useState('')
@@ -36,6 +37,12 @@ export default function Login() {
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 p-4">
+      <PageSEO
+        title="Đăng nhập"
+        description="Đăng nhập Payhook để theo dõi giao dịch CAKE realtime, quản lý webhook và cấu hình Gmail."
+        pathname="/login"
+        robots="noindex,nofollow"
+      />
       <img src={PayhookLogo} alt="Payhook" className="mb-6 h-32 w-32" />
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-1 text-center">

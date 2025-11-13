@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+  <defs>
+    <linearGradient id="bg-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#2A0C7A" />
+      <stop offset="50%" stop-color="#4515FF" />
+      <stop offset="100%" stop-color="#5A5BFF" />
+    </linearGradient>
+    <linearGradient id="card-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="rgba(255,255,255,0.15)" />
+      <stop offset="100%" stop-color="rgba(255,255,255,0.03)" />
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="630" fill="url(#bg-gradient)" />
+  <rect x="180" y="130" width="840" height="370" rx="32" fill="rgba(255,255,255,0.12)" stroke="rgba(255,255,255,0.3)" stroke-width="2"/>
+  <text x="200" y="240" font-family="Inter, 'Segoe UI', sans-serif" font-size="72" font-weight="700" fill="#FFFFFF">
+    Payhook
+  </text>
+  <text x="200" y="310" font-family="Inter, 'Segoe UI', sans-serif" font-size="32" font-weight="500" fill="rgba(255,255,255,0.9)">
+    Nhận giao dịch CAKE trong vài giây qua Gmail Push Notifications
+  </text>
+  <text x="200" y="370" font-family="Inter, 'Segoe UI', sans-serif" font-size="28" fill="rgba(255,255,255,0.85)">
+    • Webhook realtime • Dashboard trực quan • Retry tự động • Log chi tiết
+  </text>
+  <rect x="200" y="410" width="280" height="72" rx="36" fill="rgba(255,255,255,0.16)" />
+  <text x="220" y="457" font-family="Inter, 'Segoe UI', sans-serif" font-size="28" font-weight="600" fill="#FFFFFF">
+    payhook.vercel.app
+  </text>
+</svg>
+
