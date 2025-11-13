@@ -10,6 +10,7 @@ import {
   IconBook,
 } from '@tabler/icons-react'
 import { motion } from 'motion/react'
+import PayhookLogo from '@/assets/Payhook.png'
 
 export function AppSidebar({ open, setOpen }) {
   const { user, logout } = useAuth()
@@ -25,11 +26,11 @@ export function AppSidebar({ open, setOpen }) {
     },
     ...(user?.role === 'admin'
       ? [{
-          key: 'admin',
-          label: 'Admin',
-          icon: <IconGauge size={18} className="text-neutral-500 dark:text-neutral-200" />,
-          action: () => navigate('/admin'),
-        }]
+        key: 'admin',
+        label: 'Admin',
+        icon: <IconGauge size={18} className="text-neutral-500 dark:text-neutral-200" />,
+        action: () => navigate('/admin'),
+      }]
       : []),
     {
       key: 'qr',
@@ -64,7 +65,7 @@ export function AppSidebar({ open, setOpen }) {
     <div className="flex h-full flex-col justify-between">
       <div>
         <div className="mb-6 flex items-center gap-2 px-2">
-          
+
           <motion.div
             animate={{
               display: sidebarOpen ? "block" : "none",
@@ -72,9 +73,7 @@ export function AppSidebar({ open, setOpen }) {
             }}
             className="overflow-hidden"
           >
-            <p className="text-sm font-semibold text-neutral-800 dark:text-neutral-200 whitespace-nowrap">
-              Payhook
-            </p>
+            <img src={PayhookLogo} alt="Payhook" className="h-28 w-28" />
           </motion.div>
         </div>
         <div className="space-y-1">

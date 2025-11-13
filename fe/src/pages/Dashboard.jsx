@@ -23,7 +23,6 @@ export default function Dashboard() {
   const [updatingConfigId, setUpdatingConfigId] = useState(null)
   const [isConnectingGmail, setIsConnectingGmail] = useState(false)
   const wsRef = useRef(null)
-  const MAX_RECENT_TRANSACTIONS = 5
   const [allTransactions, setAllTransactions] = useState([])
   const [transactionsPage, setTransactionsPage] = useState(1)
   const [transactionsLoading, setTransactionsLoading] = useState(false)
@@ -31,6 +30,8 @@ export default function Dashboard() {
   const transactionsContainerRef = useRef(null)
   const [showWelcomeDialog, setShowWelcomeDialog] = useState(false)
   const [configsLoaded, setConfigsLoaded] = useState(false) // Track xem đã load configs lần đầu chưa
+  const [recentLimit, setRecentLimit] = useState(5)
+  const recentLimitRef = useRef(5)
 
   useEffect(() => {
     loadData()
@@ -50,6 +51,10 @@ export default function Dashboard() {
       setShowWelcomeDialog(false)
     }
   }, [configsLoaded, emailConfigs.length, user])
+
+  useEffect(() => {
+    recentLimitRef.current = recentLimit
+  }, [recentLimit])
 
   useEffect(() => {
     const token = localStorage.getItem('token')
@@ -96,7 +101,8 @@ export default function Dashboard() {
                 return prev
               }
               const updated = [newTransaction, ...prev]
-              return updated.slice(0, MAX_RECENT_TRANSACTIONS)
+              const limit = recentLimitRef.current || 5
+              return updated.slice(0, limit)
             })
 
             // Cập nhật all transactions
@@ -150,7 +156,8 @@ export default function Dashboard() {
   const loadData = async () => {
     setLoading(true)
     try {
-      await Promise.all([loadConfigs(), loadTransactions()])
+      const { computedLimit } = await loadConfigs()
+      await loadTransactions(computedLimit)
     } catch (error) {
       console.error('Error loading data:', error)
     } finally {
@@ -172,16 +179,25 @@ export default function Dashboard() {
       })
       setWebhookDrafts(drafts)
       setConfigsLoaded(true) // Đánh dấu đã load xong configs
+      const computedLimit = Math.max(5, (configs.length || 0) * 5)
+      setRecentLimit(computedLimit)
+      recentLimitRef.current = computedLimit
+      return { configs, computedLimit }
     } catch (error) {
       console.error('Error loading configs:', error)
       setConfigsLoaded(true) // Vẫn đánh dấu đã load (dù có lỗi) để tránh dialog hiện khi đang load
+      const fallbackLimit = recentLimitRef.current || 5
+      setRecentLimit(fallbackLimit)
+      recentLimitRef.current = fallbackLimit
+      return { configs: [], computedLimit: fallbackLimit }
     }
   }
 
-  const loadTransactions = async () => {
+  const loadTransactions = async (limitOverride) => {
+    const limit = limitOverride ?? recentLimitRef.current ?? 5
     try {
-      // Load 5 transactions mới nhất cho "Giao dịch mới nhất"
-      const recentResponse = await transactionsAPI.getAll({ limit: MAX_RECENT_TRANSACTIONS })
+      // Load các giao dịch mới nhất cho "Giao dịch mới nhất"
+      const recentResponse = await transactionsAPI.getAll({ limit })
       setTransactions(recentResponse.transactions || [])
 
       // Load trang đầu cho "Chi tiết giao dịch"
@@ -279,7 +295,8 @@ export default function Dashboard() {
       setUpdatingConfigId(configId)
       const webhookUrl = webhookDrafts[configId]?.trim() || null
       await emailConfigAPI.update(configId, { webhookUrl })
-      await loadConfigs()
+      const { computedLimit } = await loadConfigs()
+      await loadTransactions(computedLimit)
       setEditingWebhookId(null)
     } catch (error) {
       console.error('Error saving webhook:', error)
@@ -294,7 +311,8 @@ export default function Dashboard() {
       const configId = config._id || config.id
       setUpdatingConfigId(configId)
       await emailConfigAPI.update(configId, { isActive: !config.isActive })
-      await loadConfigs()
+      const { computedLimit } = await loadConfigs()
+      await loadTransactions(computedLimit)
     } catch (error) {
       console.error('Error toggling config:', error)
       alert(error.response?.data?.error || 'Lỗi khi cập nhật trạng thái')
@@ -307,7 +325,8 @@ export default function Dashboard() {
     if (!confirm('Bạn có chắc muốn xóa cấu hình này?')) return
     try {
       await emailConfigAPI.delete(id)
-      await loadConfigs()
+      const { computedLimit } = await loadConfigs()
+      await loadTransactions(computedLimit)
     } catch (error) {
       console.error('Error deleting config:', error)
       alert(error.response?.data?.error || 'Lỗi khi xóa cấu hình')
