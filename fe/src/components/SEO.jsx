@@ -1,9 +1,9 @@
 import { Helmet } from 'react-helmet-async'
 import defaultOgImage from '@/assets/Payhook.png'
 
-const DEFAULT_TITLE = 'Payhook - Nhận giao dịch CAKE theo thời gian thực'
+const DEFAULT_TITLE = 'Payhook - Nhận thông báo giao dịch ngay lập tức'
 const DEFAULT_DESCRIPTION =
-  'Payhook giúp nhận giao dịch ngân hàng CAKE ngay lập tức qua Gmail Push Notifications, webhook và dashboard realtime.'
+  'Payhook giúp nhận thông báo giao dịch ngân hàng CAKE ngay lập tức qua Gmail Push Notifications, webhook và dashboard realtime.'
 const DEFAULT_KEYWORDS = [
   'Payhook',
   'Gmail Push Notifications',
@@ -39,7 +39,13 @@ export function PageSEO({
   type = 'website',
   structuredData,
 }) {
-  const pageTitle = title ? `${title} | Payhook` : DEFAULT_TITLE
+  // Nếu không có title hoặc title đã là DEFAULT_TITLE, dùng DEFAULT_TITLE
+  // Nếu có title khác, format thành "Payhook - {title}" (tránh duplicate "Payhook -")
+  const pageTitle = !title || title === DEFAULT_TITLE
+    ? DEFAULT_TITLE
+    : title.startsWith('Payhook -')
+    ? title
+    : `Payhook - ${title}`
   const canonicalUrl = buildAbsoluteUrl(pathname)
   const ogImage = toAbsoluteImage(image)
 

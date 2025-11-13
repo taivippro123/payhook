@@ -66,7 +66,6 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-white text-gray-900">
       <PageSEO
-        title="Nhận giao dịch CAKE theo thời gian thực"
         description="Kết nối Gmail CAKE của bạn với Payhook để nhận giao dịch trong vài giây, webhook realtime và dashboard giám sát tiện lợi."
         pathname="/"
         image={ogImage}
