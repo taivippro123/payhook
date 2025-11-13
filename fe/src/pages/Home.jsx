@@ -1,79 +1,53 @@
+import { useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
+import Silk from '@/components/Silk'
+import PillNav from '@/components/PillNav'
 
 export default function Home() {
+  const navItems = useMemo(
+    () => [
+      { label: 'Trang chủ', href: '/#' },
+      { label: 'Chính sách', href: '/privacy' },
+      { label: 'Đăng nhập', href: '/login' },
+    ],
+    []
+  )
+
   return (
     <div className="min-h-screen bg-white text-gray-900">
-      <header className="border-b border-gray-200 bg-white/80 backdrop-blur-sm sticky top-0 z-20">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4">
-          <div className="flex items-center gap-2">
-            <span className="text-xl font-semibold text-primary">Payhook</span>
-            <Badge className="hidden sm:inline-flex">Gmail Push</Badge>
+      <main className="bg-white">
+        <section className="relative overflow-hidden border-b border-gray-200 bg-black text-white">
+          <div className="absolute inset-0">
+            <Silk color="#4515FF" speed={4} scale={1.2} noiseIntensity={1.1} />
           </div>
-          <nav className="flex items-center gap-3 text-sm font-medium text-gray-600">
-            <a href="#features" className="hover:text-primary">
-              Tính năng
-            </a>
-            <a href="#workflow" className="hover:text-primary">
-              Quy trình
-            </a>
-            <Link to="/guide" className="hover:text-primary">
-              Tài liệu
-            </Link>
-            <Link to="/privacy" className="hover:text-primary">
-              Chính sách
-            </Link>
-          </nav>
-          <div className="hidden sm:flex items-center gap-2">
-            <Link to="/login">
-              <Button variant="outline" size="sm">
-                Đăng nhập
-              </Button>
-            </Link>
-            <Link to="/register">
-              <Button size="sm">Bắt đầu miễn phí</Button>
-            </Link>
+          <div className="relative z-20 mx-auto flex max-w-4xl justify-center px-4 pt-16">
+            <PillNav
+              className="pill-nav-glass"
+              baseColor="rgba(255,255,255,0.12)"
+              pillColor="rgba(255,255,255,0.2)"
+              pillTextColor="rgba(255,255,255,0.95)"
+              hoveredPillTextColor="#060010"
+              items={navItems}
+              activeHref="/"
+              ease="power3.easeOut"
+              initialLoadAnimation={false}
+            />
           </div>
-        </div>
-      </header>
-
-      <main>
-        <section className="bg-gradient-to-b from-white to-gray-50">
-          <div className="mx-auto flex max-w-6xl flex-col gap-8 px-4 py-16 lg:flex-row lg:items-center">
-            <div className="flex-1 space-y-6">
-              <Badge className="bg-blue-100 text-blue-700 hover:bg-blue-100">
-                Gmail Push Notifications
-              </Badge>
-              <h1 className="text-3xl font-bold text-gray-900 sm:text-4xl md:text-5xl">
-                Nhận giao dịch ngân hàng CAKE trong vài giây, không cần polling
-              </h1>
-              <p className="text-lg text-gray-600">
-                Payhook sử dụng Gmail OAuth &amp; Push Notifications để phát hiện giao dịch mới và gửi webhook real-time tới hệ thống của bạn (POS, CRM, ERP...). Không còn App
-                Password, không độ trễ dài.
-              </p>
-              <div className="flex flex-wrap gap-3">
-                <Link to="/register">
-                  <Button size="lg">Tạo tài khoản</Button>
-                </Link>
-                <Link to="/guide">
-                  <Button size="lg" variant="outline">
-                    Xem tài liệu tích hợp
-                  </Button>
-                </Link>
-              </div>
-            </div>
-            <div className="flex-1">
-              <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
-                <h3 className="text-lg font-semibold text-gray-900">Tại sao chọn Payhook?</h3>
-                <ul className="mt-4 space-y-3 text-sm text-gray-600">
-                  <li>• Gmail OAuth bảo mật – chỉ đọc hộp thư, không lưu App Password</li>
-                  <li>• Push Notifications từ Google giúp phản hồi trong vài giây</li>
-                  <li>• Scheduler tự động gia hạn Gmail watch trước khi hết hạn ~7 ngày</li>
-                  <li>• Webhook retry 5 lần với Fibonacci delay, tránh mất giao dịch</li>
-                  <li>• Giao diện Dashboard trực quan: theo dõi trạng thái push &amp; webhook</li>
-                </ul>
-              </div>
+          <div className="relative z-10 mx-auto flex max-w-4xl flex-col items-center gap-8 px-6 py-24 text-center sm:px-12">
+            <h1 className="text-3xl font-bold sm:text-4xl md:text-5xl">
+              Nhận thông báo giao dịch
+            </h1>
+            <p className="text-3xl font-bold sm:text-4xl md:text-5xl">trong vài giây</p>
+            <div className="flex flex-wrap items-center justify-center gap-4">
+              <Link to="/register">
+                <Button size="lg">Tạo tài khoản</Button>
+              </Link>
+              <Link to="/guide">
+                <Button size="lg" variant="outline" className="bg-white/10 text-white hover:bg-white/20">
+                  Xem tài liệu tích hợp
+                </Button>
+              </Link>
             </div>
           </div>
         </section>

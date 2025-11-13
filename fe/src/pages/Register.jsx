@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import PayhookLogo from '@/assets/Payhook.png'
 
 export default function Register() {
   const [formData, setFormData] = useState({
@@ -48,9 +49,10 @@ export default function Register() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
+    <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 p-4">
+      <img src={PayhookLogo} alt="Payhook" className="mb-6 h-32 w-32" />
       <Card className="w-full max-w-md">
-        <CardHeader className="space-y-1">
+        <CardHeader className="space-y-1 text-center">
           <CardTitle className="text-2xl font-bold text-center">Đăng ký</CardTitle>
           <CardDescription className="text-center">
             Tạo tài khoản mới để bắt đầu sử dụng
