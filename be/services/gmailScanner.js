@@ -1,6 +1,9 @@
 const imap = require('imap-simple');
 const { simpleParser } = require('mailparser');
 
+// Track logged emails để chỉ log lần đầu
+const loggedEmails = new Set();
+
 /**
  * Kết nối Gmail qua IMAP và quét email
  * @param {string} email - Email address
@@ -29,16 +32,29 @@ async function scanGmail(email, appPassword, options = {}) {
   };
 
   let connection;
-  try {
-    // Kết nối IMAP
-    console.log(`🔌 [${email}] Connecting to Gmail IMAP...`);
-    connection = await imap.connect(config);
-    console.log(`✅ [${email}] Successfully connected to Gmail IMAP`);
+  const isFirstTime = !loggedEmails.has(email);
+  if (isFirstTime) {
+    loggedEmails.add(email);
+  }
 
-    // Mở inbox
-    console.log(`📂 [${email}] Opening INBOX...`);
+  try {
+    // Kết nối IMAP - chỉ log lần đầu
+    if (isFirstTime) {
+      console.log(`🔌 [${email}] Connecting to Gmail IMAP...`);
+    }
+    connection = await imap.connect(config);
+    if (isFirstTime) {
+      console.log(`✅ [${email}] Successfully connected to Gmail IMAP`);
+    }
+
+    // Mở inbox - chỉ log lần đầu
+    if (isFirstTime) {
+      console.log(`📂 [${email}] Opening INBOX...`);
+    }
     await connection.openBox('INBOX', true);
-    console.log(`✅ [${email}] INBOX opened successfully`);
+    if (isFirstTime) {
+      console.log(`✅ [${email}] INBOX opened successfully`);
+    }
 
     // Tìm email theo tiêu chí
     let searchCriteriaArray = Array.isArray(searchCriteria) 

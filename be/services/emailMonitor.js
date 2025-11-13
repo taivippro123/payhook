@@ -18,6 +18,7 @@ class EmailMonitor {
     this.isScanning = false; // Flag để tránh scan đồng thời 
     this.onTransactionCallback = options.onTransaction || null;
     this.processedUids = new Set(); // Lưu UID đã xử lý để tránh duplicate
+    this.scanCount = 0; // Đếm số lần scan để chỉ log lần đầu
   }
 
   /**
@@ -66,21 +67,31 @@ class EmailMonitor {
   async scan() {
     // Tránh scan đồng thời
     if (this.isScanning) {
-      console.log(`⏸️  [${this.email}] Scan already in progress, skipping...`);
-      return;
+      return; // Không log nữa để giảm noise
     }
 
     this.isScanning = true;
-    const scanStartTime = new Date();
+    this.scanCount++;
+    const isFirstScan = this.scanCount === 1;
+    
     try {
-      console.log(`🔍 [${this.email}] Starting Gmail scan at ${scanStartTime.toISOString()}`);
+      // Chỉ log lần đầu
+      if (isFirstScan) {
+        console.log(`🔍 [${this.email}] Starting Gmail scan...`);
+      }
+      
       const emails = await scanGmail(this.email, this.appPassword, {
         limit: this.batchSize, // đủ để phát hiện nhanh
         searchCriteria: ['UNSEEN'],
         sinceDate: this.resumeFrom,
       });
 
-      console.log(`✅ [${this.email}] Gmail scan completed. Found ${emails.length} email(s)`);
+      // Chỉ log khi có email mới hoặc lần đầu
+      if (emails.length > 0) {
+        console.log(`✅ [${this.email}] Found ${emails.length} email(s)`);
+      } else if (isFirstScan) {
+        console.log(`✅ [${this.email}] Gmail scan completed. No new emails`);
+      }
 
       if (emails.length === 0) {
         return; // Không log gì nếu không có email mới

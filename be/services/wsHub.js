@@ -51,8 +51,7 @@ function broadcastTransaction(transaction, targetUserId) {
   // Normalize userId để so sánh (convert sang string)
   const targetUserIdStr = targetUserId?.toString();
 
-  console.log(`📡 Broadcasting transaction to userId: ${targetUserIdStr}, clients: ${clients.size}`);
-
+  let sentCount = 0;
   for (const client of clients) {
     if (!client.ws || client.ws.readyState !== WebSocket.OPEN) {
       continue;
@@ -62,9 +61,14 @@ function broadcastTransaction(transaction, targetUserId) {
     const shouldSend = client.role === 'admin' || clientUserIdStr === targetUserIdStr;
 
     if (shouldSend) {
-      console.log(`✅ Sending transaction to client: userId=${clientUserIdStr}, role=${client.role}`);
       safeSend(client.ws, payload);
+      sentCount++;
     }
+  }
+  
+  // Chỉ log khi có gửi thành công
+  if (sentCount > 0) {
+    console.log(`📡 Broadcast transaction to ${sentCount} client(s) for userId: ${targetUserIdStr}`);
   }
 }
 
@@ -77,8 +81,7 @@ function broadcastWebhookLog(webhookLog, targetUserId) {
   // Normalize userId để so sánh
   const targetUserIdStr = targetUserId?.toString();
 
-  console.log(`📡 Broadcasting webhook log to userId: ${targetUserIdStr}, clients: ${clients.size}`);
-
+  let sentCount = 0;
   for (const client of clients) {
     if (!client.ws || client.ws.readyState !== WebSocket.OPEN) {
       continue;
@@ -89,9 +92,14 @@ function broadcastWebhookLog(webhookLog, targetUserId) {
     const shouldSend = client.role === 'admin' || clientUserIdStr === targetUserIdStr;
 
     if (shouldSend) {
-      console.log(`✅ Sending webhook log to client: userId=${clientUserIdStr}, role=${client.role}`);
       safeSend(client.ws, payload);
+      sentCount++;
     }
+  }
+  
+  // Chỉ log khi có gửi thành công (giảm noise)
+  if (sentCount > 0) {
+    console.log(`📡 Broadcast webhook log to ${sentCount} client(s) for userId: ${targetUserIdStr}`);
   }
 }
 

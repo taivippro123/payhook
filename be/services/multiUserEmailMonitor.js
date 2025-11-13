@@ -79,9 +79,8 @@ class MultiUserEmailMonitor {
    */
   async loadAndStartAll() {
     try {
-      console.log('📋 Loading active email configs...');
+      // Chỉ log khi có thay đổi (giảm noise khi reload định kỳ)
       const activeConfigs = await EmailConfig.findActive();
-      console.log(`📊 Found ${activeConfigs.length} active email config(s)`);
 
       // Start monitors cho configs mới hoặc chưa được start
       for (const config of activeConfigs) {
