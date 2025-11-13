@@ -67,37 +67,78 @@ class EmailMonitor {
   async scan() {
     // Tránh scan đồng thời
     if (this.isScanning) {
-      return; // Không log nữa để giảm noise
+      // Đếm số lần skip (không tăng scanCount vì scan không chạy)
+      this.skipCount = (this.skipCount || 0) + 1;
+      // Log khi scan bị skip để debug (mỗi 10 lần skip)
+      if (this.skipCount % 10 === 0) {
+        console.log(`⏭️  [${this.email}] Scan skipped (previous scan still running). Total skipped: ${this.skipCount}`);
+      }
+      return;
     }
 
     this.isScanning = true;
     this.scanCount++;
+    this.skipCount = 0; // Reset skip count khi scan chạy
     const isFirstScan = this.scanCount === 1;
     
     try {
-      // Chỉ log lần đầu
-      if (isFirstScan) {
-        console.log(`🔍 [${this.email}] Starting Gmail scan...`);
+      // Log mỗi lần scan để biết monitor đang chạy (không chỉ lần đầu)
+      if (isFirstScan || this.scanCount % 10 === 0) {
+        console.log(`🔍 [${this.email}] Starting scan #${this.scanCount}...`);
       }
       
+      // Tối ưu: nếu resumeFrom quá cũ (> 30 phút), chỉ scan email trong 5 phút gần đây
+      // để tránh scan quá nhiều email cũ, nhưng vẫn đảm bảo không bỏ sót email mới
+      const now = new Date();
+      const thirtyMinutesAgo = new Date(now.getTime() - 30 * 60 * 1000);
+      const fiveMinutesAgo = new Date(now.getTime() - 5 * 60 * 1000);
+      const oneMinuteAgo = new Date(now.getTime() - 1 * 60 * 1000); // Chỉ scan email trong 1 phút gần đây để tối ưu
+      
+      // Nếu resumeFrom quá cũ (> 30 phút), chỉ scan 1 phút gần đây (tối ưu hơn 5 phút)
+      // Nếu resumeFrom gần đây (< 30 phút), dùng resumeFrom nhưng không quá 1 phút trước
+      let scanSince = this.resumeFrom < thirtyMinutesAgo ? oneMinuteAgo : this.resumeFrom;
+      // Đảm bảo scanSince không quá cũ (tối đa 1 phút trước) để tránh scan quá nhiều email
+      if (scanSince < oneMinuteAgo) {
+        scanSince = oneMinuteAgo;
+      }
+      
+      // Giới hạn tìm kiếm email từ đúng nguồn gửi để giảm tải IMAP
+      const cakeSearchCriteria = [
+        'UNSEEN',
+        ['HEADER', 'FROM', 'no-reply@cake.vn'],
+        ['HEADER', 'SUBJECT', '[CAKE] Thông báo giao dịch thành công'],
+      ];
+
+      const scanStartTime = Date.now();
       const emails = await scanGmail(this.email, this.appPassword, {
         limit: this.batchSize, // đủ để phát hiện nhanh
-        searchCriteria: ['UNSEEN'],
-        sinceDate: this.resumeFrom,
+        searchCriteria: cakeSearchCriteria,
+        sinceDate: scanSince,
+      });
+      const scanDuration = Date.now() - scanStartTime;
+
+      // Luôn log khi có email mới, log lần đầu và định kỳ để confirm scan hoạt động
+      if (emails && emails.length > 0) {
+        console.log(`✅ [${this.email}] Found ${emails.length} email(s) in ${scanDuration}ms`);
+      } else {
+        // Luôn log khi scan hoàn thành để confirm monitor vẫn chạy
+        // Log mỗi lần scan (không chỉ mỗi 10 lần) để debug tốt hơn
+        const emailCount = emails ? emails.length : 0;
+        console.log(`✅ [${this.email}] Scan #${this.scanCount} completed in ${scanDuration}ms. No new emails (found ${emailCount} emails)`);
+      }
+
+      if (!emails || emails.length === 0) {
+        return; // Không xử lý gì nếu không có email mới
+      }
+
+      // Sort emails theo date descending để xử lý email mới nhất trước
+      emails.sort((a, b) => {
+        const dateA = a.date ? new Date(a.date).getTime() : 0;
+        const dateB = b.date ? new Date(b.date).getTime() : 0;
+        return dateB - dateA; // Descending: email mới nhất trước
       });
 
-      // Chỉ log khi có email mới hoặc lần đầu
-      if (emails.length > 0) {
-        console.log(`✅ [${this.email}] Found ${emails.length} email(s)`);
-      } else if (isFirstScan) {
-        console.log(`✅ [${this.email}] Gmail scan completed. No new emails`);
-      }
-
-      if (emails.length === 0) {
-        return; // Không log gì nếu không có email mới
-      }
-
-      // Parse và xử lý từng email
+      // Parse và xử lý từng email (đã sort, email mới nhất sẽ được xử lý trước)
       for (const emailData of emails) {
         // Bỏ qua nếu đã xử lý
         if (this.processedUids.has(emailData.uid)) {
@@ -147,12 +188,15 @@ class EmailMonitor {
       }
 
     } catch (error) {
-      console.error('❌ Error scanning emails:', error.message);
+      console.error(`❌ [${this.email}] Error scanning emails:`, error.message);
+      console.error(`❌ [${this.email}] Error stack:`, error.stack);
+      // Log scan completed ngay cả khi có lỗi
+      console.log(`✅ [${this.email}] Scan #${this.scanCount} completed with error`);
       // Không throw để service tiếp tục chạy
     } finally {
       this.isScanning = false;
-      // Thêm delay nhỏ để tránh quá nhiều connection
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Không delay nữa - scan interval đã được set bởi user, không cần delay thêm
+      // Delay chỉ làm chậm việc phát hiện email mới
     }
   }
 

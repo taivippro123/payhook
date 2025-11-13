@@ -1,5 +1,6 @@
 const imap = require('imap-simple');
 const { simpleParser } = require('mailparser');
+const connectionPool = require('./imapConnectionPool');
 
 // Track logged emails để chỉ log lần đầu
 const loggedEmails = new Set();
@@ -17,43 +18,20 @@ const loggedEmails = new Set();
 async function scanGmail(email, appPassword, options = {}) {
   const { limit = 10, searchCriteria = ['UNSEEN'], sinceDate } = options;
 
-  const config = {
-    imap: {
-      user: email,
-      password: appPassword,
-      host: 'imap.gmail.com',
-      port: 993,
-      tls: true,
-      tlsOptions: { rejectUnauthorized: false },
-      authTimeout: 30000, // Tăng từ 10s lên 30s để tránh timeout trên Fly.io
-      connTimeout: 30000, // Tăng từ 10s lên 30s để tránh timeout trên Fly.io
-      keepalive: false, // Tắt keepalive để tránh giữ connection
-    },
-  };
-
   let connection;
   const isFirstTime = !loggedEmails.has(email);
   if (isFirstTime) {
     loggedEmails.add(email);
   }
 
+  const scanStartTime = Date.now();
+  
   try {
-    // Kết nối IMAP - chỉ log lần đầu
+    // Sử dụng connection pool để reuse connection
+    connection = await connectionPool.getConnection(email, appPassword);
+    
     if (isFirstTime) {
-      console.log(`🔌 [${email}] Connecting to Gmail IMAP...`);
-    }
-    connection = await imap.connect(config);
-    if (isFirstTime) {
-      console.log(`✅ [${email}] Successfully connected to Gmail IMAP`);
-    }
-
-    // Mở inbox - chỉ log lần đầu
-    if (isFirstTime) {
-      console.log(`📂 [${email}] Opening INBOX...`);
-    }
-    await connection.openBox('INBOX', true);
-    if (isFirstTime) {
-      console.log(`✅ [${email}] INBOX opened successfully`);
+      console.log(`🔌 [${email}] Using connection pool for Gmail IMAP`);
     }
 
     // Tìm email theo tiêu chí
@@ -72,29 +50,44 @@ async function scanGmail(email, appPassword, options = {}) {
       searchCriteriaArray.push(['SINCE', dateStr]);
     }
     
-    // Search và fetch email bodies cùng lúc
-    const messages = await connection.search(searchCriteriaArray, {
+    // Search và fetch email bodies cùng lúc (imap-simple không có fetch() riêng)
+    const searchStartTime = Date.now();
+    const searchResults = await connection.search(searchCriteriaArray, {
       bodies: '',
       struct: true,
     });
 
-    if (!messages || messages.length === 0) {
+    if (!searchResults || searchResults.length === 0) {
       return [];
     }
 
-    // Lấy số lượng email theo limit
-    const messagesToProcess = messages.slice(0, limit);
+    const searchDuration = Date.now() - searchStartTime;
+    if (searchDuration > 1000) {
+      console.log(`⏱️  [${email}] IMAP search took ${searchDuration}ms for ${searchResults.length} message(s)`);
+    }
+
+    // Sort messages theo UID descending để lấy email mới nhất trước (UID cao hơn = email mới hơn)
+    searchResults.sort((a, b) => {
+      const uidA = a.attributes?.uid || 0;
+      const uidB = b.attributes?.uid || 0;
+      return uidB - uidA; // Descending: email mới nhất trước
+    });
+
+    // Lấy số lượng email theo limit (đã sort, nên sẽ lấy email mới nhất)
+    const messagesToProcess = searchResults.slice(0, limit);
 
     const parsedEmails = [];
+    const parseStartTime = Date.now();
 
-    for (const message of messagesToProcess) {
+    // Parse emails song song để tăng tốc độ
+    const parsePromises = messagesToProcess.map(async (message) => {
       try {
         const uid = message.attributes.uid;
         
         // Lấy phần body của email
         const all = message.parts.find((part) => part.which === '');
         if (!all || !all.body) {
-          continue;
+          return null;
         }
         
         // Convert body thành buffer
@@ -115,10 +108,10 @@ async function scanGmail(email, appPassword, options = {}) {
         
         // Lọc thêm theo date nếu có sinceDate (IMAP SINCE có thể không chính xác 100%)
         if (sinceDate && emailDate && emailDate < sinceDate) {
-          continue;
+          return null;
         }
         
-        parsedEmails.push({
+        return {
           uid: uid,
           subject: mail.subject,
           from: fromText,
@@ -126,23 +119,56 @@ async function scanGmail(email, appPassword, options = {}) {
           text: mail.text,
           html: mail.html,
           raw: mail,
-        });
+        };
       } catch (parseError) {
-        console.error(`❌ Error parsing email UID ${uid}:`, parseError.message);
+        console.error(`❌ Error parsing email UID ${message.attributes?.uid}:`, parseError.message);
+        return null;
       }
+    });
+
+    // Chờ tất cả parse xong
+    const parseResults = await Promise.all(parsePromises);
+    const parseDuration = Date.now() - parseStartTime;
+    if (parseDuration > 1000) {
+      console.log(`⏱️  [${email}] Email parsing took ${parseDuration}ms for ${messagesToProcess.length} email(s)`);
+    }
+
+    // Lọc bỏ null values
+    for (const result of parseResults) {
+      if (result) {
+        parsedEmails.push(result);
+      }
+    }
+
+    const scanDuration = Date.now() - scanStartTime;
+    if (isFirstTime || scanDuration > 2000) {
+      console.log(`⏱️  [${email}] Scan completed in ${scanDuration}ms`);
     }
 
     return parsedEmails;
 
   } catch (error) {
-    console.error('❌ Gmail scan error:', error.message);
+    console.error(`❌ [${email}] Gmail scan error:`, error.message);
+    
+    // Nếu lỗi liên quan đến connection (timeout, connection closed, etc), đóng và xóa khỏi pool
+    const isConnectionError = error.message.includes('timeout') || 
+                              error.message.includes('connection') || 
+                              error.message.includes('ECONNRESET') ||
+                              error.message.includes('socket');
+    
+    if (isConnectionError && connection) {
+      console.log(`🔄 [${email}] Connection error detected, closing and removing from pool`);
+      await connectionPool.closeConnection(email).catch(() => {});
+    }
+    
     throw error;
   } finally {
+    // Release connection về pool thay vì đóng (trừ khi đã bị đóng do lỗi)
     if (connection) {
       try {
-        await connection.end();
-      } catch (closeError) {
-        console.error('❌ Error closing IMAP connection:', closeError.message);
+        connectionPool.releaseConnection(email);
+      } catch (releaseError) {
+        // Ignore release errors
       }
     }
   }

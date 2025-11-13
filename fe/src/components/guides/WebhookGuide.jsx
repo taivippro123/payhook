@@ -205,7 +205,7 @@ app.post('/webhook/payhook', async (req, res) => {
     return res.status(400).json({ error: 'Payload không hợp lệ' });
   }
 
-  // Kiểm tra orderId từ description PAYHOOK_xxx
+  // Kiểm tra orderId từ description PAYHOOKxxx
   if (!orderId) {
     return res.status(400).json({ error: 'Không tìm thấy mã đơn hàng trong description' });
   }

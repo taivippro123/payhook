@@ -79,8 +79,10 @@ class MultiUserEmailMonitor {
    */
   async loadAndStartAll() {
     try {
-      // Chỉ log khi có thay đổi (giảm noise khi reload định kỳ)
       const activeConfigs = await EmailConfig.findActive();
+      
+      // Log khi có configs mới được start (không log mỗi lần reload)
+      let newConfigsCount = 0;
 
       // Start monitors cho configs mới hoặc chưa được start
       for (const config of activeConfigs) {
@@ -89,6 +91,7 @@ class MultiUserEmailMonitor {
         // Nếu monitor chưa tồn tại, tạo mới
         if (!this.monitors.has(configId)) {
           await this.startMonitorForConfig(config);
+          newConfigsCount++;
         } else {
           // Kiểm tra nếu config đã bị deactivate, dừng monitor
           const monitor = this.monitors.get(configId);
@@ -109,8 +112,14 @@ class MultiUserEmailMonitor {
           console.log(`🛑 Stopped monitor for config: ${configId}`);
         }
       }
+      
+      // Chỉ log khi có configs mới được start
+      if (newConfigsCount > 0) {
+        console.log(`📊 Loaded ${activeConfigs.length} active config(s), started ${newConfigsCount} new monitor(s)`);
+      }
     } catch (error) {
       console.error('❌ Error loading email configs:', error.message);
+      console.error('❌ Error stack:', error.stack);
     }
   }
 
@@ -138,7 +147,12 @@ class MultiUserEmailMonitor {
         scanInterval: config.scanInterval || Number(process.env.SCAN_INTERVAL_MS) || 1000,
         resumeFrom,
         lookbackMs: DEFAULT_RESUME_LOOKBACK_MS,
-        batchSize: Math.max(20, Math.min(100, Math.floor((config.scanInterval || 1000) / 100))),
+        // Tối ưu batchSize: scan interval nhỏ thì batchSize nhỏ để scan nhanh hơn
+        // Scan interval 1s (1000ms) -> batchSize 3 (giảm để scan nhanh hơn, tránh delay)
+        // Scan interval 5s (5000ms) -> batchSize 5
+        // Giảm batchSize để tránh IMAP search mất quá lâu khi fetch nhiều email
+        // Với inbox có nhiều email UNSEEN, batchSize nhỏ sẽ giúp scan nhanh hơn
+        batchSize: Math.max(3, Math.min(10, Math.floor((config.scanInterval || 1000) / 300))),
         onTransaction: async (transaction) => {
           // Lưu transaction vào DB
           try {

@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog'
 import { AppLayout } from '@/components/AppLayout'
 
 export default function Dashboard() {
@@ -32,10 +33,27 @@ export default function Dashboard() {
   const [transactionsLoading, setTransactionsLoading] = useState(false)
   const [hasMoreTransactions, setHasMoreTransactions] = useState(true)
   const transactionsContainerRef = useRef(null)
+  const [showWelcomeDialog, setShowWelcomeDialog] = useState(false)
+  const [configsLoaded, setConfigsLoaded] = useState(false) // Track xem đã load configs lần đầu chưa
 
   useEffect(() => {
     loadData()
   }, [])
+
+  // Hiển thị welcome dialog nếu user chưa có email config nào
+  // Dialog sẽ luôn hiện mỗi lần vào Dashboard cho đến khi user add email config lần đầu
+  useEffect(() => {
+    if (!user || !configsLoaded) return
+    
+    // Chỉ hiển thị nếu:
+    // 1. Đã load xong configs (configsLoaded = true)
+    // 2. Không có email config nào
+    if (emailConfigs.length === 0) {
+      setShowWelcomeDialog(true)
+    } else {
+      setShowWelcomeDialog(false)
+    }
+  }, [configsLoaded, emailConfigs.length, user])
 
   useEffect(() => {
     const token = localStorage.getItem('token')
@@ -148,8 +166,10 @@ export default function Dashboard() {
     try {
       const response = await emailConfigAPI.getAll()
       setEmailConfigs(response.configs || [])
+      setConfigsLoaded(true) // Đánh dấu đã load xong configs
     } catch (error) {
       console.error('Error loading configs:', error)
+      setConfigsLoaded(true) // Vẫn đánh dấu đã load (dù có lỗi) để tránh dialog hiện khi đang load
     }
   }
 
@@ -306,11 +326,53 @@ export default function Dashboard() {
     return new Date(dateString).toLocaleString('vi-VN')
   }
 
+  const handleCloseWelcomeDialog = () => {
+    setShowWelcomeDialog(false)
+    // Không lưu localStorage, dialog sẽ hiện lại lần sau nếu vẫn chưa có email config
+  }
+
+  const handleGoToGuide = () => {
+    handleCloseWelcomeDialog()
+    navigate('/guide')
+  }
+
   return (
-    <AppLayout
-      title="Payhook Monitor"
-      subtitle="Theo dõi giao dịch ngân hàng theo thời gian thực"
-    >
+    <>
+      <Dialog open={showWelcomeDialog} onOpenChange={setShowWelcomeDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Chào mừng đến với Payhook! 🎉</DialogTitle>
+            <DialogDescription>
+              <div className="space-y-3 mt-4 text-base">
+                <p>
+                  <strong>Payhook</strong> là hệ thống quét email dựa vào <strong>App Password</strong> để nhận thông báo giao dịch từ ngân hàng <strong>CAKE</strong>.
+                </p>
+                <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4">
+                  <p className="text-yellow-800 dark:text-yellow-200">
+                    <strong>⚠️ Lưu ý quan trọng:</strong> Có sự delay giữa server Gmail và server Payhook, nên có thể mất từ <strong>10-20 giây</strong> để nhận thông tin giao dịch sau khi email được gửi.
+                  </p>
+                </div>
+                <p>
+                  Vui lòng đọc <strong>hướng dẫn</strong> trước khi sử dụng để đảm bảo cấu hình đúng cách.
+                </p>
+              </div>
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={handleCloseWelcomeDialog}>
+              Đóng
+            </Button>
+            <Button onClick={handleGoToGuide}>
+              Đọc hướng dẫn
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <AppLayout
+        title="Payhook Monitor"
+        subtitle="Theo dõi giao dịch ngân hàng theo thời gian thực"
+      >
       <div className="grid gap-4 sm:gap-6 lg:grid-cols-2">
                 {/* Email Configs Section */}
           <Card className="shadow-sm">
@@ -355,7 +417,7 @@ export default function Dashboard() {
                         )}
                       </div>
                       <div className="space-y-2">
-                        <Label>Email</Label>
+                        <Label>Email đã đăng ký với ngân hàng Cake by VPBank</Label>
                         <Input
                           type="email"
                           placeholder="your-email@gmail.com"
@@ -596,7 +658,8 @@ export default function Dashboard() {
             </CardContent>
           </Card>
         )}
-    </AppLayout>
+      </AppLayout>
+    </>
   )
 }
 
