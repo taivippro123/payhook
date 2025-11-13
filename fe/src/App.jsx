@@ -8,6 +8,8 @@ import AdminDashboard from '@/pages/AdminDashboard'
 import QRGenerator from '@/pages/QRGenerator'
 import WebhookLogs from '@/pages/WebhookLogs'
 import Guide from '@/pages/Guide'
+import Home from '@/pages/Home'
+import Privacy from '@/pages/Privacy'
 import { getRedirectPath } from '@/utils/redirect'
 
 function RootRedirect() {
@@ -30,6 +32,8 @@ function App() {
     <AuthProvider>
       <BrowserRouter>
         <Routes>
+          <Route path="/" element={<Home />} />
+          <Route path="/privacy" element={<Privacy />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
           <Route
@@ -72,7 +76,7 @@ function App() {
               </ProtectedRoute>
             }
           />
-          <Route path="/" element={<RootRedirect />} />
+          <Route path="/app" element={<RootRedirect />} />
         </Routes>
       </BrowserRouter>
     </AuthProvider>
