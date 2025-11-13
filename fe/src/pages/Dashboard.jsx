@@ -11,6 +11,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog'
 import { AppLayout } from '@/components/AppLayout'
+import { PageSEO } from '@/components/SEO'
 import { cn } from '@/lib/utils'
 
 export default function Dashboard() {
@@ -439,6 +440,7 @@ export default function Dashboard() {
 
   return (
     <>
+      <PageSEO title="Payhook" pathname="/dashboard" robots="noindex,nofollow" />
       <Dialog open={showWelcomeDialog} onOpenChange={setShowWelcomeDialog}>
         <DialogContent>
           <DialogHeader>

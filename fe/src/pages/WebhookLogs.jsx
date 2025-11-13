@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
 import { AppLayout } from '@/components/AppLayout'
+import { PageSEO } from '@/components/SEO'
 import WebhookLogPanel from '@/components/WebhookLogPanel'
 import { WS_BASE_URL } from '@/lib/api'
 
@@ -76,9 +77,11 @@ export default function WebhookLogs() {
   }, [user])
 
   return (
-    <AppLayout
-      title="Webhook Logs"
-      subtitle="Theo dõi lịch sử gửi webhook và trạng thái gửi"
+    <>
+      <PageSEO title="Payhook" pathname="/webhooks" robots="noindex,nofollow" />
+      <AppLayout
+        title="Webhook Logs"
+        subtitle="Theo dõi lịch sử gửi webhook và trạng thái gửi"
     >
       <WebhookLogPanel
         title="Webhook Logs"
@@ -88,6 +91,7 @@ export default function WebhookLogs() {
         filters={user?.role !== 'admin' ? { userId: user?._id?.toString() } : {}}
       />
     </AppLayout>
+    </>
   )
 }
 

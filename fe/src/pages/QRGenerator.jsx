@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { AppLayout } from '@/components/AppLayout'
+import { PageSEO } from '@/components/SEO'
 
 export default function QRGenerator() {
   const { user } = useAuth()
@@ -43,7 +44,9 @@ export default function QRGenerator() {
   }
 
   return (
-    <AppLayout
+    <>
+      <PageSEO title="Payhook" pathname="/qr" robots="noindex,nofollow" />
+      <AppLayout
       title="Tạo QR Thanh toán (Cake)"
       subtitle="Mẫu QR chuẩn VietQR cho tài khoản Cake by VPBank"
     >
@@ -126,6 +129,7 @@ export default function QRGenerator() {
         </Card>
       </div>
     </AppLayout>
+    </>
   )
 }
 

@@ -40,9 +40,12 @@ export function PageSEO({
   structuredData,
 }) {
   // Nếu không có title hoặc title đã là DEFAULT_TITLE, dùng DEFAULT_TITLE
+  // Nếu title chỉ là "Payhook", giữ nguyên
   // Nếu có title khác, format thành "Payhook - {title}" (tránh duplicate "Payhook -")
   const pageTitle = !title || title === DEFAULT_TITLE
     ? DEFAULT_TITLE
+    : title === 'Payhook'
+    ? 'Payhook'
     : title.startsWith('Payhook -')
     ? title
     : `Payhook - ${title}`

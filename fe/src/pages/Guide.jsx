@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { AppLayout } from '@/components/AppLayout'
+import { PageSEO } from '@/components/SEO'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import GmailConnection from '@/components/guides/GmailConnection'
@@ -28,9 +29,11 @@ export default function Guide() {
   const ActiveComponent = GUIDE_TABS.find(tab => tab.id === activeTab)?.component || GmailConnection
 
   return (
-    <AppLayout
-      title="Hướng dẫn sử dụng"
-      subtitle="Tài liệu hướng dẫn chi tiết về các tính năng của Payhook"
+    <>
+      <PageSEO title="Payhook" pathname="/guide" robots="noindex,nofollow" />
+      <AppLayout
+        title="Hướng dẫn sử dụng"
+        subtitle="Tài liệu hướng dẫn chi tiết về các tính năng của Payhook"
     >
       <div className="space-y-6">
         {/* Tabs Navigation */}
@@ -57,6 +60,7 @@ export default function Guide() {
         </div>
       </div>
     </AppLayout>
+    </>
   )
 }
 

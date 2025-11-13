@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Input } from '@/components/ui/input'
 import { AppLayout } from '@/components/AppLayout'
+import { PageSEO } from '@/components/SEO'
 import WebhookLogPanel from '@/components/WebhookLogPanel'
 import { cn } from '@/lib/utils'
 
@@ -262,9 +263,11 @@ export default function AdminDashboard() {
   }
 
   return (
-    <AppLayout
-      title="Admin Dashboard"
-      subtitle="Quản lý người dùng và giao dịch trong hệ thống"
+    <>
+      <PageSEO title="Payhook" pathname="/admin" robots="noindex,nofollow" />
+      <AppLayout
+        title="Admin Dashboard"
+        subtitle="Quản lý người dùng và giao dịch trong hệ thống"
     >
               <div className="grid gap-4 sm:gap-6 lg:grid-cols-2">
           {/* Users Management */}
@@ -476,6 +479,7 @@ export default function AdminDashboard() {
           </Card>
         )}
     </AppLayout>
+    </>
   )
 }
 
