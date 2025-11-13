@@ -1,5 +1,6 @@
 const { getDB } = require('../db');
 const { ObjectId } = require('mongodb');
+const { encrypt, decrypt } = require('../utils/encryption');
 
 class EmailConfig {
   /**
@@ -24,9 +25,19 @@ class EmailConfig {
       userId: new ObjectId(userId),
       email,
       appPassword: appPassword || null, // Có thể null nếu dùng OAuth
-      refreshToken: refreshToken || null, // OAuth refresh token
+      refreshToken: refreshToken ? (() => {
+        try {
+          const encrypted = encrypt(refreshToken);
+          console.log(`🔐 Encrypted refreshToken for new config (email: ${email})`);
+          return encrypted;
+        } catch (encryptError) {
+          console.error(`❌ Failed to encrypt refreshToken for new config:`, encryptError.message);
+          throw new Error('Failed to encrypt refresh token');
+        }
+      })() : null, // OAuth refresh token - ENCRYPTED
       scanInterval: parseInt(scanInterval, 10),
       webhookUrl: webhookUrl || null,
+      webhookSecret: null, // Sẽ được generate khi user set webhook URL
       watchHistoryId: watchHistoryId || null, // Gmail watch history ID
       watchExpiration: watchExpiration || null, // Gmail watch expiration
       isActive: true,
@@ -36,10 +47,33 @@ class EmailConfig {
     };
 
     const result = await configs.insertOne(config);
-    return {
+    const createdConfig = {
       ...config,
       _id: result.insertedId,
     };
+    // Decrypt refresh token để return (không lưu plaintext trong response)
+    return this.decryptRefreshToken(createdConfig);
+  }
+
+  /**
+   * Decrypt refresh token trong config object
+   * @param {Object} config - Config object từ database
+   * @returns {Object} Config với decrypted refreshToken
+   */
+  static decryptRefreshToken(config) {
+    if (!config) return config;
+    if (config.refreshToken) {
+      try {
+        // Thử decrypt - nếu fail có thể là plain text (data cũ)
+        config.refreshToken = decrypt(config.refreshToken);
+      } catch (error) {
+        // Nếu decrypt fail, có thể là plain text (backward compatibility)
+        // Giữ nguyên và log warning
+        console.warn('⚠️ Refresh token appears to be plain text (not encrypted). Consider running migration script.');
+        // Không set null, giữ nguyên để backward compatibility
+      }
+    }
+    return config;
   }
 
   /**
@@ -50,9 +84,11 @@ class EmailConfig {
   static async findByUserId(userId) {
     const db = await getDB();
     const configs = db.collection('email_configs');
-    return await configs.find({ 
+    const results = await configs.find({ 
       userId: new ObjectId(userId) 
     }).toArray();
+    // Decrypt refresh tokens
+    return results.map(config => this.decryptRefreshToken(config));
   }
 
   /**
@@ -63,9 +99,10 @@ class EmailConfig {
   static async findById(configId) {
     const db = await getDB();
     const configs = db.collection('email_configs');
-    return await configs.findOne({ 
+    const config = await configs.findOne({ 
       _id: new ObjectId(configId) 
     });
+    return config ? this.decryptRefreshToken(config) : null;
   }
 
   /**
@@ -75,7 +112,9 @@ class EmailConfig {
   static async findActive() {
     const db = await getDB();
     const configs = db.collection('email_configs');
-    return await configs.find({ isActive: true }).toArray();
+    const results = await configs.find({ isActive: true }).toArray();
+    // Decrypt refresh tokens
+    return results.map(config => this.decryptRefreshToken(config));
   }
 
   /**
@@ -107,6 +146,17 @@ class EmailConfig {
       if (updateData.webhookUrl === '') {
         updateData.webhookUrl = null;
       }
+      
+      // Mã hóa refreshToken nếu có trong updates
+      if (updateData.refreshToken) {
+        try {
+          updateData.refreshToken = encrypt(updateData.refreshToken);
+          console.log(`🔐 Encrypted refreshToken for config ${configId}`);
+        } catch (encryptError) {
+          console.error(`❌ Failed to encrypt refreshToken for config ${configId}:`, encryptError.message);
+          throw new Error('Failed to encrypt refresh token');
+        }
+      }
 
       console.log(`🔄 Updating config ${configId} with data:`, { ...updateData, appPassword: updateData.appPassword ? '[REDACTED]' : undefined });
 
@@ -137,7 +187,8 @@ class EmailConfig {
       }
 
       console.log(`✅ Config ${configId} updated successfully`);
-      return updatedConfig;
+      // Decrypt refresh token trước khi return
+      return this.decryptRefreshToken(updatedConfig);
     } catch (error) {
       console.error(`❌ Error updating config ${configId}:`, error.message);
       throw error;

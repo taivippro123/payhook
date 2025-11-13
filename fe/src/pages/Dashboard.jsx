@@ -13,6 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { AppLayout } from '@/components/AppLayout'
 import { PageSEO } from '@/components/SEO'
 import { cn } from '@/lib/utils'
+import { IconCopy, IconEye, IconEyeOff, IconCheck } from '@tabler/icons-react'
 
 export default function Dashboard() {
   const { user, logout } = useAuth()
@@ -32,12 +33,14 @@ export default function Dashboard() {
   const transactionsContainerRef = useRef(null)
   const [showWelcomeDialog, setShowWelcomeDialog] = useState(false)
   const [configsLoaded, setConfigsLoaded] = useState(false) // Track xem đã load configs lần đầu chưa
-  const [recentLimit, setRecentLimit] = useState(5)
-  const recentLimitRef = useRef(5)
+  const [recentLimit, setRecentLimit] = useState(10)
+  const recentLimitRef = useRef(10)
   const [highlightedRecentIds, setHighlightedRecentIds] = useState({})
   const [highlightedAllIds, setHighlightedAllIds] = useState({})
   const recentHighlightTimersRef = useRef(new Map())
   const allHighlightTimersRef = useRef(new Map())
+  const [showWebhookSecrets, setShowWebhookSecrets] = useState({})
+  const [copiedSecretId, setCopiedSecretId] = useState(null)
 
   useEffect(() => {
     loadData()
@@ -187,14 +190,14 @@ export default function Dashboard() {
       })
       setWebhookDrafts(drafts)
       setConfigsLoaded(true) // Đánh dấu đã load xong configs
-      const computedLimit = Math.max(5, (configs.length || 0) * 5)
+      const computedLimit = Math.max(10, (configs.length || 0) * 10)
       setRecentLimit(computedLimit)
       recentLimitRef.current = computedLimit
       return { configs, computedLimit }
     } catch (error) {
       console.error('Error loading configs:', error)
       setConfigsLoaded(true) // Vẫn đánh dấu đã load (dù có lỗi) để tránh dialog hiện khi đang load
-      const fallbackLimit = recentLimitRef.current || 5
+      const fallbackLimit = recentLimitRef.current || 10
       setRecentLimit(fallbackLimit)
       recentLimitRef.current = fallbackLimit
       return { configs: [], computedLimit: fallbackLimit }
@@ -202,7 +205,7 @@ export default function Dashboard() {
   }
 
   const loadTransactions = async (limitOverride) => {
-    const limit = limitOverride ?? recentLimitRef.current ?? 5
+    const limit = limitOverride ?? recentLimitRef.current ?? 10
     try {
       // Load các giao dịch mới nhất cho "Giao dịch mới nhất"
       const recentResponse = await transactionsAPI.getAll({ limit })
@@ -308,7 +311,26 @@ export default function Dashboard() {
       setEditingWebhookId(null)
     } catch (error) {
       console.error('Error saving webhook:', error)
-      alert(error.response?.data?.error || 'Lỗi khi cập nhật webhook')
+      const errorMessage = error.response?.data?.error || 'Lỗi khi cập nhật webhook'
+      
+      // Hiển thị thông báo lỗi chi tiết hơn
+      let displayMessage = errorMessage
+      
+      if (errorMessage.includes('rate limit') || errorMessage.includes('Rate limit')) {
+        displayMessage = '⚠️ Vượt quá giới hạn 1000 webhooks/giờ. Vui lòng thử lại sau hoặc tối ưu logic xử lý webhook.'
+      } else if (errorMessage.includes('HTTPS') || errorMessage.includes('https')) {
+        displayMessage = 'Webhook URL phải sử dụng HTTPS (trừ localhost trong development). Vui lòng kiểm tra lại URL.'
+      } else if (errorMessage.includes('localhost') || errorMessage.includes('127.0.0.1')) {
+        displayMessage = 'Webhook URL không được sử dụng localhost hoặc private IPs trong production. Vui lòng sử dụng domain name với HTTPS.'
+      } else if (errorMessage.includes('IP address') || errorMessage.includes('IP addresses')) {
+        displayMessage = 'Webhook URL không được sử dụng IP address. Vui lòng sử dụng domain name (ví dụ: https://your-domain.com/webhook).'
+      } else if (errorMessage.includes('Invalid URL') || errorMessage.includes('URL format')) {
+        displayMessage = 'Webhook URL không đúng định dạng. Vui lòng kiểm tra lại URL (ví dụ: https://your-domain.com/webhook/payhook).'
+      } else if (errorMessage.includes('port')) {
+        displayMessage = 'Webhook URL chỉ được sử dụng ports 80 (HTTP) hoặc 443 (HTTPS). Vui lòng kiểm tra lại URL.'
+      }
+      
+      alert(displayMessage)
     } finally {
       setUpdatingConfigId(null)
     }
@@ -436,6 +458,24 @@ export default function Dashboard() {
   const handleGoToGuide = () => {
     handleCloseWelcomeDialog()
     navigate('/guide')
+  }
+
+  const toggleShowSecret = (configId) => {
+    setShowWebhookSecrets((prev) => ({
+      ...prev,
+      [configId]: !prev[configId],
+    }))
+  }
+
+  const copyWebhookSecret = async (secret, configId) => {
+    try {
+      await navigator.clipboard.writeText(secret)
+      setCopiedSecretId(configId)
+      setTimeout(() => setCopiedSecretId(null), 2000)
+    } catch (error) {
+      console.error('Failed to copy secret:', error)
+      alert('Không thể copy secret. Vui lòng copy thủ công.')
+    }
   }
 
   return (
@@ -604,6 +644,56 @@ export default function Dashboard() {
                                 </div>
                               )}
                             </div>
+
+                            {/* Webhook Secret */}
+                            {config.webhookUrl && config.webhookSecret && (
+                              <div className="space-y-2">
+                                <Label>Webhook Secret</Label>
+                                <Alert className="bg-blue-50 border-blue-200">
+                                  <AlertDescription className="text-blue-800 text-xs">
+                                    <strong>Lưu ý:</strong> Secret này dùng để verify webhook signature. Hãy lưu vào biến môi trường hoặc secure storage.
+                                  </AlertDescription>
+                                </Alert>
+                                <div className="flex items-center gap-2">
+                                  <div className="flex-1 relative">
+                                    <Input
+                                      type={showWebhookSecrets[configId] ? 'text' : 'password'}
+                                      value={config.webhookSecret}
+                                      readOnly
+                                      className="font-mono text-xs pr-20"
+                                    />
+                                    <div className="absolute right-2 top-1/2 -translate-y-1/2 flex gap-1">
+                                      <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="sm"
+                                        className="h-7 w-7 p-0"
+                                        onClick={() => toggleShowSecret(configId)}
+                                      >
+                                        {showWebhookSecrets[configId] ? (
+                                          <IconEyeOff className="h-4 w-4" />
+                                        ) : (
+                                          <IconEye className="h-4 w-4" />
+                                        )}
+                                      </Button>
+                                      <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="sm"
+                                        className="h-7 w-7 p-0"
+                                        onClick={() => copyWebhookSecret(config.webhookSecret, configId)}
+                                      >
+                                        {copiedSecretId === configId ? (
+                                          <IconCheck className="h-4 w-4 text-green-600" />
+                                        ) : (
+                                          <IconCopy className="h-4 w-4" />
+                                        )}
+                                      </Button>
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            )}
                           </div>
                         </CardContent>
                       </Card>

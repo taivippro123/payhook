@@ -10,10 +10,15 @@ const { authenticate, decodeToken } = require('./middleware/auth');
 const User = require('./models/user');
 const wsHub = require('./services/wsHub');
 const gmailWatchManager = require('./services/gmailWatchManager');
+const { startDLQProcessor, stopDLQProcessor } = require('./services/dlqProcessor');
 require('dotenv').config();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+
+// Trust proxy - Cần thiết cho fly.io và các reverse proxy
+// Fly.io sử dụng proxy, cần trust để express-rate-limit có thể lấy đúng IP
+app.set('trust proxy', true);
 
 // CORS configuration - different policies for different endpoints
 app.use((req, res, next) => {
@@ -52,6 +57,12 @@ const qrRoutes = require('./routes/qr');
 const webhookLogRoutes = require('./routes/webhookLogs');
 const gmailOAuthRoutes = require('./routes/gmailOAuth');
 const gmailWebhookRoutes = require('./routes/gmailWebhook');
+const { apiLimiter, authLimiter } = require('./middleware/rateLimiter');
+
+// Apply rate limiting
+app.use('/api/', apiLimiter);
+app.use('/api/auth/login', authLimiter);
+app.use('/api/auth/register', authLimiter);
 
 app.use('/api/auth', authRoutes);
 app.use('/api/email-configs', emailConfigRoutes);
@@ -154,6 +165,9 @@ server.listen(PORT, async () => {
   console.log(`\n🚀 Server running on port ${PORT}`);
 
   gmailWatchManager.start();
+  
+  // Khởi động Dead Letter Queue processor
+  startDLQProcessor();
 
   console.log(`\n📋 Available endpoints:`);
   console.log(`   GET  / - API info`);
@@ -180,6 +194,7 @@ server.listen(PORT, async () => {
 process.on('SIGINT', async () => {
   console.log('\n🛑 Shutting down server...');
   gmailWatchManager.stop();
+  stopDLQProcessor();
   await closeDB();
   server.close(() => process.exit(0));
 });
@@ -187,6 +202,7 @@ process.on('SIGINT', async () => {
 process.on('SIGTERM', async () => {
   console.log('\n🛑 Shutting down server...');
   gmailWatchManager.stop();
+  stopDLQProcessor();
   await closeDB();
   server.close(() => process.exit(0));
 });

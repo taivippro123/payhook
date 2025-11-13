@@ -32,7 +32,7 @@ function FAQItem({
         <h3
           className={cn(
             "text-base font-medium transition-colors duration-200 text-left",
-            "text-gray-700 dark:text-gray-300",
+            "text-gray-900 dark:text-gray-100",
             isOpen && "text-gray-900 dark:text-white"
           )}>
           {question}
@@ -94,7 +94,7 @@ function FAQItem({
                   duration: 0.3,
                   ease: "easeOut",
                 }}
-                className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
+                className="text-sm text-gray-800 dark:text-gray-200 leading-relaxed">
                 {answer}
               </motion.p>
             </div>
@@ -139,10 +139,10 @@ function Faq02() {
           transition={{ duration: 0.5 }}
           className="max-w-2xl mx-auto text-center mb-12">
           <h2
-            className="text-3xl font-semibold mb-3 bg-linear-to-r from-gray-900 via-gray-800 to-gray-900 dark:from-white dark:via-gray-100 dark:to-white bg-clip-text text-transparent">
+            className="text-3xl font-semibold mb-3 text-gray-900 dark:text-white">
             Câu hỏi thường gặp
           </h2>
-          <p className="text-sm text-gray-600 dark:text-gray-400">Những điều bạn cần biết trước khi sử dụng Payhook</p>
+          <p className="text-sm text-gray-700 dark:text-gray-300">Những điều bạn cần biết trước khi sử dụng Payhook</p>
         </motion.div>
 
         <div className="max-w-2xl mx-auto space-y-2">

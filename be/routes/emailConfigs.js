@@ -1,6 +1,8 @@
 const express = require('express');
 const EmailConfig = require('../models/emailConfig');
 const { authenticate } = require('../middleware/auth');
+const { validateWebhookUrl } = require('../utils/webhookValidation');
+const { generateWebhookSecret } = require('../utils/webhookSignature');
 
 const router = express.Router();
 
@@ -21,6 +23,7 @@ function serializeConfig(config) {
       updatedAt: config.updatedAt ? (config.updatedAt instanceof Date ? config.updatedAt.toISOString() : (typeof config.updatedAt === 'string' ? config.updatedAt : new Date(config.updatedAt).toISOString())) : null,
       watchExpiration: config.watchExpiration ? (config.watchExpiration instanceof Date ? config.watchExpiration.toISOString() : (typeof config.watchExpiration === 'string' ? config.watchExpiration : new Date(config.watchExpiration).toISOString())) : null,
       hasRefreshToken: Boolean(config.refreshToken),
+      webhookSecret: config.webhookSecret || null, // Trả về webhook secret để user có thể verify webhook
     };
   } catch (error) {
     console.error('❌ Error in serializeConfig:', error, 'Config:', config);
@@ -212,7 +215,28 @@ router.put('/:id', async (req, res) => {
     const { webhookUrl, isActive } = req.body;
     const updates = {};
 
-    if (webhookUrl !== undefined) updates.webhookUrl = webhookUrl || null;
+    if (webhookUrl !== undefined) {
+      const newWebhookUrl = webhookUrl || null;
+      
+      // Validate webhook URL nếu có
+      if (newWebhookUrl) {
+        const validation = validateWebhookUrl(newWebhookUrl);
+        if (!validation.valid) {
+          return res.status(400).json({ error: validation.error });
+        }
+        
+        // Nếu webhook URL thay đổi hoặc chưa có secret, generate secret mới
+        if (newWebhookUrl !== config.webhookUrl || !config.webhookSecret) {
+          updates.webhookSecret = generateWebhookSecret();
+        }
+      } else {
+        // Nếu xóa webhook URL, cũng xóa secret
+        updates.webhookSecret = null;
+      }
+      
+      updates.webhookUrl = newWebhookUrl;
+    }
+    
     if (isActive !== undefined) updates.isActive = Boolean(isActive);
 
     if (Object.keys(updates).length === 0) {

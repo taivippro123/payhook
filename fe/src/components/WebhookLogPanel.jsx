@@ -331,6 +331,23 @@ export default function WebhookLogPanel({
                                   <p className="text-sm text-red-500 break-words">
                                     {log.lastError || 'Không có'}
                                   </p>
+                                  {log.lastError && (
+                                    <div className="mt-2">
+                                      {log.lastError.includes('rate limit') || log.lastError.includes('Rate limit') ? (
+                                        <p className="text-xs text-yellow-600 bg-yellow-50 border border-yellow-200 rounded px-2 py-1 mt-1">
+                                          ⚠️ Vượt quá giới hạn 1000 webhooks/giờ. Vui lòng thử lại sau hoặc tối ưu logic xử lý webhook.
+                                        </p>
+                                      ) : log.lastError.includes('HTTPS') || log.lastError.includes('localhost') || log.lastError.includes('IP address') ? (
+                                        <p className="text-xs text-yellow-600 bg-yellow-50 border border-yellow-200 rounded px-2 py-1 mt-1">
+                                          ⚠️ Webhook URL không hợp lệ. Vui lòng kiểm tra lại URL (phải dùng HTTPS và domain name).
+                                        </p>
+                                      ) : log.status === 'failed' && log.totalAttempts >= 5 ? (
+                                        <p className="text-xs text-blue-600 bg-blue-50 border border-blue-200 rounded px-2 py-1 mt-1">
+                                          ℹ️ Webhook đã được đưa vào Dead Letter Queue và sẽ tự động retry sau 1h, 2h, 4h, 8h.
+                                        </p>
+                                      ) : null}
+                                    </div>
+                                  )}
                                 </div>
                               </div>
 
@@ -375,7 +392,22 @@ export default function WebhookLogPanel({
                                             </TableCell>
                                             <TableCell>{formatDuration(attempt.durationMs)}</TableCell>
                                             <TableCell className="text-sm text-gray-700 break-words">
-                                              {attempt.errorMessage || stringifyPayload(attempt.responseBody)}
+                                              <div>
+                                                {attempt.errorMessage || stringifyPayload(attempt.responseBody)}
+                                                {attempt.errorMessage && (
+                                                  <div className="mt-1">
+                                                    {attempt.errorMessage.includes('rate limit') || attempt.errorMessage.includes('Rate limit') ? (
+                                                      <span className="text-xs text-yellow-600 bg-yellow-50 border border-yellow-200 rounded px-2 py-0.5 inline-block">
+                                                        ⚠️ Vượt rate limit
+                                                      </span>
+                                                    ) : attempt.errorMessage.includes('HTTPS') || attempt.errorMessage.includes('localhost') || attempt.errorMessage.includes('IP address') ? (
+                                                      <span className="text-xs text-yellow-600 bg-yellow-50 border border-yellow-200 rounded px-2 py-0.5 inline-block">
+                                                        ⚠️ URL không hợp lệ
+                                                      </span>
+                                                    ) : null}
+                                                  </div>
+                                                )}
+                                              </div>
                                             </TableCell>
                                           </TableRow>
                                         ))}

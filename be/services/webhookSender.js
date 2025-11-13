@@ -1,6 +1,11 @@
 const axios = require('axios');
 const WebhookLog = require('../models/webhookLog');
+const DeadLetterQueue = require('../models/deadLetterQueue');
 const { broadcastWebhookLog, broadcastWebhookLogUpdate } = require('./wsHub');
+const { createSignature, generateWebhookSecret } = require('../utils/webhookSignature');
+const { validateWebhookUrl } = require('../utils/webhookValidation');
+const { webhookRateLimit } = require('../middleware/rateLimiter');
+const EmailConfig = require('../models/emailConfig');
 
 const MAX_SERIALIZED_LENGTH = 8000;
 
@@ -127,6 +132,22 @@ async function sendWebhook(webhookUrl, payload, maxRetries = 5, meta = {}) {
     return { success: false, attempts: 0, error: 'Webhook URL is not configured' };
   }
 
+  // Validate webhook URL
+  const urlValidation = validateWebhookUrl(webhookUrl);
+  if (!urlValidation.valid) {
+    console.warn('⚠️ [sendWebhook] Invalid webhook URL:', urlValidation.error);
+    return { success: false, attempts: 0, error: urlValidation.error };
+  }
+
+  // Check rate limit cho user
+  if (meta.userId) {
+    const rateLimitCheck = webhookRateLimit.checkLimit(meta.userId, 1000); // Max 1000 webhooks/hour
+    if (!rateLimitCheck.allowed) {
+      console.warn(`⚠️ [sendWebhook] Rate limit exceeded for user ${meta.userId}`);
+      return { success: false, attempts: 0, error: 'Webhook rate limit exceeded. Maximum 1000 webhooks per hour.' };
+    }
+  }
+
   let lastError = null;
   let lastStatusCode = null;
   let attempts = 0;
@@ -171,16 +192,47 @@ async function sendWebhook(webhookUrl, payload, maxRetries = 5, meta = {}) {
     // Tiếp tục gửi webhook dù không log được
   }
 
+  // Lấy hoặc tạo webhook secret
+  let webhookSecret = null;
+  if (meta.emailConfigId) {
+    try {
+      const config = await EmailConfig.findById(meta.emailConfigId);
+      if (config && config.webhookUrl === webhookUrl) {
+        webhookSecret = config.webhookSecret;
+        // Nếu chưa có secret, tạo mới và lưu
+        if (!webhookSecret) {
+          webhookSecret = generateWebhookSecret();
+          await EmailConfig.update(meta.emailConfigId, { webhookSecret });
+          console.log('🔑 Generated new webhook secret for config:', meta.emailConfigId);
+        }
+      }
+    } catch (error) {
+      console.error('❌ Failed to get webhook secret:', error.message);
+    }
+  }
+
+  // Tạo payload string và signature
+  const payloadString = JSON.stringify(payload);
+  const signature = webhookSecret ? createSignature(payloadString, webhookSecret) : null;
+
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     attempts = attempt;
     const startedAt = Date.now();
     try {
+      const headers = {
+        'Content-Type': 'application/json',
+        'User-Agent': 'Payhook/1.0',
+      };
+      
+      // Thêm signature header nếu có secret
+      if (signature) {
+        headers['X-Payhook-Signature'] = signature;
+        headers['X-Payhook-Timestamp'] = Date.now().toString();
+      }
+
       const response = await axios.post(webhookUrl, payload, {
         timeout: 10000, // 10 seconds timeout
-        headers: {
-          'Content-Type': 'application/json',
-          'User-Agent': 'Payhook/1.0',
-        },
+        headers,
       });
 
       lastStatusCode = response.status;
@@ -293,6 +345,24 @@ async function sendWebhook(webhookUrl, payload, maxRetries = 5, meta = {}) {
   }
 
   console.error(`❌ Webhook failed after ${attempts} attempts:`, webhookUrl, lastError);
+
+  // Thêm vào dead letter queue để retry sau
+  try {
+    await DeadLetterQueue.add({
+      webhookUrl,
+      payload: safeClone(payload),
+      userId: meta.userId,
+      emailConfigId: meta.emailConfigId,
+      transactionDocId: meta.transactionDocId,
+      transactionId: meta.transactionId,
+      error: lastError,
+      attempts,
+      webhookLogId: logRecord?._id,
+    });
+    console.log('📬 Added failed webhook to dead letter queue');
+  } catch (dlqError) {
+    console.error('❌ Failed to add to dead letter queue:', dlqError.message);
+  }
 
   return {
     success: false,
