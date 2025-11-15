@@ -11,7 +11,7 @@ const DEFAULT_KEYWORDS = [
   'thanh toán realtime',
   'tự động hóa giao dịch',
 ]
-const DEFAULT_SITE_URL = import.meta.env.VITE_SITE_URL || 'https://payhook.vercel.app'
+const DEFAULT_SITE_URL = import.meta.env.VITE_SITE_URL || 'https://www.payhook.codes'
 const DEFAULT_TWITTER = '@payhook'
 
 const buildAbsoluteUrl = (pathOrUrl) => {

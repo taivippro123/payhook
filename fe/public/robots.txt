@@ -1,5 +1,5 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://payhook.vercel.app/sitemap.xml
+Sitemap: https://www.payhook.codes/sitemap.xml
 

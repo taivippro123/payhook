@@ -73,14 +73,14 @@ export default function Home() {
           '@context': 'https://schema.org',
           '@type': 'WebSite',
           name: 'Payhook',
-          url: 'https://payhook.vercel.app/',
+          url: 'https://www.payhook.codes/',
           description:
             'Payhook giúp nhận giao dịch ngân hàng CAKE theo thời gian thực thông qua Gmail Push Notifications và webhook.',
           potentialAction: {
             '@type': 'SearchAction',
             target: {
               '@type': 'EntryPoint',
-              urlTemplate: 'https://payhook.vercel.app/guide?q={search_term_string}',
+              urlTemplate: 'https://www.payhook.codes/guide?q={search_term_string}',
             },
             'query-input': 'required name=search_term_string',
           },
@@ -88,12 +88,12 @@ export default function Home() {
           author: {
             '@type': 'Organization',
             name: 'Payhook',
-            url: 'https://payhook.vercel.app/',
+            url: 'https://www.payhook.codes/',
           },
           publisher: {
             '@type': 'Organization',
             name: 'Payhook',
-            url: 'https://payhook.vercel.app/',
+            url: 'https://www.payhook.codes/',
           },
           mainEntity: organizationSchema,
         }}

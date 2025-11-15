@@ -28,11 +28,11 @@ export default function Privacy() {
           '@context': 'https://schema.org',
           '@type': 'PrivacyPolicy',
           name: 'Chính sách bảo mật Payhook',
-          url: 'https://payhook.vercel.app/privacy',
+          url: 'https://www.payhook.codes/privacy',
           publisher: {
             '@type': 'Organization',
             name: 'Payhook',
-            url: 'https://payhook.vercel.app/',
+            url: 'https://www.payhook.codes/',
           },
           datePublished: '2025-11-13',
           dateModified: new Date().toISOString().split('T')[0],
