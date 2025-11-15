@@ -57,6 +57,17 @@ class User {
   }
 
   /**
+   * Tìm user theo email
+   * @param {string} email
+   * @returns {Promise<Object|null>}
+   */
+  static async findByEmail(email) {
+    const db = await getDB();
+    const users = db.collection('users');
+    return await users.findOne({ email });
+  }
+
+  /**
    * Tìm user theo ID
    * @param {string} userId
    * @returns {Promise<Object|null>}

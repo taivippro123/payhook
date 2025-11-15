@@ -17,9 +17,23 @@ export function AuthProvider({ children }) {
     setLoading(false)
   }, [])
 
-  const login = async (username, password) => {
+  const login = async (username, password, token = null) => {
     try {
-      const response = await authAPI.login({ username, password })
+      let response
+      if (token) {
+        // Login với token (từ Google OAuth)
+        localStorage.setItem('token', token)
+        // Fetch user info từ API
+        const { usersAPI } = await import('@/lib/api')
+        const userData = await usersAPI.getMe()
+        response = {
+          token,
+          user: userData,
+        }
+      } else {
+        // Login thông thường
+        response = await authAPI.login({ username, password })
+      }
       console.log('✅ Login successful, token:', response.token ? 'received' : 'missing')
       localStorage.setItem('token', response.token)
       localStorage.setItem('user', JSON.stringify(response.user))

@@ -83,10 +83,76 @@ async function refreshAccessToken(refreshToken) {
   return credentials.access_token;
 }
 
+/**
+ * Tạo OAuth2 authorization URL cho login
+ * @returns {string} Authorization URL
+ */
+function getLoginAuthUrl() {
+  const loginRedirectUri = process.env.GOOGLE_LOGIN_REDIRECT_URI || `${process.env.BACKEND_URL}/api/auth/google/login/callback`;
+  
+  const loginOAuth2Client = new google.auth.OAuth2(
+    process.env.GOOGLE_CLIENT_ID,
+    process.env.GOOGLE_CLIENT_SECRET,
+    loginRedirectUri
+  );
+
+  const url = loginOAuth2Client.generateAuthUrl({
+    access_type: 'offline',
+    scope: [
+      'openid',
+      'https://www.googleapis.com/auth/userinfo.profile',
+      'https://www.googleapis.com/auth/userinfo.email',
+    ],
+    prompt: 'select_account', // Cho phép chọn account
+  });
+
+  return url;
+}
+
+/**
+ * Xử lý OAuth2 callback cho login và lấy thông tin user
+ * @param {string} code - Authorization code từ Google
+ * @returns {Promise<Object>} { tokens, userInfo: { email, name, picture } }
+ */
+async function handleLoginCallback(code) {
+  try {
+    const loginRedirectUri = process.env.GOOGLE_LOGIN_REDIRECT_URI || `${process.env.BACKEND_URL}/api/auth/google/login/callback`;
+    
+    const loginOAuth2Client = new google.auth.OAuth2(
+      process.env.GOOGLE_CLIENT_ID,
+      process.env.GOOGLE_CLIENT_SECRET,
+      loginRedirectUri
+    );
+
+    // Đổi code lấy tokens
+    const { tokens } = await loginOAuth2Client.getToken(code);
+    
+    // Lấy thông tin user từ Google OAuth2 API
+    loginOAuth2Client.setCredentials(tokens);
+    const oauth2 = google.oauth2({ version: 'v2', auth: loginOAuth2Client });
+    const userInfo = await oauth2.userinfo.get();
+    
+    return {
+      tokens,
+      userInfo: {
+        email: userInfo.data.email,
+        name: userInfo.data.name,
+        picture: userInfo.data.picture,
+        googleId: userInfo.data.id,
+      },
+    };
+  } catch (error) {
+    console.error('❌ Google login callback error:', error.message);
+    throw error;
+  }
+}
+
 module.exports = {
   getAuthUrl,
   handleCallback,
   getOAuth2Client,
   refreshAccessToken,
+  getLoginAuthUrl,
+  handleLoginCallback,
 };
 

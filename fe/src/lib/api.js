@@ -103,6 +103,10 @@ export const gmailAPI = {
     const response = await api.get('/api/auth/google')
     return response.data
   },
+  getLoginAuthUrl: async () => {
+    const response = await api.get('/api/auth/google/login')
+    return response.data
+  },
 }
 
 // Transactions API

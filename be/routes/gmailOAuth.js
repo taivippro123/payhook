@@ -1,9 +1,11 @@
 const express = require('express');
 const router = express.Router();
 const { authenticate } = require('../middleware/auth');
-const { getAuthUrl, handleCallback } = require('../services/gmailOAuth');
+const { generateToken } = require('../middleware/auth');
+const { getAuthUrl, handleCallback, getLoginAuthUrl, handleLoginCallback } = require('../services/gmailOAuth');
 const { watchGmail } = require('../services/gmailApi');
 const EmailConfig = require('../models/emailConfig');
+const User = require('../models/user');
 
 /**
  * @swagger
@@ -133,6 +135,114 @@ router.get('/google/callback', async (req, res) => {
   } catch (error) {
     console.error('❌ OAuth callback error:', error);
     res.redirect(`${process.env.FRONTEND_URL}/dashboard?error=oauth_callback_failed`);
+  }
+});
+
+/**
+ * @swagger
+ * /api/auth/google/login:
+ *   get:
+ *     summary: Tạo Google OAuth URL để đăng nhập
+ *     tags: [Authentication]
+ *     responses:
+ *       200:
+ *         description: Trả về đường dẫn Google OAuth cho login
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 authUrl:
+ *                   type: string
+ *                   format: uri
+ *                   description: Đường dẫn Google OAuth 2.0 cho login
+ *       500:
+ *         description: Server error
+ */
+router.get('/google/login', async (req, res) => {
+  try {
+    const authUrl = getLoginAuthUrl();
+    res.json({ authUrl });
+  } catch (error) {
+    console.error('❌ Error generating login auth URL:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * @swagger
+ * /api/auth/google/login/callback:
+ *   get:
+ *     summary: Callback từ Google OAuth cho login
+ *     tags: [Authentication]
+ *     parameters:
+ *       - in: query
+ *         name: code
+ *         schema:
+ *           type: string
+ *         required: true
+ *         description: Authorization code được Google trả về
+ *     responses:
+ *       302:
+ *         description: Redirect về frontend với token hoặc error
+ *       400:
+ *         description: Thiếu tham số
+ */
+router.get('/google/login/callback', async (req, res) => {
+  try {
+    const { code, error } = req.query;
+
+    if (error) {
+      console.error('❌ OAuth error:', error);
+      return res.redirect(`${process.env.FRONTEND_URL}/login?error=oauth_failed`);
+    }
+
+    if (!code) {
+      return res.redirect(`${process.env.FRONTEND_URL}/login?error=no_code`);
+    }
+
+    // Xử lý callback và lấy thông tin user từ Google
+    const { tokens, userInfo } = await handleLoginCallback(code);
+
+    if (!userInfo.email) {
+      console.error('❌ No email received from Google');
+      return res.redirect(`${process.env.FRONTEND_URL}/login?error=no_email`);
+    }
+
+    // Tìm user theo email
+    let user = await User.findByEmail(userInfo.email);
+
+    if (!user) {
+      // Tạo user mới nếu chưa tồn tại
+      // Tạo username từ email (phần trước @)
+      const username = userInfo.email.split('@')[0];
+      let uniqueUsername = username;
+      let counter = 1;
+      
+      // Đảm bảo username unique
+      while (await User.findByUsername(uniqueUsername)) {
+        uniqueUsername = `${username}${counter}`;
+        counter++;
+      }
+
+      user = await User.create({
+        username: uniqueUsername,
+        email: userInfo.email,
+        password: Math.random().toString(36).slice(-12), // Random password (user không cần dùng)
+      });
+    }
+
+    // Tạo JWT token
+    const token = generateToken(user);
+
+    console.log(`✅ Google login successful for user: ${user.email}`);
+
+    // Redirect về frontend với token trong query string
+    // Frontend sẽ lấy token và lưu vào localStorage
+    res.redirect(`${process.env.FRONTEND_URL}/login?token=${token}&success=true`);
+  } catch (error) {
+    console.error('❌ Google login callback error:', error);
+    res.redirect(`${process.env.FRONTEND_URL}/login?error=login_failed`);
   }
 });
 
