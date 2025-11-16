@@ -5,6 +5,7 @@ const Transaction = require('../models/transaction');
 const { broadcastTransaction } = require('./wsHub');
 const { sendWebhook } = require('./webhookSender');
 const User = require('../models/user');
+const { sendPushNotification } = require('../routes/pushNotifications');
 
 // Helper function để serialize transaction
 function serializeTransaction(tx) {
@@ -132,6 +133,31 @@ async function handleGmailPush(pubsubMessage) {
         const serialized = serializeTransaction(saved);
         if (serialized) {
           broadcastTransaction(serialized, userId);
+        }
+
+        // Gửi push notification
+        try {
+          const amountFormatted = new Intl.NumberFormat('vi-VN', {
+            style: 'currency',
+            currency: 'VND',
+          }).format(saved.amountVND || 0);
+
+          await sendPushNotification(userId, {
+            title: 'Giao dịch mới',
+            body: `Đã nhận ${amountFormatted}`,
+            icon: '/android-chrome-192x192.png',
+            sound: 'default',
+            tag: 'transaction-notification',
+            data: {
+              transactionId: saved.transactionId,
+              amount: saved.amountVND,
+              playSound: true,
+              showNotification: true,
+            },
+          });
+        } catch (pushError) {
+          console.error('❌ Error sending push notification:', pushError.message);
+          // Không throw error, chỉ log để không ảnh hưởng đến flow chính
         }
 
         // Update resumeFrom và lastSyncedAt

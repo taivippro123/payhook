@@ -11,6 +11,7 @@ import { Input } from '@/components/ui/input'
 import { AppLayout } from '@/components/AppLayout'
 import { PageSEO } from '@/components/SEO'
 import WebhookLogPanel from '@/components/WebhookLogPanel'
+import NotificationSettings from '@/components/NotificationSettings'
 import { cn } from '@/lib/utils'
 
 export default function AdminDashboard() {
@@ -423,6 +424,8 @@ export default function AdminDashboard() {
             pageSize={15}
             showUserColumn
           />
+
+          <NotificationSettings className="lg:col-span-2" />
         </div>
 
         {/* All Transactions Table */}

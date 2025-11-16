@@ -7,6 +7,17 @@ const apiLimiter = rateLimit({
   message: 'Quá nhiều requests từ IP này, vui lòng thử lại sau 15 phút.',
   standardHeaders: true, // Return rate limit info in `RateLimit-*` headers
   legacyHeaders: false, // Disable `X-RateLimit-*` headers
+  trustProxy: 1, // Trust first proxy (fix warning)
+});
+
+// Rate limiter cho TTS endpoint (more lenient, used by service workers)
+const ttsLimiter = rateLimit({
+  windowMs: 1 * 60 * 1000, // 1 phút
+  max: 30, // Tối đa 30 requests per minute (cho phép nhiều hơn vì service worker)
+  message: 'Quá nhiều TTS requests, vui lòng thử lại sau.',
+  standardHeaders: true,
+  legacyHeaders: false,
+  trustProxy: 1, // Trust first proxy (fix warning)
 });
 
 // Rate limiter cho authentication endpoints (stricter)
@@ -69,6 +80,7 @@ setInterval(() => {
 module.exports = {
   apiLimiter,
   authLimiter,
+  ttsLimiter,
   webhookRateLimit,
 };
 

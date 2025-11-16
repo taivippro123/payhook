@@ -172,5 +172,29 @@ export const qrAPI = {
   },
 }
 
+// Push Notifications API
+export const pushNotificationsAPI = {
+  getPublicKey: async () => {
+    const response = await api.get('/api/push/public-key')
+    return response.data
+  },
+  subscribe: async (subscription, settings) => {
+    const response = await api.post('/api/push/subscribe', { subscription, settings })
+    return response.data
+  },
+  unsubscribe: async (endpoint) => {
+    const response = await api.post('/api/push/unsubscribe', { endpoint })
+    return response.data
+  },
+  getSettings: async () => {
+    const response = await api.get('/api/push/settings')
+    return response.data
+  },
+  updateSettings: async (settings) => {
+    const response = await api.put('/api/push/settings', settings)
+    return response.data
+  },
+}
+
 export default api
 

@@ -13,6 +13,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog'
 import { AppLayout } from '@/components/AppLayout'
 import { PageSEO } from '@/components/SEO'
+import NotificationSettings from '@/components/NotificationSettings'
 import { cn } from '@/lib/utils'
 import { IconCopy, IconEye, IconEyeOff, IconCheck } from '@tabler/icons-react'
 
@@ -763,6 +764,9 @@ export default function Dashboard() {
               )}
             </CardContent>
           </Card>
+
+          {/* Notification Settings */}
+          <NotificationSettings className="lg:col-span-2" />
 
         </div>
 

@@ -18,7 +18,8 @@ const PORT = process.env.PORT || 3000;
 
 // Trust proxy - Cần thiết cho fly.io và các reverse proxy
 // Fly.io sử dụng proxy, cần trust để express-rate-limit có thể lấy đúng IP
-app.set('trust proxy', true);
+// Trust only first proxy (fix rate limiter warning)
+app.set('trust proxy', 1);
 
 // CORS configuration - different policies for different endpoints
 app.use((req, res, next) => {
@@ -28,6 +29,22 @@ app.use((req, res, next) => {
       origin: '*', // Allow all origins for QR endpoint
       methods: ['GET', 'OPTIONS'],
       allowedHeaders: ['Content-Type'],
+    })(req, res, next);
+  }
+  
+  // Public TTS endpoint - allow all origins (used by service worker)
+  // Service workers may not send origin header, so allow requests without origin
+  if (req.path.startsWith('/api/tts')) {
+    return cors({
+      origin: function (origin, callback) {
+        // Allow requests with no origin (service workers, mobile apps, etc.)
+        if (!origin) return callback(null, true);
+        // Allow all origins for TTS
+        return callback(null, true);
+      },
+      methods: ['POST', 'OPTIONS'],
+      allowedHeaders: ['Content-Type'],
+      credentials: false, // No credentials needed for TTS
     })(req, res, next);
   }
   
@@ -73,12 +90,39 @@ const qrRoutes = require('./routes/qr');
 const webhookLogRoutes = require('./routes/webhookLogs');
 const gmailOAuthRoutes = require('./routes/gmailOAuth');
 const gmailWebhookRoutes = require('./routes/gmailWebhook');
-const { apiLimiter, authLimiter } = require('./middleware/rateLimiter');
+const pushNotificationRoutes = require('./routes/pushNotifications');
+const ttsRoutes = require('./routes/tts');
+const { apiLimiter, authLimiter, ttsLimiter } = require('./middleware/rateLimiter');
 
 // Apply rate limiting
-app.use('/api/', apiLimiter);
+// Exclude TTS from general API limiter (will use its own limiter)
+app.use('/api/', (req, res, next) => {
+  // Skip rate limiting for TTS endpoint (will use its own limiter)
+  if (req.path.startsWith('/api/tts')) {
+    return next();
+  }
+  return apiLimiter(req, res, next);
+});
 app.use('/api/auth/login', authLimiter);
 app.use('/api/auth/register', authLimiter);
+// Logging middleware for TTS (for debugging)
+app.use('/api/tts', (req, res, next) => {
+  console.log('[TTS Middleware] Request received:', {
+    method: req.method,
+    path: req.path,
+    url: req.url,
+    originalUrl: req.originalUrl,
+    origin: req.headers.origin,
+    ip: req.ip,
+    headers: {
+      'content-type': req.headers['content-type'],
+      'user-agent': req.headers['user-agent']
+    }
+  });
+  next();
+});
+
+app.use('/api/tts', ttsLimiter);
 
 app.use('/api/auth', authRoutes);
 app.use('/api/email-configs', emailConfigRoutes);
@@ -88,6 +132,8 @@ app.use('/api/qr', qrRoutes);
 app.use('/api/webhook-logs', webhookLogRoutes);
 app.use('/api/auth', gmailOAuthRoutes); // OAuth routes
 app.use('/api/gmail', gmailWebhookRoutes); // Pub/Sub webhook
+app.use('/api/push', pushNotificationRoutes); // Push notifications
+app.use('/api/tts', ttsRoutes); // Text-to-speech
 
 // Swagger documentation
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
