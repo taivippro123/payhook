@@ -196,5 +196,17 @@ export const pushNotificationsAPI = {
   },
 }
 
+// TTS API
+export const ttsAPI = {
+  generatePaymentSuccess: async (amount) => {
+    const response = await api.post('/api/tts/payment-success', { amount })
+    return response.data
+  },
+  test: async (text) => {
+    const response = await api.post('/api/tts/test', { text })
+    return response.data
+  },
+}
+
 export default api
 

@@ -8,6 +8,7 @@ import {
   IconGauge,
   IconFileText,
   IconBook,
+  IconBug,
 } from '@tabler/icons-react'
 import { motion } from 'motion/react'
 import PayhookLogo from '@/assets/Payhook.png'
@@ -49,6 +50,12 @@ export function AppSidebar({ open, setOpen }) {
       label: 'Hướng dẫn',
       icon: <IconBook size={18} className="text-neutral-500 dark:text-neutral-200" />,
       action: () => navigate('/guide'),
+    },
+    {
+      key: 'debug',
+      label: 'Debug',
+      icon: <IconBug size={18} className="text-neutral-500 dark:text-neutral-200" />,
+      action: () => navigate('/debug'),
     },
   ]
 

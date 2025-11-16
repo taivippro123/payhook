@@ -1,7 +1,7 @@
 // Service Worker for Push Notifications
-// Version: v2.1 - Fixed TTS API URL to call backend directly
-const CACHE_NAME = 'payhook-v2.1';
-const SW_VERSION = 'v2.1';
+// Version: v2.3 - Added IndexedDB logging for iOS (works even when app is closed)
+const CACHE_NAME = 'payhook-v2.3';
+const SW_VERSION = 'v2.3';
 const NOTIFICATION_SOUND_URL = '/notification-sound.mp3';
 
 // Function để phát âm thanh TTS trong Service Worker
@@ -71,37 +71,44 @@ async function playTTSInServiceWorker(amount) {
       return;
     }
 
-    // Tạo audio URL từ base64
-    const audioUrl = `data:audio/mp3;base64,${data.audioContent}`;
-
-    // Gửi audio URL đến tất cả clients để phát
-    const clientList = await clients.matchAll({ type: 'window', includeUncontrolled: true });
-    
-    // Gửi qua postMessage đến các clients đang mở
-    if (clientList.length > 0) {
-      clientList.forEach((client) => {
-        client.postMessage({
+    // Phát audio trực tiếp trong Service Worker bằng Web Audio API
+    // Service Worker không bị giới hạn bởi autoplay policy
+    try {
+      await playAudioInServiceWorker(data.audioContent);
+      logToStorage('SUCCESS', 'Audio played in Service Worker', { amount });
+    } catch (audioError) {
+      logToStorage('ERROR', 'Error playing audio in SW, falling back', { 
+        error: audioError.message,
+        amount 
+      });
+      
+      // Fallback: Gửi audio URL đến clients nếu phát trong SW thất bại
+      const audioUrl = `data:audio/mp3;base64,${data.audioContent}`;
+      const clientList = await clients.matchAll({ type: 'window', includeUncontrolled: true });
+      
+      if (clientList.length > 0) {
+        clientList.forEach((client) => {
+          client.postMessage({
+            type: 'PLAY_AUDIO_URL',
+            audioUrl: audioUrl,
+            text: data.message || `Đã nhận ${formatAmountToVietnamese(amount)} đồng`,
+          });
+        });
+      }
+      
+      // Cũng gửi qua BroadcastChannel
+      try {
+        const channel = new BroadcastChannel('payhook-audio');
+        channel.postMessage({
           type: 'PLAY_AUDIO_URL',
           audioUrl: audioUrl,
           text: data.message || `Đã nhận ${formatAmountToVietnamese(amount)} đồng`,
         });
-      });
+        channel.close();
+      } catch (error) {
+        console.log('[SW] BroadcastChannel not supported');
+      }
     }
-    
-    // Cũng gửi qua BroadcastChannel (hoạt động ngay cả khi tab đóng)
-    try {
-      const channel = new BroadcastChannel('payhook-audio');
-      channel.postMessage({
-        type: 'PLAY_AUDIO_URL',
-        audioUrl: audioUrl,
-        text: data.message || `Đã nhận ${formatAmountToVietnamese(amount)} đồng`,
-      });
-      channel.close();
-    } catch (error) {
-      console.log('[SW] BroadcastChannel not supported, using postMessage only');
-    }
-    
-    console.log('[SW] TTS audio generated and sent to clients');
     
   } catch (error) {
     console.error('[SW] Error playing TTS:', error);
@@ -111,6 +118,14 @@ async function playTTSInServiceWorker(amount) {
       playTTSFallback(speechText);
     }
   }
+}
+
+// Function để phát audio trong Service Worker
+// Service Worker không hỗ trợ AudioContext, nên sử dụng Web Speech API hoặc gửi đến client
+async function playAudioInServiceWorker(base64Audio) {
+  // Service Worker không có AudioContext, nên không thể phát audio trực tiếp
+  // Sẽ fallback về cách gửi đến client
+  throw new Error('Service Worker không hỗ trợ AudioContext');
 }
 
 // Fallback function sử dụng Web Speech API nếu TTS API thất bại
@@ -234,9 +249,121 @@ self.addEventListener('activate', (event) => {
   );
 });
 
+// Helper function để lưu logs vào IndexedDB (hoạt động cả khi không có clients)
+async function saveLogToIndexedDB(logEntry) {
+  try {
+    // Mở IndexedDB
+    const dbName = 'payhook_logs';
+    const dbVersion = 1;
+    
+    return new Promise((resolve, reject) => {
+      const request = indexedDB.open(dbName, dbVersion);
+      
+      request.onerror = () => {
+        console.error('[SW] IndexedDB open error:', request.error);
+        reject(request.error);
+      };
+      
+      request.onsuccess = () => {
+        const db = request.result;
+        const transaction = db.transaction(['logs'], 'readwrite');
+        const store = transaction.objectStore('logs');
+        
+        // Thêm log
+        const addRequest = store.add(logEntry);
+        
+        addRequest.onsuccess = () => {
+          // Giữ tối đa 200 logs
+          const countRequest = store.count();
+          countRequest.onsuccess = () => {
+            if (countRequest.result > 200) {
+              // Xóa logs cũ
+              const deleteRequest = store.openCursor();
+              deleteRequest.onsuccess = (e) => {
+                const cursor = e.target.result;
+                if (cursor) {
+                  if (countRequest.result - cursor.key > 200) {
+                    cursor.delete();
+                  }
+                  cursor.continue();
+                }
+              };
+            }
+          };
+          resolve();
+        };
+        
+        addRequest.onerror = () => {
+          console.error('[SW] Error adding log to IndexedDB:', addRequest.error);
+          reject(addRequest.error);
+        };
+      };
+      
+      request.onupgradeneeded = (event) => {
+        const db = event.target.result;
+        if (!db.objectStoreNames.contains('logs')) {
+          const objectStore = db.createObjectStore('logs', { keyPath: 'id', autoIncrement: true });
+          objectStore.createIndex('timestamp', 'timestamp', { unique: false });
+        }
+      };
+    });
+  } catch (e) {
+    console.error('[SW] Error in saveLogToIndexedDB:', e);
+    return Promise.reject(e);
+  }
+}
+
+// Helper function để log và lưu vào storage (để debug trên iOS)
+function logToStorage(level, message, data = {}) {
+  const logEntry = {
+    level,
+    message,
+    data,
+    timestamp: new Date().toISOString(),
+    version: SW_VERSION
+  };
+  
+  console.log(`[SW] ${SW_VERSION} [${level}]`, message, data);
+  
+  // Lưu vào IndexedDB trước (hoạt động cả khi không có clients)
+  saveLogToIndexedDB(logEntry).catch(e => {
+    console.error('[SW] Failed to save log to IndexedDB:', e);
+  });
+  
+  // Cũng gửi đến clients để lưu vào localStorage (backup)
+  try {
+    self.clients.matchAll({ 
+      type: 'window', 
+      includeUncontrolled: true 
+    }).then(clients => {
+      if (clients.length > 0) {
+        clients.forEach(client => {
+          try {
+            client.postMessage({
+              type: 'SW_LOG',
+              log: logEntry
+            });
+          } catch (e) {
+            console.error('[SW] Error sending log to client:', e);
+          }
+        });
+      }
+    }).catch(e => {
+      console.error('[SW] Error matching clients:', e);
+    });
+  } catch (e) {
+    console.error('[SW] Error in logToStorage:', e);
+  }
+}
+
 // Push event - nhận push notification từ server
 self.addEventListener('push', (event) => {
-  console.log('[SW] Push notification received:', event);
+  logToStorage('INFO', 'Push notification received', {
+    hasData: !!event.data,
+    dataType: event.data ? event.data.type : 'none',
+    userAgent: navigator.userAgent,
+    platform: navigator.platform
+  });
   
   let notificationData = {
     title: 'Giao dịch mới',
@@ -252,7 +379,12 @@ self.addEventListener('push', (event) => {
   if (event.data) {
     try {
       const payload = event.data.json();
-      console.log('[SW] Push payload:', payload);
+      logToStorage('INFO', 'Push payload parsed', {
+        title: payload.title,
+        body: payload.body,
+        amount: payload.amount,
+        data: payload.data
+      });
       
       notificationData = {
         title: payload.title || 'Giao dịch mới',
@@ -264,17 +396,33 @@ self.addEventListener('push', (event) => {
         tag: payload.tag || 'transaction-notification',
         data: payload.data || {}
       };
+      
+      // Log chi tiết về data
+      logToStorage('INFO', 'Notification data extracted', {
+        amount: notificationData.data?.amount,
+        playSound: notificationData.data?.playSound,
+        showNotification: notificationData.data?.showNotification,
+        transactionId: notificationData.data?.transactionId
+      });
     } catch (e) {
-      console.error('[SW] Error parsing push data:', e);
+      logToStorage('ERROR', 'Error parsing push data', { error: e.message, stack: e.stack });
     }
+  } else {
+    logToStorage('WARN', 'Push event has no data');
   }
 
   // Kiểm tra settings từ payload
   const shouldPlaySound = notificationData.data?.playSound !== false;
   const shouldShowNotification = notificationData.data?.showNotification !== false;
 
+  logToStorage('INFO', 'Notification settings check', {
+    shouldPlaySound,
+    shouldShowNotification,
+    data: notificationData.data
+  });
+
   if (!shouldShowNotification) {
-    console.log('[SW] Notification disabled by settings');
+    logToStorage('WARN', 'Notification disabled by settings');
     return;
   }
 
@@ -284,21 +432,42 @@ self.addEventListener('push', (event) => {
       // Phát âm thanh trên Android/Desktop
       vibrate: [200, 100, 200],
     }).then(() => {
+      console.log(`[SW] ${SW_VERSION} - Notification shown successfully:`, {
+        title: notificationData.title,
+        body: notificationData.body,
+        amount: notificationData.data?.amount,
+        shouldPlaySound,
+        platform: navigator.platform,
+        userAgent: navigator.userAgent
+      });
+      
       // Phát âm thanh tiếng Việt ngay trong Service Worker (hoạt động cả khi app đóng)
       if (shouldPlaySound) {
         const amount = notificationData.data?.amount;
         
+        logToStorage('INFO', 'Attempting to play TTS', {
+          amount,
+          hasAmount: !!amount,
+          amountType: typeof amount
+        });
+        
         if (amount) {
           // Gọi TTS API với số tiền
-          playTTSInServiceWorker(amount);
+          logToStorage('INFO', 'Calling TTS API', { amount });
+          playTTSInServiceWorker(amount).catch(error => {
+            logToStorage('ERROR', 'TTS API failed', { error: error.message, amount });
+          });
         } else {
+          logToStorage('WARN', 'No amount in notification data, using fallback');
           // Nếu không có số tiền, sử dụng fallback
           const speechText = 'Đã nhận giao dịch mới';
           playTTSFallback(speechText);
         }
-        
-        console.log('[SW] Notification shown, playing TTS for amount:', amount);
+      } else {
+        logToStorage('INFO', 'Sound disabled by settings');
       }
+    }).catch((error) => {
+      console.error(`[SW] ${SW_VERSION} - Error showing notification:`, error);
     })
   );
 });

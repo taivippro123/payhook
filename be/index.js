@@ -43,7 +43,7 @@ app.use((req, res, next) => {
         return callback(null, true);
       },
       methods: ['POST', 'OPTIONS'],
-      allowedHeaders: ['Content-Type'],
+      allowedHeaders: ['Content-Type', 'Authorization'], // Allow Authorization header
       credentials: false, // No credentials needed for TTS
     })(req, res, next);
   }
