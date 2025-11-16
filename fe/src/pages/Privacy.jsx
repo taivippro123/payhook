@@ -24,15 +24,24 @@ export default function Privacy() {
         pathname="/privacy"
         image={ogImage}
         type="article"
+        robots="index,follow"
         structuredData={{
           '@context': 'https://schema.org',
           '@type': 'PrivacyPolicy',
           name: 'Chính sách bảo mật Payhook',
           url: 'https://www.payhook.codes/privacy',
+          mainEntityOfPage: {
+            '@type': 'WebPage',
+            '@id': 'https://www.payhook.codes/privacy',
+          },
           publisher: {
             '@type': 'Organization',
             name: 'Payhook',
             url: 'https://www.payhook.codes/',
+            logo: {
+              '@type': 'ImageObject',
+              url: 'https://www.payhook.codes/og-image.svg',
+            },
           },
           datePublished: '2025-11-16',
           dateModified: '2025-11-16',

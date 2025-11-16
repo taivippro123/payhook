@@ -76,6 +76,10 @@ export default function Home() {
           url: 'https://www.payhook.codes/',
           description:
             'Payhook giúp nhận giao dịch ngân hàng CAKE theo thời gian thực thông qua Gmail Push Notifications và webhook.',
+          mainEntityOfPage: {
+            '@type': 'WebPage',
+            '@id': 'https://www.payhook.codes/',
+          },
           potentialAction: {
             '@type': 'SearchAction',
             target: {
@@ -89,11 +93,19 @@ export default function Home() {
             '@type': 'Organization',
             name: 'Payhook',
             url: 'https://www.payhook.codes/',
+            logo: {
+              '@type': 'ImageObject',
+              url: 'https://www.payhook.codes/og-image.svg',
+            },
           },
           publisher: {
             '@type': 'Organization',
             name: 'Payhook',
             url: 'https://www.payhook.codes/',
+            logo: {
+              '@type': 'ImageObject',
+              url: 'https://www.payhook.codes/og-image.svg',
+            },
           },
           mainEntity: organizationSchema,
         }}
