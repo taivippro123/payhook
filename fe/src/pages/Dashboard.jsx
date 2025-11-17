@@ -47,6 +47,7 @@ export default function Dashboard() {
   const allHighlightTimersRef = useRef(new Map())
   const [showWebhookSecrets, setShowWebhookSecrets] = useState({})
   const [copiedSecretId, setCopiedSecretId] = useState(null)
+  const [sendingTestEmailId, setSendingTestEmailId] = useState(null)
 
   useEffect(() => {
     loadData()
@@ -179,6 +180,23 @@ export default function Dashboard() {
       console.error('Error loading data:', error)
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleSendTestEmail = async (configId) => {
+    if (isApiRateLimited) return
+    try {
+      setSendingTestEmailId(configId)
+      const response = await emailConfigAPI.sendTestEmail(configId)
+      const amount = response?.sample?.parsedTransaction?.amountVND
+      const friendlyAmount = amount ? formatCurrency(amount) : 'giao dịch mẫu'
+      alert(`Đã gửi email test CAKE tới ${response.email}. Khi Gmail nhận thư, Payhook sẽ hiển thị ${friendlyAmount} trong danh sách giao dịch.`)
+    } catch (error) {
+      console.error('Error sending test email:', error)
+      const message = error.response?.data?.error || 'Không thể gửi email test. Vui lòng kiểm tra cấu hình SMTP TEST_EMAIL_* ở backend.'
+      alert(message)
+    } finally {
+      setSendingTestEmailId(null)
     }
   }
 
@@ -586,6 +604,15 @@ export default function Dashboard() {
                                   disabled={updatingConfigId === configId || isApiRateLimited}
                                 >
                                   {config.isActive ? 'Tạm dừng' : 'Kích hoạt'}
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="text-xs sm:text-sm"
+                                  onClick={() => handleSendTestEmail(configId)}
+                                  disabled={sendingTestEmailId === configId || isApiRateLimited}
+                                >
+                                  {sendingTestEmailId === configId ? 'Đang gửi...' : 'Gửi email test CAKE'}
                                 </Button>
                                 <Button
                                   variant="outline"

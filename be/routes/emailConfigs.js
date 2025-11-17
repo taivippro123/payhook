@@ -3,6 +3,7 @@ const EmailConfig = require('../models/emailConfig');
 const { authenticate } = require('../middleware/auth');
 const { validateWebhookUrl } = require('../utils/webhookValidation');
 const { generateWebhookSecret } = require('../utils/webhookSignature');
+const { sendCakeTestEmail } = require('../services/cakeTestEmail');
 
 const router = express.Router();
 
@@ -326,6 +327,50 @@ router.delete('/:id', async (req, res) => {
   } catch (error) {
     console.error('Delete email config error:', error);
     res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * Trigger CAKE test email to Gmail inbox so the parser can pick it up
+ */
+router.post('/:id/send-test-email', async (req, res) => {
+  const configId = req.params.id;
+  try {
+    const config = await EmailConfig.findById(configId);
+    if (!config) {
+      return res.status(404).json({ error: 'Email config not found' });
+    }
+
+    if (config.userId.toString() !== req.user.userId) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+
+    if (!config.email) {
+      return res.status(400).json({ error: 'Configured Gmail address is missing' });
+    }
+
+    const overrides = req.body?.overrides || {};
+    const result = await sendCakeTestEmail({
+      to: config.email,
+      overrides,
+      headers: {
+        'X-Payhook-User': req.user.userId,
+      },
+    });
+
+    return res.json({
+      success: true,
+      message: 'Đã gửi email test CAKE. Vui lòng kiểm tra hộp thư đến trong 5-10 giây.',
+      email: config.email,
+      metadata: {
+        messageId: result.messageId,
+      },
+      sample: result.sample,
+    });
+  } catch (error) {
+    console.error('Send test email error:', error);
+    const status = error.message && error.message.includes('environment variable') ? 500 : 500;
+    return res.status(status).json({ error: error.message || 'Failed to send test email' });
   }
 });
 

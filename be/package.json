@@ -20,6 +20,7 @@
     "jsonwebtoken": "^9.0.2",
     "mailparser": "^3.7.1",
     "mongodb": "^7.0.0",
+    "nodemailer": "^7.0.10",
     "swagger-jsdoc": "^6.2.8",
     "swagger-ui-express": "^5.0.0",
     "web-push": "^3.6.7",

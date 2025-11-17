@@ -96,6 +96,10 @@ export const emailConfigAPI = {
     const response = await api.delete(`/api/email-configs/${id}`)
     return response.data
   },
+  sendTestEmail: async (id, overrides = {}) => {
+    const response = await api.post(`/api/email-configs/${id}/send-test-email`, { overrides })
+    return response.data
+  },
 }
 
 export const gmailAPI = {
