@@ -57,6 +57,12 @@ export default function Home() {
           'Hướng dẫn tích hợp từng bước, mô tả payload mẫu, chính sách bảo mật rõ ràng và cập nhật liên tục.',
         link: '/guide',
       },
+      {
+        title: 'Bảo mật & minh bạch',
+        description:
+          'Scope Gmail readonly, token mã hóa AES-256, retention tự động 90 ngày và chỉ một người vận hành có MFA.',
+        link: '/privacy',
+      },
     ],
     []
   )
@@ -189,6 +195,34 @@ export default function Home() {
                 <div className="mt-6">
                   <Link to="/guide">
                     <Button variant="outline">Xem chi tiết API &amp; webhook payload</Button>
+                  </Link>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section id="security" className="bg-white">
+          <div className="mx-auto max-w-6xl px-4 py-16">
+            <div className="grid gap-8 lg:grid-cols-2">
+              <div>
+                <h2 className="text-2xl font-semibold text-gray-900">Cam kết bảo mật dữ liệu</h2>
+                <p className="mt-4 text-sm text-gray-600">
+                  Payhook chạy backend trên Fly.io, database MongoDB Atlas và frontend Vercel. Scope duy nhất là
+                  <code className="mx-1 bg-gray-100 px-1 py-0.5 rounded text-xs">gmail.readonly</code>
+                  để đọc email CAKE. Refresh token được mã hóa AES-256-GCM và Cron retention dọn dữ liệu cũ mỗi 6 giờ.
+                </p>
+              </div>
+              <div className="rounded-2xl border border-gray-200 bg-gray-50 p-6 text-sm text-gray-700 shadow-inner">
+                <ul className="space-y-3">
+                  <li>• Token Gmail được mã hóa và lưu trữ trong MongoDB Atlas chỉ mở cho Fly.io.</li>
+                  <li>• Webhook bắt buộc HTTPS, có chữ ký `X-Payhook-Signature` và retry tối đa 5 lần.</li>
+                  <li>• Job `dataRetention` xóa transaction &gt;90 ngày, webhook log &gt;30 ngày.</li>
+                  <li>• Chỉ một người vận hành có quyền truy cập sản phẩm và đều bật MFA.</li>
+                </ul>
+                <div className="mt-6">
+                  <Link to="/privacy">
+                    <Button variant="outline">Đọc chính sách đầy đủ</Button>
                   </Link>
                 </div>
               </div>

@@ -229,10 +229,23 @@ class User {
   static async delete(userId) {
     const db = await getDB();
     const users = db.collection('users');
-    
+    const objectId = new ObjectId(userId);
+
     try {
-      const result = await users.deleteOne({ _id: new ObjectId(userId) });
-      return result.deletedCount > 0;
+      const result = await users.deleteOne({ _id: objectId });
+      if (!result.deletedCount) {
+        return false;
+      }
+
+      await Promise.allSettled([
+        db.collection('email_configs').deleteMany({ userId: objectId }),
+        db.collection('transactions').deleteMany({ userId: objectId }),
+        db.collection('webhook_logs').deleteMany({ userId: objectId }),
+        db.collection('dead_letter_queue').deleteMany({ userId: objectId }),
+        db.collection('push_subscriptions').deleteMany({ userId: objectId }),
+      ]);
+
+      return true;
     } catch (error) {
       return false;
     }

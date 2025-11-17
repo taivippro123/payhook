@@ -11,6 +11,7 @@ const User = require('./models/user');
 const wsHub = require('./services/wsHub');
 const gmailWatchManager = require('./services/gmailWatchManager');
 const { startDLQProcessor, stopDLQProcessor } = require('./services/dlqProcessor');
+const { startDataRetentionJob, stopDataRetentionJob } = require('./services/dataRetention');
 require('dotenv').config();
 
 const app = express();
@@ -230,6 +231,7 @@ server.listen(PORT, async () => {
   
   // Khởi động Dead Letter Queue processor
   startDLQProcessor();
+  startDataRetentionJob();
 
   console.log(`\n📋 Available endpoints:`);
   console.log(`   GET  / - API info`);
@@ -257,6 +259,7 @@ process.on('SIGINT', async () => {
   console.log('\n🛑 Shutting down server...');
   gmailWatchManager.stop();
   stopDLQProcessor();
+  stopDataRetentionJob();
   await closeDB();
   server.close(() => process.exit(0));
 });
@@ -265,6 +268,7 @@ process.on('SIGTERM', async () => {
   console.log('\n🛑 Shutting down server...');
   gmailWatchManager.stop();
   stopDLQProcessor();
+  stopDataRetentionJob();
   await closeDB();
   server.close(() => process.exit(0));
 });

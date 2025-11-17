@@ -158,26 +158,33 @@ export default function Privacy() {
                   <div>
                     <h3 className="font-semibold text-gray-900">3.1. Lưu trữ</h3>
                     <ul className="ml-4 mt-1 list-disc space-y-1">
-                      <li>Refresh token được mã hóa và lưu trong hệ thống bảo mật của Payhook.</li>
-                      <li>Chỉ lưu các trường giao dịch đã trích xuất.</li>
-                      <li>Không lưu full email.</li>
+                      <li>
+                        Refresh token Gmail được mã hóa bằng{' '}
+                        <span className="font-mono text-xs">AES-256-GCM</span> (xem module{' '}
+                        <code className="bg-gray-100 px-1 rounded text-xs">utils/encryption.js</code>) trước khi lưu tại MongoDB Atlas.
+                      </li>
+                      <li>Chỉ lưu các trường giao dịch đã trích xuất; nội dung email thô không được lưu trữ.</li>
+                      <li>
+                        Database MongoDB Atlas được giới hạn IP (chỉ Fly.io app server) và bật TLS ở cả chiều vào/ra.
+                      </li>
                     </ul>
                   </div>
 
                   <div>
                     <h3 className="font-semibold text-gray-900">3.2. Truyền dữ liệu</h3>
                     <ul className="ml-4 mt-1 list-disc space-y-1">
-                      <li>Webhook chỉ gửi qua HTTPS.</li>
-                      <li>Webhook được ký bằng Token/Signature để xác thực.</li>
+                      <li>Webhook chỉ gửi qua HTTPS và đính kèm chữ ký `X-Payhook-Signature` để bạn xác thực.</li>
+                      <li>Giao tiếp giữa trình duyệt và API đi qua Vercel + Fly.io đều dùng TLS 1.2+.</li>
+                      <li>Push notification và WebSocket yêu cầu JWT hợp lệ và hết hạn sau 60 phút.</li>
                     </ul>
                   </div>
 
                   <div>
-                    <h3 className="font-semibold text-gray-900">3.3. Bảo mật</h3>
+                    <h3 className="font-semibold text-gray-900">3.3. Bảo mật vận hành</h3>
                     <ul className="ml-4 mt-1 list-disc space-y-1">
-                      <li>Mã hóa dữ liệu tại thời điểm truyền và lưu trữ.</li>
-                      <li>Giới hạn quyền truy cập nội bộ.</li>
-                      <li>Theo dõi và ghi log cho mọi hoạt động webhook.</li>
+                      <li>Chỉ có một thành viên vận hành hệ thống; tài khoản Fly.io, MongoDB Atlas, Vercel đều bật MFA.</li>
+                      <li>Truy cập server Fly.io được giới hạn qua SSH certificate; mọi thay đổi deploy đều log trong Git + Fly.io release log.</li>
+                      <li>Theo dõi webhook, Gmail push và login bằng log tập trung; mọi sự kiện quan trọng đều kèm timestamp/IP.</li>
                     </ul>
                   </div>
                 </div>
@@ -186,9 +193,10 @@ export default function Privacy() {
               <div className="space-y-4">
                 <h2 className="text-xl font-semibold text-gray-900">4. Thời gian lưu trữ dữ liệu (Retention)</h2>
                 <ul className="ml-4 list-disc space-y-2">
-                  <li>Dữ liệu giao dịch được lưu tối đa 90 ngày, trừ khi bạn xóa tài khoản sớm hơn.</li>
-                  <li>Refresh token được lưu cho đến khi bạn hủy kết nối Gmail.</li>
-                  <li>Khi bạn xóa tài khoản Payhook, tất cả dữ liệu sẽ được xóa vĩnh viễn trong vòng 24 giờ.</li>
+                  <li>Dữ liệu giao dịch được giữ tối đa 90 ngày. Cron `dataRetention` chạy mỗi 6 giờ để xóa bản ghi cũ hơn ngưỡng này.</li>
+                  <li>Webhook log giữ tối đa 30 ngày để phục vụ việc tra soát; Dead Letter Queue tự xóa các mục đã resolved hoặc failed sau 30 ngày.</li>
+                  <li>Refresh token được lưu cho đến khi bạn hủy kết nối Gmail hoặc xóa tài khoản.</li>
+                  <li>Sau khi bạn xóa tài khoản Payhook, toàn bộ user profile, Gmail config, transaction, webhook log và push subscription gắn với tài khoản sẽ bị xóa trong vòng 24 giờ.</li>
                 </ul>
               </div>
 
@@ -227,7 +235,45 @@ export default function Privacy() {
               </div>
 
               <div className="space-y-4">
-                <h2 className="text-xl font-semibold text-gray-900">6. Cập nhật chính sách</h2>
+                <h2 className="text-xl font-semibold text-gray-900">6. Quy định bảo mật &amp; nhân sự</h2>
+                <ul className="ml-4 list-disc space-y-2">
+                  <li>Payhook là dự án cá nhân, chỉ có admin của dự án được phép truy cập dữ liệu sản xuất.</li>
+                  <li>Không thuê ngoài/chia sẻ dữ liệu cho đối tác. Mọi thao tác vận hành đều thông qua tài khoản cá nhân bật MFA.</li>
+                  <li>Thiết bị phát triển sử dụng disk encryption và khoá màn hình tự động trong &lt;5 phút.</li>
+                </ul>
+              </div>
+
+              <div className="space-y-4">
+                <h2 className="text-xl font-semibold text-gray-900">7. Hạ tầng &amp; nhà cung cấp</h2>
+                <ul className="ml-4 list-disc space-y-2">
+                  <li>API Node.js chạy trên Fly.io (region Singapore) và chỉ mở cổng 443/80. Fly.io chỉ lưu log tạm thời tối đa 30 ngày.</li>
+                  <li>Database MongoDB Atlas lưu trữ giao dịch sau khi đã mã hóa và giới hạn quyền truy cập qua IP allowlist.</li>
+                  <li>Frontend (https://www.payhook.codes) được build và phục vụ bởi Vercel; không chứa dữ liệu người dùng.</li>
+                </ul>
+              </div>
+
+              <div className="space-y-4">
+                <h2 className="text-xl font-semibold text-gray-900">8. Giải thích phạm vi truy cập tối thiểu</h2>
+                <p className="text-gray-700">
+                  Payhook chỉ yêu cầu scope{' '}
+                  <code className="bg-gray-100 px-1 rounded text-xs">gmail.readonly</code> vì parser cần truy cập body email CAKE để trích xuất số tiền, mã giao dịch và nội dung chuyển khoản. Scope nhẹ hơn
+                  như{' '}
+                  <code className="bg-gray-100 px-1 rounded text-xs">gmail.metadata</code> không chứa đủ thông tin giao dịch (không có nội dung HTML). Ứng dụng không xin quyền sửa/xóa email, không truy cập Gmail
+                  khác ngoài nhãn CAKE được định danh bằng bộ lọc sender + subject.
+                </p>
+              </div>
+
+              <div className="space-y-4">
+                <h2 className="text-xl font-semibold text-gray-900">9. Quy trình ứng phó sự cố</h2>
+                <ul className="ml-4 list-disc space-y-2">
+                  <li>Nếu phát hiện truy cập trái phép, Payhook sẽ vô hiệu refresh token, tắt webhook và thông báo qua email trong vòng 24 giờ.</li>
+                  <li>Log truy vết (IP, token, requestId) lưu tối thiểu 30 ngày để hỗ trợ điều tra.</li>
+                  <li>Bạn có thể báo cáo sự cố qua <a href="mailto:phanvothanhtai1007@gmail.com" className="text-blue-600 hover:underline">phanvothanhtai1007@gmail.com</a>; chúng tôi phản hồi trong 1 ngày làm việc.</li>
+                </ul>
+              </div>
+
+              <div className="space-y-4">
+                <h2 className="text-xl font-semibold text-gray-900">10. Cập nhật chính sách</h2>
                 <ul className="ml-4 list-disc space-y-2">
                   <li>Payhook có thể cập nhật chính sách này khi dịch vụ thay đổi.</li>
                   <li>Chúng tôi sẽ thông báo trên dashboard hoặc email mỗi khi có thay đổi quan trọng.</li>
@@ -235,7 +281,7 @@ export default function Privacy() {
               </div>
 
               <div className="space-y-4">
-                <h2 className="text-xl font-semibold text-gray-900">7. Liên hệ</h2>
+                <h2 className="text-xl font-semibold text-gray-900">11. Liên hệ</h2>
                 <p>
                   Nếu bạn có câu hỏi, hãy liên hệ:{' '}
                   <a href="mailto:phanvothanhtai1007@gmail.com" className="text-blue-600 hover:underline">
