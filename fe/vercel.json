@@ -1,4 +1,22 @@
 {
+    "redirects": [
+        {
+            "source": "/(.*)",
+            "has": [
+                { "type": "host", "value": "payhook.vercel.app" }
+            ],
+            "destination": "https://www.payhook.codes/$1",
+            "permanent": true
+        },
+        {
+            "source": "/(.*)",
+            "has": [
+                { "type": "host", "value": "payhook.codes" }
+            ],
+            "destination": "https://www.payhook.codes/$1",
+            "permanent": true
+        }
+    ],
     "rewrites": [
         { 
             "source": "/((?!sitemap\\.xml|robots\\.txt|favicon\\.ico|.*\\.png|.*\\.svg|.*\\.webmanifest).*)", 

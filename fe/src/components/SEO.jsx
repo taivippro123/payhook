@@ -29,6 +29,19 @@ const toAbsoluteImage = (image) => {
   return buildAbsoluteUrl(image)
 }
 
+const DEFAULT_ORGANIZATION_SCHEMA = {
+  '@context': 'https://schema.org',
+  '@type': 'Organization',
+  name: 'Payhook',
+  url: DEFAULT_SITE_URL,
+  logo: buildAbsoluteUrl('/android-chrome-512x512.png'),
+  contactPoint: {
+    '@type': 'ContactPoint',
+    contactType: 'customer support',
+    email: 'phanvothanhtai1007@gmail.com',
+  },
+}
+
 export function PageSEO({
   title,
   description = DEFAULT_DESCRIPTION,
@@ -51,6 +64,14 @@ export function PageSEO({
     : `Payhook - ${title}`
   const canonicalUrl = buildAbsoluteUrl(pathname)
   const ogImage = toAbsoluteImage(image)
+  const structuredDataArray = [
+    DEFAULT_ORGANIZATION_SCHEMA,
+    ...(structuredData
+      ? Array.isArray(structuredData)
+        ? structuredData
+        : [structuredData]
+      : []),
+  ]
 
   return (
     <Helmet prioritizeSeoTags>
@@ -81,11 +102,11 @@ export function PageSEO({
       <meta name="apple-mobile-web-app-title" content="Payhook" />
 
       {/* Structured Data */}
-      {structuredData && (
-        <script type="application/ld+json">
-          {JSON.stringify(structuredData, null, 2)}
+      {structuredDataArray.map((schema, index) => (
+        <script key={index} type="application/ld+json">
+          {JSON.stringify(schema, null, 2)}
         </script>
-      )}
+      ))}
     </Helmet>
   )
 }

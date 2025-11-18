@@ -75,46 +75,26 @@ export default function Home() {
         description="Kết nối Gmail CAKE của bạn với Payhook để nhận giao dịch trong vài giây, webhook realtime và dashboard giám sát tiện lợi."
         pathname="/"
         image={ogImage}
-        structuredData={{
-          '@context': 'https://schema.org',
-          '@type': 'WebSite',
-          name: 'Payhook',
-          url: 'https://www.payhook.codes/',
-          description:
-            'Payhook giúp nhận giao dịch ngân hàng CAKE theo thời gian thực thông qua Gmail Push Notifications và webhook.',
-          mainEntityOfPage: {
-            '@type': 'WebPage',
-            '@id': 'https://www.payhook.codes/',
-          },
-          potentialAction: {
-            '@type': 'SearchAction',
-            target: {
-              '@type': 'EntryPoint',
-              urlTemplate: 'https://www.payhook.codes/guide?q={search_term_string}',
-            },
-            'query-input': 'required name=search_term_string',
-          },
-          inLanguage: 'vi-VN',
-          author: {
-            '@type': 'Organization',
+        structuredData={[
+          {
+            '@context': 'https://schema.org',
+            '@type': 'WebSite',
             name: 'Payhook',
             url: 'https://www.payhook.codes/',
-            logo: {
-              '@type': 'ImageObject',
-              url: 'https://www.payhook.codes/og-image.svg',
+            description:
+              'Payhook giúp nhận giao dịch ngân hàng CAKE theo thời gian thực thông qua Gmail Push Notifications và webhook.',
+            potentialAction: {
+              '@type': 'SearchAction',
+              target: {
+                '@type': 'EntryPoint',
+                urlTemplate: 'https://www.payhook.codes/guide?q={search_term_string}',
+              },
+              'query-input': 'required name=search_term_string',
             },
+            inLanguage: 'vi-VN',
           },
-          publisher: {
-            '@type': 'Organization',
-            name: 'Payhook',
-            url: 'https://www.payhook.codes/',
-            logo: {
-              '@type': 'ImageObject',
-              url: 'https://www.payhook.codes/og-image.svg',
-            },
-          },
-          mainEntity: organizationSchema,
-        }}
+          organizationSchema,
+        ]}
       />
       <main className="bg-white">
         <section className="relative overflow-hidden border-b border-gray-200 bg-black text-white">
