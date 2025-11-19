@@ -12,7 +12,7 @@ import WebhookLogs from '@/pages/WebhookLogs'
 import Guide from '@/pages/Guide'
 import Home from '@/pages/Home'
 import Privacy from '@/pages/Privacy'
-import DebugNotifications from '@/pages/DebugNotifications'
+import Notification from '@/pages/Notification'
 import { getRedirectPath } from '@/utils/redirect'
 
 function RootRedirect() {
@@ -278,10 +278,10 @@ function App() {
             }
           />
           <Route
-            path="/debug"
+            path="/notification"
             element={
               <ProtectedRoute>
-                <DebugNotifications />
+                <Notification />
               </ProtectedRoute>
             }
           />

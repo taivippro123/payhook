@@ -125,14 +125,23 @@ class PushSubscription {
 
   /**
    * Kiểm tra xem thời gian hiện tại có trong khoảng cho phép không
-   * @param {string} startTime - Format "HH:mm"
-   * @param {string} endTime - Format "HH:mm"
+   * @param {string} startTime - Format "HH:mm" (theo giờ Việt Nam UTC+7)
+   * @param {string} endTime - Format "HH:mm" (theo giờ Việt Nam UTC+7)
    * @returns {boolean}
    */
   static isWithinTimeRange(startTime, endTime) {
+    // Lấy giờ hiện tại theo timezone Việt Nam (UTC+7)
     const now = new Date();
-    const currentHour = now.getHours();
-    const currentMinute = now.getMinutes();
+    // Convert sang giờ Việt Nam (UTC+7) - sử dụng Intl.DateTimeFormat
+    const formatter = new Intl.DateTimeFormat('en-US', {
+      timeZone: 'Asia/Ho_Chi_Minh',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false,
+    });
+    const parts = formatter.formatToParts(now);
+    const currentHour = parseInt(parts.find(p => p.type === 'hour').value, 10);
+    const currentMinute = parseInt(parts.find(p => p.type === 'minute').value, 10);
     const currentTimeMinutes = currentHour * 60 + currentMinute;
 
     const [startHour, startMinute] = startTime.split(':').map(Number);

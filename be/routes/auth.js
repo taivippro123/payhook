@@ -144,6 +144,18 @@ router.post('/register', async (req, res) => {
  */
 router.post('/login', async (req, res) => {
   try {
+    // Check if body is parsed correctly
+    if (!req.body || typeof req.body !== 'object') {
+      console.error('❌ Invalid request body:', {
+        body: req.body,
+        contentType: req.headers['content-type'],
+        rawBody: req.rawBody,
+      });
+      return res.status(400).json({
+        error: 'Invalid request body. Expected JSON with username and password.',
+      });
+    }
+
     const { username, password } = req.body;
 
     if (!username || !password) {
@@ -176,8 +188,15 @@ router.post('/login', async (req, res) => {
       token,
     });
   } catch (error) {
-    console.error('Login error:', error);
-    res.status(500).json({ error: error.message });
+    console.error('❌ Login error:', {
+      message: error.message,
+      stack: error.stack,
+      body: req.body,
+    });
+    res.status(500).json({ 
+      error: error.message || 'Internal server error',
+      ...(process.env.NODE_ENV === 'development' && { stack: error.stack }),
+    });
   }
 });
 

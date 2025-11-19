@@ -8,7 +8,7 @@ import {
   IconGauge,
   IconFileText,
   IconBook,
-  IconBug,
+  IconBell,
 } from '@tabler/icons-react'
 import { motion } from 'motion/react'
 import PayhookLogo from '@/assets/Payhook.png'
@@ -46,16 +46,16 @@ export function AppSidebar({ open, setOpen }) {
       action: () => navigate('/webhooks'),
     },
     {
+      key: 'notification',
+      label: 'Thông báo',
+      icon: <IconBell size={18} className="text-neutral-500 dark:text-neutral-200" />,
+      action: () => navigate('/notification'),
+    },
+    {
       key: 'guide',
       label: 'Hướng dẫn',
       icon: <IconBook size={18} className="text-neutral-500 dark:text-neutral-200" />,
       action: () => navigate('/guide'),
-    },
-    {
-      key: 'debug',
-      label: 'Debug',
-      icon: <IconBug size={18} className="text-neutral-500 dark:text-neutral-200" />,
-      action: () => navigate('/debug'),
     },
   ]
 
@@ -72,7 +72,6 @@ export function AppSidebar({ open, setOpen }) {
     <div className="flex h-full flex-col justify-between">
       <div>
         <div className="mb-6 flex items-center gap-2 px-2">
-
           <motion.div
             animate={{
               display: sidebarOpen ? "block" : "none",
@@ -80,7 +79,15 @@ export function AppSidebar({ open, setOpen }) {
             }}
             className="overflow-hidden"
           >
-            <img src={PayhookLogo} alt="Payhook" className="h-28 w-28" />
+            <img 
+              src={PayhookLogo} 
+              alt="Payhook" 
+              className="h-28 w-28 cursor-pointer hover:opacity-80 transition-opacity"
+              onClick={() => {
+                navigate('/')
+                setOpen(false)
+              }}
+            />
           </motion.div>
         </div>
         <div className="space-y-1">

@@ -49,9 +49,44 @@ app.use((req, res, next) => {
     })(req, res, next);
   }
   
+  // Swagger UI - allow requests from same origin (Swagger UI runs on same server)
+  if (req.path.startsWith('/api-docs') || req.path.startsWith('/api/auth') || req.path.startsWith('/api/')) {
+    // For Swagger UI and API endpoints, allow requests with no origin or from same origin
+    return cors({
+      origin: (origin, callback) => {
+        // Allow requests with no origin (Swagger UI, curl, Postman, etc.)
+        if (!origin) return callback(null, true);
+        
+        // Allow same origin (Swagger UI)
+        const allowedOrigins = [
+          process.env.FRONTEND_URL,
+          'http://localhost:5173',
+          'https://www.payhook.codes',
+          'https://payhook.codes',
+          'https://payhook.vercel.app', // Keep old domain for backward compatibility
+        ].filter(Boolean);
+        
+        // Check if origin matches server origin (for Swagger UI)
+        const serverUrl = process.env.SWAGGER_BASE_URL || `http://localhost:${process.env.PORT || 3000}`;
+        const serverOrigin = new URL(serverUrl).origin;
+        
+        if (origin === serverOrigin || allowedOrigins.includes(origin)) {
+          callback(null, true);
+        } else {
+          // For Swagger UI, be more permissive
+          callback(null, true);
+        }
+      },
+      credentials: true,
+      methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+      allowedHeaders: ['Content-Type', 'Authorization'],
+    })(req, res, next);
+  }
+  
   // Other endpoints - restricted to allowed frontend URLs
   const allowedOrigins = [
     process.env.FRONTEND_URL,
+    'http://localhost:5173',
     'https://www.payhook.codes',
     'https://payhook.codes',
     'https://payhook.vercel.app', // Keep old domain for backward compatibility
@@ -74,7 +109,34 @@ app.use((req, res, next) => {
   })(req, res, next);
 });
 
-app.use(express.json());
+// Body parser middleware - must handle errors
+app.use(express.json({
+  limit: '10mb',
+  strict: true,
+  verify: (req, res, buf) => {
+    try {
+      JSON.parse(buf.toString());
+    } catch (e) {
+      // If JSON is invalid, we'll handle it in the route
+    }
+  }
+}));
+
+// Logging middleware for debugging (only in development)
+if (process.env.NODE_ENV === 'development') {
+  app.use((req, res, next) => {
+    if (req.path.startsWith('/api/auth/login')) {
+      console.log('[Login Request]', {
+        method: req.method,
+        path: req.path,
+        contentType: req.headers['content-type'],
+        body: req.body,
+        origin: req.headers.origin,
+      });
+    }
+    next();
+  });
+}
 
 // Kết nối database khi server khởi động
 connectDB().catch((error) => {
@@ -135,6 +197,33 @@ app.use('/api/auth', gmailOAuthRoutes); // OAuth routes
 app.use('/api/gmail', gmailWebhookRoutes); // Pub/Sub webhook
 app.use('/api/push', pushNotificationRoutes); // Push notifications
 app.use('/api/tts', ttsRoutes); // Text-to-speech
+
+// Error handling middleware - must be after all routes
+app.use((err, req, res, next) => {
+  console.error('❌ Unhandled error:', {
+    path: req.path,
+    method: req.method,
+    error: err.message,
+    stack: process.env.NODE_ENV === 'development' ? err.stack : undefined,
+  });
+  
+  // If response already sent, delegate to default Express error handler
+  if (res.headersSent) {
+    return next(err);
+  }
+  
+  // Return JSON error for API routes
+  if (req.path.startsWith('/api')) {
+    return res.status(err.status || 500).json({
+      error: err.message || 'Internal Server Error',
+      ...(process.env.NODE_ENV === 'development' && { stack: err.stack }),
+    });
+  }
+  
+  // For non-API routes, return HTML error
+  res.status(err.status || 500);
+  res.send(`<pre>${err.message || 'Internal Server Error'}</pre>`);
+});
 
 // Swagger documentation
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {

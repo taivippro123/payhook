@@ -262,8 +262,18 @@ async function sendPushNotification(userId, payload) {
       }
 
       // Kiểm tra thời gian
-      if (!PushSubscription.isWithinTimeRange(subscription.startTime, subscription.endTime)) {
-        console.log(`⏭️  Current time outside allowed range (${subscription.startTime} - ${subscription.endTime})`);
+      const isWithinTime = PushSubscription.isWithinTimeRange(subscription.startTime, subscription.endTime);
+      if (!isWithinTime) {
+        // Lấy giờ Việt Nam hiện tại để log
+        const now = new Date();
+        const formatter = new Intl.DateTimeFormat('en-US', {
+          timeZone: 'Asia/Ho_Chi_Minh',
+          hour: '2-digit',
+          minute: '2-digit',
+          hour12: false,
+        });
+        const vietnamTime = formatter.format(now);
+        console.log(`⏭️  Current time (${vietnamTime} VN) outside allowed range (${subscription.startTime} - ${subscription.endTime})`);
         return;
       }
 

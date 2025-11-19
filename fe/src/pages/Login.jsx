@@ -19,11 +19,19 @@ export default function Login() {
   const [googleLoading, setGoogleLoading] = useState(false)
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
-  const { login } = useAuth()
+  const { login, user, loading: authLoading } = useAuth()
   const { isRateLimited, rateLimitType } = useRateLimit()
   
   // Check if auth is rate limited
   const isAuthRateLimited = isRateLimited && rateLimitType === 'auth'
+
+  // Redirect nếu đã login rồi
+  useEffect(() => {
+    if (!authLoading && user) {
+      const redirectPath = getRedirectPath(user)
+      navigate(redirectPath, { replace: true })
+    }
+  }, [user, authLoading, navigate])
 
   // Xử lý callback từ Google OAuth
   useEffect(() => {

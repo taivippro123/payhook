@@ -13,7 +13,6 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog'
 import { AppLayout } from '@/components/AppLayout'
 import { PageSEO } from '@/components/SEO'
-import NotificationSettings from '@/components/NotificationSettings'
 import { cn } from '@/lib/utils'
 import { IconCopy, IconEye, IconEyeOff, IconCheck } from '@tabler/icons-react'
 
@@ -576,10 +575,19 @@ export default function Dashboard() {
                     const watchExpiresAt = config.watchExpiration ? formatDate(config.watchExpiration) : 'Chưa đăng ký'
                     const isEditingWebhook = editingWebhookId === configId
                     return (
-                      <Card key={configId} className="bg-white border border-gray-200 hover:shadow-md transition-shadow">
+                      <Card key={configId} className="bg-white border border-gray-200 hover:shadow-md transition-shadow relative">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="absolute top-2 right-2 text-xs sm:text-sm text-red-600 hover:text-red-700 hover:bg-red-50 border-red-300"
+                          onClick={() => handleDeleteConfig(configId)}
+                          disabled={isApiRateLimited}
+                        >
+                          Xóa
+                        </Button>
                         <CardContent className="pt-4 pb-4 space-y-4">
                           <div className="flex flex-col gap-3">
-                            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pr-16">
                               <div className="flex flex-wrap items-center gap-2">
                                 <span className="font-medium text-sm sm:text-base break-words">{config.email}</span>
                                 <Badge
@@ -613,15 +621,6 @@ export default function Dashboard() {
                                   disabled={sendingTestEmailId === configId || isApiRateLimited}
                                 >
                                   {sendingTestEmailId === configId ? 'Đang gửi...' : 'Gửi email test CAKE'}
-                                </Button>
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  className="text-xs sm:text-sm"
-                                  onClick={() => handleDeleteConfig(configId)}
-                                  disabled={isApiRateLimited}
-                                >
-                                  Xóa
                                 </Button>
                               </div>
                             </div>
@@ -791,9 +790,6 @@ export default function Dashboard() {
               )}
             </CardContent>
           </Card>
-
-          {/* Notification Settings */}
-          <NotificationSettings className="lg:col-span-2" />
 
         </div>
 
