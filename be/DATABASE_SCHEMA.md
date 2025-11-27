@@ -55,7 +55,7 @@ Lưu các giao dịch đã phát hiện từ email
   _id: ObjectId,
   userId: ObjectId,        // Reference to users._id
   emailConfigId: ObjectId, // Reference to email_configs._id
-  bank: String,            // e.g., "TPBank"
+  bank: String,            // e.g., "CAKE"
   transactionId: String,
   accountNumberMasked: String,
   accountHolder: String,

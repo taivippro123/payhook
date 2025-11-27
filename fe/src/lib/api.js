@@ -6,9 +6,30 @@ const stripTrailingSlash = (value) => {
   return value.endsWith('/') ? value.slice(0, -1) : value
 }
 
-export const API_BASE_URL = stripTrailingSlash(import.meta.env.VITE_API_URL || 'http://localhost:3000')
-const defaultWsBase = API_BASE_URL.replace(/^http/, 'ws')
-export const WS_BASE_URL = stripTrailingSlash(import.meta.env.VITE_WS_URL || defaultWsBase)
+const getDefaultApiBase = () => {
+  if (typeof window !== 'undefined') {
+    const origin = window.location.origin
+    if (origin.includes('localhost')) {
+      return 'http://localhost:3000'
+    }
+    return origin
+  }
+  return 'https://www.payhook.codes'
+}
+
+const getDefaultWsBase = () => {
+  if (import.meta.env.VITE_WS_URL) {
+    return import.meta.env.VITE_WS_URL
+  }
+  if (typeof window !== 'undefined' && window.location.origin.includes('localhost')) {
+    return 'ws://localhost:3000'
+  }
+  // Luôn kết nối WS trực tiếp backend để tránh rewrite limitations của Vercel
+  return 'wss://payhook-taivippro123.fly.dev'
+}
+
+export const API_BASE_URL = stripTrailingSlash(import.meta.env.VITE_API_URL || getDefaultApiBase())
+export const WS_BASE_URL = stripTrailingSlash(getDefaultWsBase())
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -78,6 +99,10 @@ export const authAPI = {
   },
   login: async (data) => {
     const response = await api.post('/api/auth/login', data)
+    return response.data
+  },
+  refresh: async () => {
+    const response = await api.post('/api/auth/refresh')
     return response.data
   },
 }

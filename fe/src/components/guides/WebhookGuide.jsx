@@ -142,7 +142,9 @@ app.post('/webhook/payhook', async (req, res) => {
   return res.json({ success: true });
 });
 
-app.listen(3000, () => console.log('Webhook server listening on port 3000'));
+app.listen(3000, () => {
+  // Webhook server listening
+});
 \`\`\`
 
 ## 6. Xác thực Webhook (Webhook Signature)
@@ -525,7 +527,9 @@ app.post('/webhook/payhook', async (req, res) => {
   return res.json({ success: true });
 });
 
-app.listen(3000, () => console.log('Webhook server listening on port 3000'));`}
+app.listen(3000, () => {
+  // Webhook server listening
+});`}
               </pre>
             </div>
             <div className="bg-green-50 border border-green-200 rounded-md p-3 mt-3">

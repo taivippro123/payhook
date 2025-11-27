@@ -62,8 +62,6 @@ export default function Notification() {
     try {
       // Đăng ký service worker
       const registration = await navigator.serviceWorker.register('/sw.js')
-      console.log('Service Worker registered:', registration)
-
       // Yêu cầu permission
       const permission = await window.Notification.requestPermission()
       if (permission !== 'granted') {

@@ -18,6 +18,14 @@
         }
     ],
     "rewrites": [
+        {
+            "source": "/api/(.*)",
+            "destination": "https://payhook-taivippro123.fly.dev/api/$1"
+        },
+        {
+            "source": "/ws",
+            "destination": "https://payhook-taivippro123.fly.dev/ws"
+        },
         { 
             "source": "/((?!sitemap\\.xml|robots\\.txt|favicon\\.ico|.*\\.png|.*\\.svg|.*\\.webmanifest).*)", 
             "destination": "/index.html" 

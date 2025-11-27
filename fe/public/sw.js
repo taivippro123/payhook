@@ -9,24 +9,22 @@ const NOTIFICATION_SOUND_URL = '/notification-sound.mp3';
 async function playTTSInServiceWorker(amount) {
   try {
     if (!amount || amount === 0) {
-      console.log('[SW] No amount provided for TTS');
+      logToStorage('WARN', 'No amount provided for TTS');
       return;
     }
 
     // Lấy backend API URL
     // Service worker không thể access import.meta.env
-    // Backend URL: https://payhook-taivippro123.fly.dev (từ logs và code)
-    // FIXED: Gọi trực tiếp đến backend thay vì frontend URL
-    const backendUrl = 'https://payhook-taivippro123.fly.dev';
+    const origin = self.location.origin || ''
+    const backendUrl = origin.includes('localhost') ? 'http://localhost:3000' : origin;
     const apiUrl = `${backendUrl}/api/tts/payment-success`;
 
     console.log(`[SW] ${SW_VERSION} - Calling TTS API:`, apiUrl, 'with amount:', amount);
 
     // Gọi TTS API từ backend
-    console.log('[SW] Fetching TTS API with:', {
+    logToStorage('INFO', 'Fetching TTS API', {
       url: apiUrl,
       method: 'POST',
-      body: JSON.stringify({ amount: amount }),
       origin: self.location.origin
     });
 
@@ -48,11 +46,10 @@ async function playTTSInServiceWorker(amount) {
       return;
     }
 
-    console.log('[SW] TTS API response:', {
+    logToStorage('INFO', 'TTS API response received', {
       status: response.status,
       statusText: response.statusText,
-      ok: response.ok,
-      headers: Object.fromEntries(response.headers.entries())
+      ok: response.ok
     });
 
     if (!response.ok) {
@@ -106,7 +103,7 @@ async function playTTSInServiceWorker(amount) {
         });
         channel.close();
       } catch (error) {
-        console.log('[SW] BroadcastChannel not supported');
+        logToStorage('WARN', 'BroadcastChannel not supported for audio');
       }
     }
     
@@ -211,14 +208,14 @@ function formatAmountToVietnamese(amount) {
 
 // Install event - cache resources
 self.addEventListener('install', (event) => {
-  console.log(`[SW] ${SW_VERSION} - Service Worker installing...`);
+  logToStorage('INFO', 'Service Worker installing', { version: SW_VERSION });
   // Force activate immediately, bypass waiting
   self.skipWaiting();
 });
 
 // Activate event
 self.addEventListener('activate', (event) => {
-  console.log(`[SW] ${SW_VERSION} - Service Worker activating...`);
+  logToStorage('INFO', 'Service Worker activating', { version: SW_VERSION });
   event.waitUntil(
     Promise.all([
       // Cleanup old caches
@@ -227,7 +224,7 @@ self.addEventListener('activate', (event) => {
           cacheNames
             .filter((name) => name !== CACHE_NAME)
             .map((name) => {
-              console.log(`[SW] ${SW_VERSION} - Deleting old cache:`, name);
+              logToStorage('INFO', 'Deleting old cache', { name });
               return caches.delete(name);
             })
         );
@@ -235,7 +232,7 @@ self.addEventListener('activate', (event) => {
       // Claim all clients immediately
       self.clients.claim(),
     ]).then(() => {
-      console.log(`[SW] ${SW_VERSION} - Activated and ready!`);
+      logToStorage('INFO', 'Service Worker activated', { version: SW_VERSION });
       // Notify all clients about the update
       return self.clients.matchAll().then((clients) => {
         clients.forEach((client) => {
@@ -322,8 +319,6 @@ function logToStorage(level, message, data = {}) {
     timestamp: new Date().toISOString(),
     version: SW_VERSION
   };
-  
-  console.log(`[SW] ${SW_VERSION} [${level}]`, message, data);
   
   // Lưu vào IndexedDB trước (hoạt động cả khi không có clients)
   saveLogToIndexedDB(logEntry).catch(e => {
@@ -432,7 +427,7 @@ self.addEventListener('push', (event) => {
       // Phát âm thanh trên Android/Desktop
       vibrate: [200, 100, 200],
     }).then(() => {
-      console.log(`[SW] ${SW_VERSION} - Notification shown successfully:`, {
+      logToStorage('INFO', 'Notification shown', {
         title: notificationData.title,
         body: notificationData.body,
         amount: notificationData.data?.amount,
@@ -474,7 +469,7 @@ self.addEventListener('push', (event) => {
 
 // Notification click event
 self.addEventListener('notificationclick', (event) => {
-  console.log('[SW] Notification clicked:', event);
+  logToStorage('INFO', 'Notification clicked', { data: event.notification?.data });
   event.notification.close();
 
   event.waitUntil(
@@ -513,7 +508,7 @@ self.addEventListener('notificationclick', (event) => {
 
 // Message event - nhận message từ main thread
 self.addEventListener('message', (event) => {
-  console.log('[SW] Message received:', event.data);
+  logToStorage('INFO', 'Message received from client', { data: event.data });
   
   if (event.data && event.data.type === 'SKIP_WAITING') {
     self.skipWaiting();

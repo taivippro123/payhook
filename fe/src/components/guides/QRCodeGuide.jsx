@@ -29,7 +29,7 @@ export default function QRCodeGuide() {
               <div className="bg-gray-900 text-gray-100 rounded-md p-4 font-mono text-sm overflow-x-auto">
                 <div className="text-green-400">GET</div>
                 <div className="text-blue-400 mt-2">
-                  https://payhook-taivippro123.fly.dev/api/qr/img
+                  https://www.payhook.codes/api/qr/img
                 </div>
               </div>
             </div>
@@ -109,7 +109,7 @@ export default function QRCodeGuide() {
                   <h4 className="font-medium mb-2 text-gray-700">Ví dụ 1: QR Code với đầy đủ thông tin (kích hoạt webhook)</h4>
                   <div className="bg-gray-900 text-gray-100 rounded-md p-4 font-mono text-sm overflow-x-auto">
                     <div className="text-blue-400">
-                      https://payhook-taivippro123.fly.dev/api/qr/img?
+                      https://www.payhook.codes/api/qr/img?
                       <span className="text-yellow-400">acc</span>=0123456789&
                       <span className="text-yellow-400">bank</span>=cake&
                       <span className="text-yellow-400">amount</span>=50000&
@@ -126,7 +126,7 @@ export default function QRCodeGuide() {
                   <h4 className="font-medium mb-2 text-gray-700">Ví dụ 2: QR Code chỉ có số tài khoản và ngân hàng</h4>
                   <div className="bg-gray-900 text-gray-100 rounded-md p-4 font-mono text-sm overflow-x-auto">
                     <div className="text-blue-400">
-                      https://payhook-taivippro123.fly.dev/api/qr/img?
+                      https://www.payhook.codes/api/qr/img?
                       <span className="text-yellow-400">acc</span>=0123456789&
                       <span className="text-yellow-400">bank</span>=cake
                     </div>
@@ -145,7 +145,7 @@ export default function QRCodeGuide() {
               </p>
               <div className="bg-gray-900 text-gray-100 rounded-md p-4 font-mono text-sm overflow-x-auto">
                 <div className="text-gray-300">
-                  {'<img src="https://payhook-taivippro123.fly.dev/api/qr/img?acc=0123456789&bank=cake&amount=50000&des=PAYHOOK123" />'}
+                  {'<img src="https://www.payhook.codes/api/qr/img?acc=0123456789&bank=cake&amount=50000&des=PAYHOOK123" />'}
                 </div>
               </div>
             </div>
@@ -155,7 +155,7 @@ export default function QRCodeGuide() {
               <div className="bg-gray-900 text-gray-100 rounded-md p-4 font-mono text-sm overflow-x-auto">
                 <pre className="text-gray-300">
 {`// Tạo URL QR Code với mã đơn hàng PAYHOOKxxx
-const qrUrl = \`https://payhook-taivippro123.fly.dev/api/qr/img?acc=\${accountNumber}&bank=\${bank}&amount=\${amount}&des=PAYHOOK\${orderId}\`;
+const qrUrl = \`https://www.payhook.codes/api/qr/img?acc=\${accountNumber}&bank=\${bank}&amount=\${amount}&des=PAYHOOK\${orderId}\`;
 
 // Sử dụng trong React component
 <img src={qrUrl} alt="QR Code thanh toán" />`}

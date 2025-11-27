@@ -56,7 +56,6 @@ function playWithSpeechSynthesis(text) {
     utterance.volume = 1.0; // Âm lượng
     
     window.speechSynthesis.speak(utterance);
-    console.log('🔊 Playing sound with Speech Synthesis:', text);
   }
 }
 
@@ -78,9 +77,8 @@ function App() {
         unlockAudioEl.pause();
         unlockAudioEl.currentTime = 0;
         audioUnlocked = true;
-        console.log('✅ Audio unlocked');
       } catch (error) {
-        console.log('Audio unlock attempt:', error.message);
+        // Ignore unlock errors silently
       }
     };
     
@@ -129,14 +127,14 @@ function App() {
                 }
               }
             });
-            console.log('🔊 Playing TTS audio from BroadcastChannel');
+            // Audio played successfully via BroadcastChannel
           } catch (error) {
             console.error('Error creating audio from BroadcastChannel:', error);
           }
         }
       };
     } catch (error) {
-      console.log('BroadcastChannel not supported');
+      // BroadcastChannel not available, ignore
     }
     
     if ('serviceWorker' in navigator) {
@@ -189,7 +187,7 @@ function App() {
                 }
               }
             });
-            console.log('🔊 Playing TTS audio from URL');
+            // Audio played successfully from URL
           } catch (error) {
             console.error('Error creating audio:', error);
             // Fallback: sử dụng Web Speech API
@@ -208,8 +206,7 @@ function App() {
     // Load voices khi có sẵn (một số browser cần load voices)
     if ('speechSynthesis' in window) {
       const loadVoices = () => {
-        const voices = window.speechSynthesis.getVoices();
-        console.log('Available voices:', voices.map(v => `${v.name} (${v.lang})`));
+        window.speechSynthesis.getVoices();
       };
       
       loadVoices();

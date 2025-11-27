@@ -81,18 +81,15 @@ export default function Dashboard() {
 
     const connect = () => {
       if (!isMounted) return
-      console.log('🔌 Connecting to WebSocket:', wsUrl)
       const socket = new WebSocket(wsUrl)
       wsRef.current = socket
 
-      socket.onopen = () => {
-        console.log('✅ WebSocket connected')
-      }
+      socket.onopen = () => {}
 
       socket.onmessage = (event) => {
         try {
           const payload = JSON.parse(event.data)
-          console.log('📨 WS message received:', payload.event, payload.data)
+          // Handle incoming websocket events
 
           if (payload.event === 'transaction:new' && payload.data) {
             const newTransaction = payload.data
@@ -103,8 +100,6 @@ export default function Dashboard() {
               return
             }
 
-            console.log('✅ New transaction received via WS:', incomingId)
-
             // Cập nhật recent transactions
             setTransactions((prev) => {
               const exists = prev.some((tx) => {
@@ -112,7 +107,7 @@ export default function Dashboard() {
                 return existingId === incomingId
               })
               if (exists) {
-                console.log('⏭️ Transaction already in recent list')
+                // Already exists in recent list
                 return prev
               }
               const updated = [newTransaction, ...prev]
@@ -128,14 +123,12 @@ export default function Dashboard() {
                 return existingId === incomingId
               })
               if (exists) {
-                console.log('⏭️ Transaction already in all transactions list')
+                // Already exists in all list
                 return prev
               }
               triggerAllHighlight(incomingId)
               return [newTransaction, ...prev]
             })
-          } else if (payload.event === 'ws.connected') {
-            console.log('🔌 WebSocket connected:', payload.data)
           }
         } catch (error) {
           console.error('❌ WS message parse error:', error)
@@ -143,9 +136,7 @@ export default function Dashboard() {
       }
 
       socket.onclose = (event) => {
-        console.log('🔌 WebSocket closed:', event.code, event.reason)
         if (isMounted) {
-          console.log('🔄 Reconnecting in 3 seconds...')
           reconnectTimer = setTimeout(connect, 3000)
         }
       }

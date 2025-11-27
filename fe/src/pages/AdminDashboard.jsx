@@ -61,18 +61,15 @@ export default function AdminDashboard() {
 
     const connect = () => {
       if (!isMounted) return
-      console.log('🔌 Connecting to WebSocket:', wsUrl)
       const socket = new WebSocket(wsUrl)
       wsRef.current = socket
 
-      socket.onopen = () => {
-        console.log('✅ WebSocket connected')
-      }
+      socket.onopen = () => {}
 
       socket.onmessage = (event) => {
         try {
           const payload = JSON.parse(event.data)
-          console.log('📨 WS message received:', payload.event, payload.data)
+          // Handle incoming WS events
           
           if (payload.event === 'transaction:new' && payload.data) {
             const newTransaction = payload.data
@@ -83,23 +80,19 @@ export default function AdminDashboard() {
               return
             }
 
-            console.log('✅ New transaction received via WS:', incomingId)
-
             setTransactions((prev) => {
               const exists = prev.some((tx) => {
                 const existingId = tx?._id?.$oid || tx?._id
                 return existingId === incomingId
               })
               if (exists) {
-                console.log('⏭️ Transaction already in list')
+                // Already present
                 return prev
               }
               triggerTransactionHighlight(incomingId)
               const updated = [newTransaction, ...prev]
               return updated.slice(0, MAX_TRANSACTIONS)
             })
-          } else if (payload.event === 'ws.connected') {
-            console.log('🔌 WebSocket connected:', payload.data)
           }
         } catch (error) {
           console.error('❌ WS message parse error:', error)
@@ -107,9 +100,7 @@ export default function AdminDashboard() {
       }
 
       socket.onclose = (event) => {
-        console.log('🔌 WebSocket closed:', event.code, event.reason)
         if (isMounted) {
-          console.log('🔄 Reconnecting in 3 seconds...')
           reconnectTimer = setTimeout(connect, 3000)
         }
       }

@@ -2,6 +2,7 @@ const jwt = require('jsonwebtoken');
 const User = require('../models/user');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
+const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '24h';
 
 /**
  * Middleware xác thực JWT token
@@ -57,7 +58,7 @@ function generateToken(user) {
       role: user.role || 'user',
     },
     JWT_SECRET,
-    { expiresIn: '7d' }
+    { expiresIn: JWT_EXPIRES_IN }
   );
 }
 
@@ -85,5 +86,6 @@ module.exports = {
   generateToken,
   isAdmin,
   decodeToken,
+  JWT_EXPIRES_IN,
 };
 

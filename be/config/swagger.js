@@ -129,7 +129,7 @@ const options = {
             bank: {
               type: 'string',
               description: 'Bank name',
-              example: 'TPBank',
+              example: 'CAKE',
             },
             transactionId: {
               type: 'string',

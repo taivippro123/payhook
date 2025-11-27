@@ -1,6 +1,6 @@
 const express = require('express');
 const User = require('../models/user');
-const { generateToken } = require('../middleware/auth');
+const { generateToken, authenticate } = require('../middleware/auth');
 
 const router = express.Router();
 
@@ -197,6 +197,44 @@ router.post('/login', async (req, res) => {
       error: error.message || 'Internal server error',
       ...(process.env.NODE_ENV === 'development' && { stack: error.stack }),
     });
+  }
+});
+
+/**
+ * @swagger
+ * /api/auth/refresh:
+ *   post:
+ *     summary: Refresh JWT token
+ *     tags: [Authentication]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: New token issued
+ *       401:
+ *         description: Unauthorized
+ */
+router.post('/refresh', authenticate, async (req, res) => {
+  try {
+    const user = await User.findById(req.user.userId);
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    const token = generateToken(user);
+    res.json({
+      success: true,
+      token,
+      user: {
+        _id: user._id,
+        username: user.username,
+        email: user.email,
+        role: user.role || 'user',
+      },
+    });
+  } catch (error) {
+    console.error('❌ Token refresh error:', error);
+    res.status(500).json({ error: 'Unable to refresh token' });
   }
 });
 

@@ -1,11 +1,84 @@
-import { createContext, useContext, useState, useEffect } from 'react'
+import { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react'
 import { authAPI } from '@/lib/api'
+
+const REFRESH_THRESHOLD_MS = 10 * 60 * 1000 // 10 phút
+
+const decodeToken = (token) => {
+  if (!token) return null
+  try {
+    const payload = token.split('.')[1]
+    const decoded = atob(payload.replace(/-/g, '+').replace(/_/g, '/'))
+    return JSON.parse(decoded)
+  } catch (error) {
+    console.error('❌ Failed to decode token:', error)
+    return null
+  }
+}
 
 const AuthContext = createContext(null)
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
+  const refreshTimeoutRef = useRef(null)
+  const refreshTokenRef = useRef(null)
+
+  const clearRefreshTimer = () => {
+    if (refreshTimeoutRef.current) {
+      clearTimeout(refreshTimeoutRef.current)
+      refreshTimeoutRef.current = null
+    }
+  }
+
+  const scheduleTokenRefresh = useCallback((token) => {
+    clearRefreshTimer()
+    if (!token) return
+
+    const decoded = decodeToken(token)
+    if (!decoded?.exp) return
+
+    const expiresAt = decoded.exp * 1000
+    const timeUntilRefresh = expiresAt - Date.now() - REFRESH_THRESHOLD_MS
+
+    const triggerRefresh = () => {
+      if (refreshTokenRef.current) {
+        refreshTokenRef.current()
+      }
+    }
+
+    if (timeUntilRefresh <= 0) {
+      triggerRefresh()
+    } else {
+      refreshTimeoutRef.current = setTimeout(triggerRefresh, timeUntilRefresh)
+    }
+  }, [])
+
+  const refreshToken = useCallback(async () => {
+    try {
+      const response = await authAPI.refresh()
+      if (response?.token) {
+        localStorage.setItem('token', response.token)
+        if (response.user) {
+          localStorage.setItem('user', JSON.stringify(response.user))
+          setUser(response.user)
+        }
+        scheduleTokenRefresh(response.token)
+      }
+    } catch (error) {
+      console.error('❌ Token refresh error:', error)
+      localStorage.removeItem('token')
+      localStorage.removeItem('user')
+      setUser(null)
+    }
+  }, [scheduleTokenRefresh])
+
+  useEffect(() => {
+    refreshTokenRef.current = refreshToken
+    return () => {
+      refreshTokenRef.current = null
+      clearRefreshTimer()
+    }
+  }, [refreshToken])
 
   useEffect(() => {
     // Check if user is logged in
@@ -13,9 +86,10 @@ export function AuthProvider({ children }) {
     const userData = localStorage.getItem('user')
     if (token && userData) {
       setUser(JSON.parse(userData))
+      scheduleTokenRefresh(token)
     }
     setLoading(false)
-  }, [])
+  }, [scheduleTokenRefresh])
 
   const login = async (username, password, token = null) => {
     try {
@@ -34,10 +108,10 @@ export function AuthProvider({ children }) {
         // Login thông thường
         response = await authAPI.login({ username, password })
       }
-      console.log('✅ Login successful, token:', response.token ? 'received' : 'missing')
       localStorage.setItem('token', response.token)
       localStorage.setItem('user', JSON.stringify(response.user))
       setUser(response.user)
+      scheduleTokenRefresh(response.token)
       return response
     } catch (error) {
       console.error('❌ Login error:', error)
@@ -48,10 +122,10 @@ export function AuthProvider({ children }) {
   const register = async (username, password, email) => {
     try {
       const response = await authAPI.register({ username, password, email })
-      console.log('✅ Register successful, token:', response.token ? 'received' : 'missing')
       localStorage.setItem('token', response.token)
       localStorage.setItem('user', JSON.stringify(response.user))
       setUser(response.user)
+      scheduleTokenRefresh(response.token)
       return response
     } catch (error) {
       console.error('❌ Register error:', error)
@@ -62,6 +136,7 @@ export function AuthProvider({ children }) {
   const logout = () => {
     localStorage.removeItem('token')
     localStorage.removeItem('user')
+    clearRefreshTimer()
     setUser(null)
   }
 
