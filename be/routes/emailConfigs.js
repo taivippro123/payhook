@@ -4,8 +4,80 @@ const { authenticate } = require('../middleware/auth');
 const { validateWebhookUrl } = require('../utils/webhookValidation');
 const { generateWebhookSecret } = require('../utils/webhookSignature');
 const { sendCakeTestEmail } = require('../services/cakeTestEmail');
+const { watchGmail } = require('../services/gmailApi');
 
 const router = express.Router();
+
+// Gmail watch auto-renew fallback config
+const PUBSUB_TOPIC = process.env.GOOGLE_PUBSUB_TOPIC;
+const RENEW_THRESHOLD_MS =
+  Number(process.env.GMAIL_WATCH_RENEW_THRESHOLD_MS) || 24 * 60 * 60 * 1000; // 24h
+
+/**
+ * Fallback: tự động gia hạn Gmail watch cho 1 config khi user mở Dashboard/API
+ * Tránh trường hợp scheduler (cron) không chạy đúng giờ dẫn đến hết hạn push.
+ *
+ * Chiến lược:
+ * - Nếu còn hạn xa hơn threshold thì bỏ qua để tránh spam Gmail API.
+ * - Nếu sắp hết hạn (<= threshold) hoặc đã hết hạn thì gọi lại users.watch().
+ *
+ * @param {Object} config - email config document (đã decrypt refreshToken)
+ * @param {string} reason - lý do để log (vd: 'email-configs-list', 'email-configs-detail')
+ * @returns {Promise<Object>} config đã được update (nếu có) hoặc config cũ nếu không cần renew/renew fail
+ */
+async function maybeAutoRenewWatch(config, reason = 'fallback') {
+  try {
+    if (!PUBSUB_TOPIC) {
+      // Không cấu hình Pub/Sub topic thì bỏ qua auto-renew
+      return config;
+    }
+
+    if (!config || !config.refreshToken) {
+      return config;
+    }
+
+    const now = Date.now();
+    const expirationTime = config.watchExpiration
+      ? new Date(config.watchExpiration).getTime()
+      : 0;
+
+    // Nếu chưa từng có watch hoặc sắp hết hạn / đã hết hạn
+    const needsRenew =
+      !expirationTime || expirationTime - now <= RENEW_THRESHOLD_MS;
+
+    if (!needsRenew) {
+      return config;
+    }
+
+    console.log(
+      `🔄 [Fallback] Auto-renew Gmail watch for ${config.email} (reason: ${reason})`
+    );
+
+    const result = await watchGmail(config.refreshToken, PUBSUB_TOPIC);
+    const watchExpiration = result.expiration
+      ? new Date(Number(result.expiration))
+      : null;
+
+    const updated = await EmailConfig.update(config._id.toString(), {
+      watchHistoryId: result.historyId ? String(result.historyId) : null,
+      watchExpiration,
+    });
+
+    console.log(
+      `✅ [Fallback] Watch renewed for ${config.email}. New historyId=${result.historyId}`
+    );
+
+    return updated || config;
+  } catch (error) {
+    console.error(
+      `❌ [Fallback] Failed to auto-renew Gmail watch for ${
+        config?.email
+      }: ${error.message}`
+    );
+    // Không throw để tránh làm hỏng endpoint chính
+    return config;
+  }
+}
 
 // Helper function để serialize MongoDB object thành JSON-safe object
 function serializeConfig(config) {
@@ -65,9 +137,14 @@ router.use(authenticate);
 router.get('/', async (req, res) => {
   try {
     const configs = await EmailConfig.findByUserId(req.user.userId);
-    
+
+    // Fallback: cố gắng auto-renew Gmail watch cho từng config nếu sắp/đã hết hạn
+    const renewedConfigs = await Promise.all(
+      configs.map((config) => maybeAutoRenewWatch(config, 'email-configs-list'))
+    );
+
     // Serialize MongoDB objects thành JSON-safe objects
-    const safeConfigs = configs.map(config => serializeConfig(config));
+    const safeConfigs = renewedConfigs.map((config) => serializeConfig(config));
 
     res.json({
       success: true,
@@ -123,7 +200,7 @@ router.post('/', async (req, res) => {
  */
 router.get('/:id', async (req, res) => {
   try {
-    const config = await EmailConfig.findById(req.params.id);
+    let config = await EmailConfig.findById(req.params.id);
 
     if (!config) {
       return res.status(404).json({ error: 'Email config not found' });
@@ -133,6 +210,9 @@ router.get('/:id', async (req, res) => {
     if (config.userId.toString() !== req.user.userId) {
       return res.status(403).json({ error: 'Access denied' });
     }
+
+    // Fallback: auto-renew cho riêng config này nếu user đang xem chi tiết và gần/đã hết hạn
+    config = await maybeAutoRenewWatch(config, 'email-configs-detail');
 
     // Serialize MongoDB object thành JSON-safe object
     const safeConfig = serializeConfig(config);

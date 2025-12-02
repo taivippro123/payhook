@@ -14,7 +14,7 @@ import Home from '@/pages/Home'
 import Privacy from '@/pages/Privacy'
 import Notification from '@/pages/Notification'
 import { getRedirectPath } from '@/utils/redirect'
-
+import { Analytics } from '@vercel/analytics/react'
 function RootRedirect() {
   const { user, loading } = useAuth()
   
@@ -285,6 +285,7 @@ function App() {
           <Route path="/app" element={<RootRedirect />} />
         </Routes>
       </BrowserRouter>
+      <Analytics />
       </RateLimitProvider>
     </AuthProvider>
   )
