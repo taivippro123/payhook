@@ -175,7 +175,7 @@ export default function Privacy() {
                     <ul className="ml-4 mt-1 list-disc space-y-1">
                       <li>Webhook chỉ gửi qua HTTPS và đính kèm chữ ký `X-Payhook-Signature` để bạn xác thực.</li>
                       <li>Giao tiếp giữa trình duyệt và API đi qua Vercel + Fly.io đều dùng TLS 1.2+.</li>
-                      <li>Push notification và WebSocket yêu cầu JWT hợp lệ và hết hạn sau 60 phút.</li>
+                      <li>Push notification và WebSocket yêu cầu JWT hợp lệ và hết hạn sau 24 giờ.</li>
                     </ul>
                   </div>
 
@@ -267,7 +267,7 @@ export default function Privacy() {
                 <h2 className="text-xl font-semibold text-gray-900">9. Quy trình ứng phó sự cố</h2>
                 <ul className="ml-4 list-disc space-y-2">
                   <li>Nếu phát hiện truy cập trái phép, Payhook sẽ vô hiệu refresh token, tắt webhook và thông báo qua email trong vòng 24 giờ.</li>
-                  <li>Log truy vết (IP, token, requestId) lưu tối thiểu 30 ngày để hỗ trợ điều tra.</li>
+                  <li>Log webhook (userId, transactionId, webhookUrl, attempts) lưu trong vòng 30 ngày.</li>
                   <li>Bạn có thể báo cáo sự cố qua <a href="mailto:phanvothanhtai1007@gmail.com" className="text-blue-600 hover:underline">phanvothanhtai1007@gmail.com</a>; chúng tôi phản hồi trong 1 ngày làm việc.</li>
                 </ul>
               </div>
