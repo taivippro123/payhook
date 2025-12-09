@@ -1,4 +1,4 @@
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '@/contexts/AuthContext'
 import { SidebarLink, useSidebar } from '@/components/ui/sidebar'
 import {
@@ -16,7 +16,9 @@ import PayhookLogo from '@/assets/Payhook.png'
 export function AppSidebar({ open, setOpen }) {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
+  const location = useLocation()
   const { open: sidebarOpen } = useSidebar()
+  const pathname = location.pathname || '/'
 
   const sidebarLinks = [
     {
@@ -24,6 +26,7 @@ export function AppSidebar({ open, setOpen }) {
       label: 'Dashboard',
       icon: <IconLayoutDashboard size={18} className="text-neutral-500 dark:text-neutral-200" />,
       action: () => navigate('/dashboard'),
+      path: '/dashboard',
     },
     ...(user?.role === 'admin'
       ? [{
@@ -31,6 +34,7 @@ export function AppSidebar({ open, setOpen }) {
         label: 'Admin',
         icon: <IconGauge size={18} className="text-neutral-500 dark:text-neutral-200" />,
         action: () => navigate('/admin'),
+        path: '/admin',
       }]
       : []),
     {
@@ -38,24 +42,28 @@ export function AppSidebar({ open, setOpen }) {
       label: 'Tạo QR',
       icon: <IconQrcode size={18} className="text-neutral-500 dark:text-neutral-200" />,
       action: () => navigate('/qr'),
+      path: '/qr',
     },
     {
       key: 'webhooks',
       label: 'Webhook Logs',
       icon: <IconFileText size={18} className="text-neutral-500 dark:text-neutral-200" />,
       action: () => navigate('/webhooks'),
+      path: '/webhooks',
     },
     {
       key: 'notification',
       label: 'Thông báo',
       icon: <IconBell size={18} className="text-neutral-500 dark:text-neutral-200" />,
       action: () => navigate('/notification'),
+      path: '/notification',
     },
     {
       key: 'guide',
       label: 'Hướng dẫn',
       icon: <IconBook size={18} className="text-neutral-500 dark:text-neutral-200" />,
       action: () => navigate('/guide'),
+      path: '/guide',
     },
   ]
 
@@ -99,6 +107,7 @@ export function AppSidebar({ open, setOpen }) {
                 label: item.label,
                 icon: item.icon,
               }}
+              active={item.path ? pathname.startsWith(item.path) : false}
               onClick={(e) => {
                 e.preventDefault()
                 item.action()

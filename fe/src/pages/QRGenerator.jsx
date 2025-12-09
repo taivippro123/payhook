@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { AppLayout } from '@/components/AppLayout'
 import { PageSEO } from '@/components/SEO'
+import { Download } from 'lucide-react'
 
 export default function QRGenerator() {
   const { user } = useAuth()
@@ -17,6 +18,7 @@ export default function QRGenerator() {
   })
   const [error, setError] = useState('')
   const [previewVersion, setPreviewVersion] = useState(0)
+  const [downloading, setDownloading] = useState(false)
 
   const qrUrl = useMemo(() => {
     if (!form.acc.trim()) return ''
@@ -41,6 +43,32 @@ export default function QRGenerator() {
       des: form.des.trim(),
       bank: 'cake',
     }), '_blank', 'noopener')
+  }
+
+  const handleDownload = async () => {
+    if (!qrUrl) {
+      setError('Hãy nhập số tài khoản và tạo QR trước khi tải xuống')
+      return
+    }
+    try {
+      setError('')
+      setDownloading(true)
+      const response = await fetch(qrUrl)
+      const blob = await response.blob()
+      const url = URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = `vietqr-${form.acc || 'qr'}.png`
+      document.body.appendChild(link)
+      link.click()
+      link.remove()
+      URL.revokeObjectURL(url)
+    } catch (err) {
+      console.error('Download QR failed:', err)
+      setError('Không tải được QR, thử lại sau.')
+    } finally {
+      setDownloading(false)
+    }
   }
 
   return (
@@ -99,11 +127,14 @@ export default function QRGenerator() {
             {error && <p className="text-sm text-red-600">{error}</p>}
 
             <div className="flex flex-wrap gap-2">
-              <Button onClick={handleGenerate}>Mở ảnh QR</Button>
+              <Button onClick={handleGenerate}>Mở ảnh QR trong thẻ mới</Button>
               {qrUrl && (
-                <Button variant="outline" onClick={() => setPreviewVersion((v) => v + 1)}>
-                  Làm mới preview
-                </Button>
+                <>
+                  <Button variant="secondary" onClick={handleDownload} disabled={downloading}>
+                    <Download className="h-4 w-4 mr-2" />
+                    {downloading ? 'Đang tải...' : 'Tải QR'}
+                  </Button>
+                </>
               )}
             </div>
 
@@ -114,7 +145,7 @@ export default function QRGenerator() {
                   <img
                     src={qrUrl}
                     alt="QR chuyển khoản Cake"
-                    className="w-48 h-48 border rounded bg-white"
+                    className="w-48 h-48 border rounded bg-white shadow-sm"
                     loading="lazy"
                   />
                   <div className="text-xs sm:text-sm text-gray-600">

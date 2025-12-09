@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { webhookLogsAPI } from '@/lib/api'
 import { cn } from '@/lib/utils'
+import { Copy } from 'lucide-react'
 
 const statusLabels = {
   pending: 'Đang xử lý',
@@ -258,6 +259,7 @@ export default function WebhookLogPanel({
                     ? log.attempts[log.attempts.length - 1]
                     : null
                   const badgeVariant = statusVariants[log.status] || 'secondary'
+                  const payloadText = stringifyPayload(log.payload)
                   return (
                     <Fragment key={log._id}>
                       <TableRow
@@ -352,12 +354,31 @@ export default function WebhookLogPanel({
                               </div>
 
                               <div>
-                                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
-                                  Payload gửi đi
-                                </p>
-                                <pre className="bg-gray-900 text-gray-100 text-xs rounded-md p-3 overflow-auto max-h-64">
-                                  {stringifyPayload(log.payload)}
-                                </pre>
+                                <div className="flex items-center justify-between mb-2 gap-3">
+                                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                                    Payload gửi đi
+                                  </p>
+                                </div>
+                                <div className="relative">
+                                  <pre className="bg-gray-900 text-gray-100 text-xs rounded-md p-3 whitespace-pre-wrap break-words pr-12">
+                                    {payloadText}
+                                  </pre>
+                                  <Button
+                                    variant="secondary"
+                                    size="icon"
+                                    className="absolute top-2 right-2 h-8 w-8"
+                                    onClick={() => {
+                                      if (navigator?.clipboard?.writeText) {
+                                        navigator.clipboard.writeText(payloadText).catch((error) => {
+                                          console.error('Copy payload failed:', error)
+                                        })
+                                      }
+                                    }}
+                                    title="Copy payload"
+                                  >
+                                    <Copy className="h-4 w-4" />
+                                  </Button>
+                                </div>
                               </div>
 
                               <div className="space-y-2">
