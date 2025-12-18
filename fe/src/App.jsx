@@ -13,6 +13,7 @@ import Guide from '@/pages/Guide'
 import Home from '@/pages/Home'
 import Privacy from '@/pages/Privacy'
 import Notification from '@/pages/Notification'
+import NotFound from '@/pages/NotFound'
 import { getRedirectPath } from '@/utils/redirect'
 import { Analytics } from '@vercel/analytics/react'
 function RootRedirect() {
@@ -283,6 +284,7 @@ function App() {
             }
           />
           <Route path="/app" element={<RootRedirect />} />
+          <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
       <Analytics />

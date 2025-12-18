@@ -34,7 +34,7 @@ const DEFAULT_ORGANIZATION_SCHEMA = {
   '@type': 'Organization',
   name: 'Payhook',
   url: DEFAULT_SITE_URL,
-  logo: buildAbsoluteUrl('/android-chrome-512x512.png'),
+  logo: buildAbsoluteUrl('/Payhook.png'),
   contactPoint: {
     '@type': 'ContactPoint',
     contactType: 'customer support',
