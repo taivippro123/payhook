@@ -4,6 +4,7 @@ const EmailConfig = require('../models/emailConfig');
 const Transaction = require('../models/transaction');
 const { broadcastTransaction } = require('./wsHub');
 const { sendWebhook } = require('./webhookSender');
+const { sendTransactionNotification } = require('./xiaozhiMcpClient');
 const User = require('../models/user');
 const { sendPushNotification } = require('../routes/pushNotifications');
 
@@ -203,6 +204,16 @@ async function handleGmailPush(pubsubMessage) {
               5,
               meta
             );
+          }
+        }
+
+        // Gửi thông báo tới Xiaozhi MCP nếu có cấu hình
+        if (config.xiaozhiMcpUrl) {
+          try {
+            await sendTransactionNotification(config.xiaozhiMcpUrl, saved);
+          } catch (xiaozhiError) {
+            console.error('❌ Error sending to Xiaozhi MCP:', xiaozhiError.message);
+            // Không throw để không ảnh hưởng đến flow chính
           }
         }
 

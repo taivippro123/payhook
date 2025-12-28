@@ -8,7 +8,7 @@ class EmailConfig {
    * @param {Object} configData - { userId, email, refreshToken?, webhookUrl?, watchHistoryId?, watchExpiration? }
    * @returns {Promise<Object>}
    */
-  static async create({ userId, email, appPassword, scanInterval = 30000, webhookUrl, refreshToken, watchHistoryId, watchExpiration }) {
+  static async create({ userId, email, appPassword, scanInterval = 30000, webhookUrl, xiaozhiMcpUrl, refreshToken, watchHistoryId, watchExpiration }) {
     const db = await getDB();
     const configs = db.collection('email_configs');
 
@@ -38,6 +38,7 @@ class EmailConfig {
       scanInterval: parseInt(scanInterval, 10),
       webhookUrl: webhookUrl || null,
       webhookSecret: null, // Sẽ được generate khi user set webhook URL
+      xiaozhiMcpUrl: xiaozhiMcpUrl || null, // Xiaozhi MCP WebSocket URL
       watchHistoryId: watchHistoryId || null, // Gmail watch history ID
       watchExpiration: watchExpiration || null, // Gmail watch expiration
       isActive: true,
@@ -145,6 +146,11 @@ class EmailConfig {
       // Xử lý webhookUrl: nếu là empty string thì set null
       if (updateData.webhookUrl === '') {
         updateData.webhookUrl = null;
+      }
+      
+      // Xử lý xiaozhiMcpUrl: nếu là empty string thì set null
+      if (updateData.xiaozhiMcpUrl === '') {
+        updateData.xiaozhiMcpUrl = null;
       }
       
       // Mã hóa refreshToken nếu có trong updates

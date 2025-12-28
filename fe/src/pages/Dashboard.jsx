@@ -28,6 +28,8 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(false)
   const [webhookDrafts, setWebhookDrafts] = useState({})
   const [editingWebhookId, setEditingWebhookId] = useState(null)
+  const [xiaozhiMcpDrafts, setXiaozhiMcpDrafts] = useState({})
+  const [editingXiaozhiMcpId, setEditingXiaozhiMcpId] = useState(null)
   const [updatingConfigId, setUpdatingConfigId] = useState(null)
   const [isConnectingGmail, setIsConnectingGmail] = useState(false)
   const wsRef = useRef(null)
@@ -343,6 +345,57 @@ export default function Dashboard() {
         displayMessage = 'Webhook URL không đúng định dạng. Vui lòng kiểm tra lại URL (ví dụ: https://your-domain.com/webhook/payhook).'
       } else if (errorMessage.includes('port')) {
         displayMessage = 'Webhook URL chỉ được sử dụng ports 80 (HTTP) hoặc 443 (HTTPS). Vui lòng kiểm tra lại URL.'
+      }
+      
+      alert(displayMessage)
+    } finally {
+      setUpdatingConfigId(null)
+    }
+  }
+
+  const handleXiaozhiMcpChange = (configId, value) => {
+    setXiaozhiMcpDrafts((prev) => ({
+      ...prev,
+      [configId]: value,
+    }))
+  }
+
+  const handleEditXiaozhiMcp = (configId, currentValue) => {
+    setEditingXiaozhiMcpId(configId)
+    setXiaozhiMcpDrafts((prev) => ({
+      ...prev,
+      [configId]: currentValue || '',
+    }))
+  }
+
+  const handleCancelXiaozhiMcpEdit = (configId) => {
+    setXiaozhiMcpDrafts((prev) => {
+      const next = { ...prev }
+      next[configId] = emailConfigs.find((cfg) => (cfg._id || cfg.id) === configId)?.xiaozhiMcpUrl || ''
+      return next
+    })
+    setEditingXiaozhiMcpId(null)
+  }
+
+  const handleSaveXiaozhiMcp = async (configId) => {
+    if (isApiRateLimited) return
+    try {
+      setUpdatingConfigId(configId)
+      const xiaozhiMcpUrl = xiaozhiMcpDrafts[configId]?.trim() || null
+      await emailConfigAPI.update(configId, { xiaozhiMcpUrl })
+      const { computedLimit } = await loadConfigs()
+      await loadTransactions(computedLimit)
+      setEditingXiaozhiMcpId(null)
+    } catch (error) {
+      console.error('Error saving Xiaozhi MCP URL:', error)
+      const errorMessage = error.response?.data?.error || 'Lỗi khi cập nhật Xiaozhi MCP URL'
+      
+      let displayMessage = errorMessage
+      
+      if (errorMessage.includes('WebSocket') || errorMessage.includes('wss://') || errorMessage.includes('ws://')) {
+        displayMessage = 'Xiaozhi MCP URL phải là WebSocket URL (wss:// hoặc ws://). Vui lòng kiểm tra lại URL.'
+      } else if (errorMessage.includes('Invalid URL') || errorMessage.includes('URL format')) {
+        displayMessage = 'Xiaozhi MCP URL không đúng định dạng. Vui lòng kiểm tra lại URL (ví dụ: wss://api.xiaozhi.me/mcp/?token=...).'
       }
       
       alert(displayMessage)
@@ -722,6 +775,61 @@ export default function Dashboard() {
                                 </div>
                               </div>
                             )}
+
+                            {/* Xiaozhi MCP URL */}
+                            <div className="space-y-2">
+                              <Label htmlFor={`xiaozhi-mcp-${configId}`}>Xiaozhi MCP URL</Label>
+                              {editingXiaozhiMcpId === configId ? (
+                                <div className="flex flex-col sm:flex-row gap-2 sm:items-center">
+                                  <Input
+                                    id={`xiaozhi-mcp-${configId}`}
+                                    type="url"
+                                    placeholder="wss://api.xiaozhi.me/mcp/?token=..."
+                                    value={xiaozhiMcpDrafts[configId] ?? ''}
+                                    onChange={(e) => handleXiaozhiMcpChange(configId, e.target.value)}
+                                  />
+                                  <div className="flex gap-2">
+                                    <Button
+                                      size="sm"
+                                      onClick={() => handleSaveXiaozhiMcp(configId)}
+                                      disabled={updatingConfigId === configId || isApiRateLimited}
+                                    >
+                                      {updatingConfigId === configId ? 'Đang lưu...' : isApiRateLimited ? 'Too many request' : 'Lưu'}
+                                    </Button>
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      onClick={() => handleCancelXiaozhiMcpEdit(configId)}
+                                      disabled={updatingConfigId === configId}
+                                    >
+                                      Hủy
+                                    </Button>
+                                  </div>
+                                </div>
+                              ) : (
+                                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                                  <span className="text-sm text-gray-700 break-all">
+                                    {config.xiaozhiMcpUrl || <span className="italic text-gray-400">Chưa cấu hình</span>}
+                                  </span>
+                                  <div className="flex gap-2 shrink-0">
+                                    <Button
+                                      size="sm"
+                                      onClick={() => handleEditXiaozhiMcp(configId, config.xiaozhiMcpUrl || '')}
+                                      disabled={isApiRateLimited}
+                                    >
+                                      {config.xiaozhiMcpUrl ? 'Chỉnh sửa' : 'Thêm Xiaozhi MCP'}
+                                    </Button>
+                                  </div>
+                                </div>
+                              )}
+                              {config.xiaozhiMcpUrl && (
+                                <Alert className="bg-blue-50 border-blue-200">
+                                  <AlertDescription className="text-blue-800 text-xs">
+                                    <strong>Lưu ý:</strong> Khi có giao dịch, Payhook sẽ gửi thông báo qua WebSocket tới Xiaozhi MCP. AI sẽ đọc số tiền: "Đã nhận ... đồng".
+                                  </AlertDescription>
+                                </Alert>
+                              )}
+                            </div>
                           </div>
                         </CardContent>
                       </Card>

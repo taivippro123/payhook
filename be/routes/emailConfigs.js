@@ -90,6 +90,7 @@ function serializeConfig(config) {
       email: config.email || null,
       scanInterval: config.scanInterval || null,
       webhookUrl: config.webhookUrl || null,
+      xiaozhiMcpUrl: config.xiaozhiMcpUrl || null,
       isActive: config.isActive !== undefined ? Boolean(config.isActive) : null,
       lastSyncedAt: config.lastSyncedAt ? (config.lastSyncedAt instanceof Date ? config.lastSyncedAt.toISOString() : (typeof config.lastSyncedAt === 'string' ? config.lastSyncedAt : new Date(config.lastSyncedAt).toISOString())) : null,
       createdAt: config.createdAt ? (config.createdAt instanceof Date ? config.createdAt.toISOString() : (typeof config.createdAt === 'string' ? config.createdAt : new Date(config.createdAt).toISOString())) : null,
@@ -293,7 +294,7 @@ router.put('/:id', async (req, res) => {
       return res.status(403).json({ error: 'Access denied' });
     }
 
-    const { webhookUrl, isActive } = req.body;
+    const { webhookUrl, xiaozhiMcpUrl, isActive } = req.body;
     const updates = {};
 
     if (webhookUrl !== undefined) {
@@ -316,6 +317,28 @@ router.put('/:id', async (req, res) => {
       }
       
       updates.webhookUrl = newWebhookUrl;
+    }
+    
+    if (xiaozhiMcpUrl !== undefined) {
+      const newXiaozhiMcpUrl = xiaozhiMcpUrl || null;
+      
+      // Validate Xiaozhi MCP URL nếu có (phải là WebSocket URL)
+      if (newXiaozhiMcpUrl) {
+        if (!newXiaozhiMcpUrl.startsWith('wss://') && !newXiaozhiMcpUrl.startsWith('ws://')) {
+          return res.status(400).json({ error: 'Xiaozhi MCP URL phải là WebSocket URL (wss:// hoặc ws://)' });
+        }
+        
+        try {
+          const url = new URL(newXiaozhiMcpUrl);
+          if (url.protocol !== 'wss:' && url.protocol !== 'ws:') {
+            return res.status(400).json({ error: 'Xiaozhi MCP URL phải sử dụng WebSocket protocol (wss:// hoặc ws://)' });
+          }
+        } catch (urlError) {
+          return res.status(400).json({ error: 'Xiaozhi MCP URL không đúng định dạng' });
+        }
+      }
+      
+      updates.xiaozhiMcpUrl = newXiaozhiMcpUrl;
     }
     
     if (isActive !== undefined) updates.isActive = Boolean(isActive);
