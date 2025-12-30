@@ -210,7 +210,7 @@ async function handleGmailPush(pubsubMessage) {
         // Gửi thông báo tới Xiaozhi MCP nếu có cấu hình
         if (config.xiaozhiMcpUrl) {
           try {
-            await sendTransactionNotification(config.xiaozhiMcpUrl, saved);
+            await sendTransactionNotification(config.xiaozhiMcpUrl, saved, userId, configId);
           } catch (xiaozhiError) {
             console.error('❌ Error sending to Xiaozhi MCP:', xiaozhiError.message);
             // Không throw để không ảnh hưởng đến flow chính

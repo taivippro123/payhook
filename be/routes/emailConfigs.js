@@ -5,6 +5,7 @@ const { validateWebhookUrl } = require('../utils/webhookValidation');
 const { generateWebhookSecret } = require('../utils/webhookSignature');
 const { sendCakeTestEmail } = require('../services/cakeTestEmail');
 const { watchGmail } = require('../services/gmailApi');
+const { testConnection } = require('../services/xiaozhiMcpClient');
 
 const router = express.Router();
 
@@ -335,6 +336,20 @@ router.put('/:id', async (req, res) => {
           }
         } catch (urlError) {
           return res.status(400).json({ error: 'Xiaozhi MCP URL không đúng định dạng' });
+        }
+        
+        // Test connection (không block nếu fail, chỉ log warning)
+        try {
+          const testResult = await testConnection(newXiaozhiMcpUrl);
+          if (!testResult.success) {
+            console.warn(`⚠️ Xiaozhi MCP connection test failed for ${newXiaozhiMcpUrl}: ${testResult.message}`);
+            // Vẫn cho phép lưu URL, chỉ log warning
+          } else {
+            console.log(`✅ Xiaozhi MCP connection test successful for ${newXiaozhiMcpUrl}`);
+          }
+        } catch (testError) {
+          console.warn(`⚠️ Xiaozhi MCP connection test error: ${testError.message}`);
+          // Vẫn cho phép lưu URL, chỉ log warning
         }
       }
       
