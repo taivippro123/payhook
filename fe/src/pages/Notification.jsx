@@ -21,6 +21,7 @@ export default function Notification() {
   const [editEnabled, setEditEnabled] = useState(false)
   const [editStartTime, setEditStartTime] = useState('07:00')
   const [editEndTime, setEditEndTime] = useState('21:00')
+  const [isResetting, setIsResetting] = useState(false)
 
   useEffect(() => {
     // Kiểm tra browser support
@@ -154,6 +155,103 @@ export default function Notification() {
       setError(error.message || 'Có lỗi xảy ra khi tắt thông báo')
     } finally {
       setIsSubscribing(false)
+    }
+  }
+
+  const resetSubscription = async () => {
+    if (!hasSubscription) {
+      setError('Bạn chưa đăng ký thông báo')
+      return
+    }
+
+    setIsResetting(true)
+    setError(null)
+    setSuccess(null)
+
+    try {
+      // 1. Lấy service worker registration
+      const registration = await navigator.serviceWorker.ready
+      
+      // 2. Lấy subscription hiện tại từ browser
+      const oldSubscription = await registration.pushManager.getSubscription()
+      
+      // 3. Unsubscribe từ browser (xóa subscription trong service worker)
+      if (oldSubscription) {
+        await oldSubscription.unsubscribe()
+        console.log('✅ Unsubscribed from browser')
+      }
+
+      // 4. Unsubscribe từ server (xóa subscription trong database)
+      if (oldSubscription?.endpoint) {
+        try {
+          await pushNotificationsAPI.unsubscribe(oldSubscription.endpoint)
+          console.log('✅ Unsubscribed from server')
+        } catch (unsubError) {
+          // Nếu subscription không tồn tại trên server, không sao
+          console.warn('⚠️ Subscription not found on server:', unsubError.message)
+        }
+      }
+
+      // 5. Đợi một chút để đảm bảo unsubscribe hoàn tất
+      await new Promise(resolve => setTimeout(resolve, 500))
+
+      // 6. Lấy VAPID public key từ server
+      const keyData = await pushNotificationsAPI.getPublicKey()
+      const vapidPublicKey = keyData.publicKey
+
+      if (!vapidPublicKey) {
+        throw new Error('Server chưa cấu hình VAPID keys. Vui lòng liên hệ admin.')
+      }
+
+      // 7. Convert VAPID key từ base64 sang Uint8Array
+      const urlBase64ToUint8Array = (base64String) => {
+        const padding = '='.repeat((4 - base64String.length % 4) % 4)
+        const base64 = (base64String + padding)
+          .replace(/\-/g, '+')
+          .replace(/_/g, '/')
+        const rawData = window.atob(base64)
+        const outputArray = new Uint8Array(rawData.length)
+        for (let i = 0; i < rawData.length; ++i) {
+          outputArray[i] = rawData.charCodeAt(i)
+        }
+        return outputArray
+      }
+
+      // 8. Tạo subscription mới
+      const newSubscription = await registration.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(vapidPublicKey),
+      })
+
+      // 9. Gửi subscription mới lên server
+      const subscriptionData = {
+        endpoint: newSubscription.endpoint,
+        keys: {
+          p256dh: btoa(String.fromCharCode(...new Uint8Array(newSubscription.getKey('p256dh')))),
+          auth: btoa(String.fromCharCode(...new Uint8Array(newSubscription.getKey('auth')))),
+        },
+      }
+
+      await pushNotificationsAPI.subscribe(subscriptionData, {
+        enabled: true,
+        startTime: startTime,
+        endTime: endTime,
+      })
+
+      // 10. Update state
+      setHasSubscription(true)
+      setEnabled(true)
+      setEditEnabled(true)
+      
+      setSuccess('Đã reset subscription thành công! Thông báo và âm thanh sẽ hoạt động lại bình thường.')
+    } catch (error) {
+      console.error('Error resetting subscription:', error)
+      setError(error.message || 'Có lỗi xảy ra khi reset subscription')
+      // Nếu reset thất bại, có thể subscription đã bị xóa
+      setHasSubscription(false)
+      setEnabled(false)
+    } finally {
+      setIsResetting(false)
     }
   }
 
@@ -336,22 +434,41 @@ export default function Notification() {
                       </p>
                     </div>
 
-                    <div className="flex gap-2">
-                      <Button
-                        onClick={handleEdit}
-                        variant="outline"
-                        className="flex-1"
-                      >
-                        Chỉnh sửa
-                      </Button>
-                      <Button
-                        onClick={unsubscribeFromPush}
-                        disabled={isSubscribing}
-                        variant="outline"
-                        className="flex-1"
-                      >
-                        {isSubscribing ? 'Đang hủy...' : 'Hủy Đăng ký'}
-                      </Button>
+                    <div className="space-y-2">
+                      <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-md">
+                        <p className="text-sm text-yellow-800 mb-2">
+                          <strong>⚠️ Không nghe được âm thanh?</strong>
+                        </p>
+                        <p className="text-xs text-yellow-700 mb-3">
+                          Nếu bạn không nghe được âm thanh khi có giao dịch mới, hãy thử reset subscription để đăng ký lại.
+                        </p>
+                        <Button
+                          onClick={resetSubscription}
+                          disabled={isResetting}
+                          variant="outline"
+                          className="w-full border-yellow-300 text-yellow-800 hover:bg-yellow-100"
+                          size="sm"
+                        >
+                          {isResetting ? 'Đang reset...' : '🔄 Reset Subscription'}
+                        </Button>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button
+                          onClick={handleEdit}
+                          variant="outline"
+                          className="flex-1"
+                        >
+                          Chỉnh sửa
+                        </Button>
+                        <Button
+                          onClick={unsubscribeFromPush}
+                          disabled={isSubscribing}
+                          variant="outline"
+                          className="flex-1"
+                        >
+                          {isSubscribing ? 'Đang hủy...' : 'Hủy Đăng ký'}
+                        </Button>
+                      </div>
                     </div>
                   </>
                 ) : (
