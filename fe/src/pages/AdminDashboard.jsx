@@ -101,13 +101,28 @@ export default function AdminDashboard() {
 
       socket.onclose = (event) => {
         if (isMounted) {
+          // Log chi tiết lý do đóng để debug
+          console.warn('🔌 WebSocket closed:', {
+            code: event.code,
+            reason: event.reason || 'No reason provided',
+            wasClean: event.wasClean,
+            url: wsUrl
+          })
           reconnectTimer = setTimeout(connect, 3000)
         }
       }
 
       socket.onerror = (error) => {
-        console.error('❌ WebSocket error:', error)
-        socket.close()
+        // WebSocket error event thường không có nhiều thông tin
+        // Thông tin chi tiết sẽ có trong onclose event
+        console.error('❌ WebSocket error:', {
+          type: error.type,
+          target: {
+            url: error.target?.url,
+            readyState: error.target?.readyState, // 0=CONNECTING, 1=OPEN, 2=CLOSING, 3=CLOSED
+            readyStateText: ['CONNECTING', 'OPEN', 'CLOSING', 'CLOSED'][error.target?.readyState] || 'UNKNOWN'
+          }
+        })
       }
     }
 

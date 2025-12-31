@@ -1,2 +1,3 @@
 .vercel
 .gitignore
+.env*.local
