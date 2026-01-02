@@ -48,6 +48,7 @@ export default function Dashboard() {
   const allHighlightTimersRef = useRef(new Map())
   const [showWebhookSecrets, setShowWebhookSecrets] = useState({})
   const [copiedSecretId, setCopiedSecretId] = useState(null)
+  const [copiedXiaozhiMcpId, setCopiedXiaozhiMcpId] = useState(null)
   const [sendingTestEmailId, setSendingTestEmailId] = useState(null)
 
   useEffect(() => {
@@ -563,6 +564,22 @@ export default function Dashboard() {
     }
   }
 
+  const copyXiaozhiMcpUrl = async (url, configId) => {
+    try {
+      await navigator.clipboard.writeText(url)
+      setCopiedXiaozhiMcpId(configId)
+      setTimeout(() => setCopiedXiaozhiMcpId(null), 2000)
+    } catch (error) {
+      console.error('Failed to copy Xiaozhi MCP URL:', error)
+      alert('Không thể copy URL. Vui lòng copy thủ công.')
+    }
+  }
+
+  const truncateUrl = (url, maxLength = 50) => {
+    if (!url || url.length <= maxLength) return url
+    return url.substring(0, maxLength) + '...'
+  }
+
   return (
     <>
       <PageSEO title="Payhook" pathname="/dashboard" robots="noindex,nofollow" />
@@ -822,19 +839,56 @@ export default function Dashboard() {
                                   </div>
                                 </div>
                               ) : (
-                                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-                                  <span className="text-sm text-gray-700 break-all">
-                                    {config.xiaozhiMcpUrl || <span className="italic text-gray-400">Chưa cấu hình</span>}
-                                  </span>
-                                  <div className="flex gap-2 shrink-0">
-                                    <Button
-                                      size="sm"
-                                      onClick={() => handleEditXiaozhiMcp(configId, config.xiaozhiMcpUrl || '')}
-                                      disabled={isApiRateLimited}
-                                    >
-                                      {config.xiaozhiMcpUrl ? 'Chỉnh sửa' : 'Thêm Xiaozhi MCP'}
-                                    </Button>
-                                  </div>
+                                <div className="flex items-center gap-2">
+                                  {config.xiaozhiMcpUrl ? (
+                                    <>
+                                      <div className="flex-1 relative">
+                                        <Input
+                                          type="text"
+                                          value={truncateUrl(config.xiaozhiMcpUrl)}
+                                          readOnly
+                                          className="font-mono text-xs pr-20"
+                                        />
+                                        <div className="absolute right-2 top-1/2 -translate-y-1/2 flex gap-1">
+                                          <Button
+                                            type="button"
+                                            variant="ghost"
+                                            size="sm"
+                                            className="h-7 w-7 p-0"
+                                            onClick={() => copyXiaozhiMcpUrl(config.xiaozhiMcpUrl, configId)}
+                                          >
+                                            {copiedXiaozhiMcpId === configId ? (
+                                              <IconCheck className="h-4 w-4 text-green-600" />
+                                            ) : (
+                                              <IconCopy className="h-4 w-4" />
+                                            )}
+                                          </Button>
+                                        </div>
+                                      </div>
+                                      <div className="flex gap-2 shrink-0">
+                                        <Button
+                                          size="sm"
+                                          onClick={() => handleEditXiaozhiMcp(configId, config.xiaozhiMcpUrl || '')}
+                                          disabled={isApiRateLimited}
+                                        >
+                                          Chỉnh sửa
+                                        </Button>
+                                      </div>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <span className="flex-1 text-sm text-gray-400 italic">Chưa cấu hình</span>
+                                      <div className="flex gap-2 shrink-0">
+                                        <Button
+                                          size="sm"
+                                          onClick={() => handleEditXiaozhiMcp(configId, '')}
+                                          disabled={isApiRateLimited}
+                                        >
+                                          Thêm Xiaozhi MCP
+                                        </Button>
+                                      </div>
+                                    </>
+                                  )}
                                 </div>
                               )}
                               {config.xiaozhiMcpUrl && (

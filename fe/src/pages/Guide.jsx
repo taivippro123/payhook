@@ -7,11 +7,13 @@ import { Button } from '@/components/ui/button'
 import GmailConnection from '@/components/guides/GmailConnection'
 import QRCodeGuide from '@/components/guides/QRCodeGuide'
 import WebhookGuide from '@/components/guides/WebhookGuide'
+import XiaozhiGuide from '@/components/guides/XiaozhiGuide'
 
 const GUIDE_TABS = [
   { id: 'gmail', label: 'Kết nối Gmail', component: GmailConnection },
   { id: 'qr-code', label: 'Tạo QR động', component: QRCodeGuide },
   { id: 'webhook', label: 'Tích hợp Webhooks', component: WebhookGuide },
+  { id: 'xiaozhi', label: 'Tích hợp Xiaozhi', component: XiaozhiGuide },
 ]
 
 export default function Guide() {
