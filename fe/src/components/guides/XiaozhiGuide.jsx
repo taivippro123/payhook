@@ -162,7 +162,7 @@ AI Xiaozhi sẽ tự động kiểm tra và trả lời về các giao dịch m�
                   <ol className="list-decimal list-inside space-y-1 text-gray-600 ml-4">
                     <li>Truy cập <a href="https://xiaozhi.me/" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800 font-medium">https://xiaozhi.me/</a></li>
                     <li>Đăng nhập vào tài khoản của bạn</li>
-                    <li>Chọn <strong>"Bảng điều khiển"</strong> (Dashboard)</li>
+                    <li>Chọn <strong>"Bảng điều khiển"</strong> (Console)</li>
                   </ol>
                 </div>
               </div>
