@@ -1,29 +1,95 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+<svg width="1200" height="630" viewBox="0 0 1200 630" xmlns="http://www.w3.org/2000/svg">
   <defs>
-    <linearGradient id="bg-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#2A0C7A" />
-      <stop offset="50%" stop-color="#4515FF" />
-      <stop offset="100%" stop-color="#5A5BFF" />
+    <!-- Gradient background -->
+    <linearGradient id="bgGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#E0F2FE;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#7DD3FC;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#0F172A;stop-opacity:1" />
     </linearGradient>
-    <linearGradient id="card-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="rgba(255,255,255,0.15)" />
-      <stop offset="100%" stop-color="rgba(255,255,255,0.03)" />
+    
+    <!-- Logo gradient -->
+    <linearGradient id="logoGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#38b6ff;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#004aad;stop-opacity:1" />
     </linearGradient>
+    
+    <!-- Circuit pattern -->
+    <pattern id="circuitPattern" x="0" y="0" width="100" height="100" patternUnits="userSpaceOnUse">
+      <!-- Horizontal lines -->
+      <line x1="0" y1="20" x2="100" y2="20" stroke="#3B82F6" stroke-width="1.5" opacity="0.3"/>
+      <line x1="0" y1="50" x2="100" y2="50" stroke="#3B82F6" stroke-width="1.5" opacity="0.3"/>
+      <line x1="0" y1="80" x2="100" y2="80" stroke="#3B82F6" stroke-width="1.5" opacity="0.3"/>
+      
+      <!-- Vertical lines -->
+      <line x1="20" y1="0" x2="20" y2="100" stroke="#3B82F6" stroke-width="1.5" opacity="0.3"/>
+      <line x1="50" y1="0" x2="50" y2="100" stroke="#3B82F6" stroke-width="1.5" opacity="0.3"/>
+      <line x1="80" y1="0" x2="80" y2="100" stroke="#3B82F6" stroke-width="1.5" opacity="0.3"/>
+      
+      <!-- Connection dots -->
+      <circle cx="20" cy="20" r="2" fill="#60A5FA" opacity="0.5"/>
+      <circle cx="50" cy="50" r="2" fill="#60A5FA" opacity="0.5"/>
+      <circle cx="80" cy="80" r="2" fill="#60A5FA" opacity="0.5"/>
+      <circle cx="20" cy="50" r="2" fill="#60A5FA" opacity="0.5"/>
+      <circle cx="50" cy="80" r="2" fill="#60A5FA" opacity="0.5"/>
+    </pattern>
+    
+    <!-- Glow effect -->
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="4" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
   </defs>
-  <rect width="1200" height="630" fill="url(#bg-gradient)" />
-  <rect x="180" y="130" width="840" height="370" rx="32" fill="rgba(255,255,255,0.12)" stroke="rgba(255,255,255,0.3)" stroke-width="2"/>
-  <text x="200" y="240" font-family="Inter, 'Segoe UI', sans-serif" font-size="72" font-weight="700" fill="#FFFFFF">
-    Payhook
-  </text>
-  <text x="200" y="310" font-family="Inter, 'Segoe UI', sans-serif" font-size="32" font-weight="500" fill="rgba(255,255,255,0.9)">
-    Nhận giao dịch CAKE trong vài giây qua Gmail Push Notifications
-  </text>
-  <text x="200" y="370" font-family="Inter, 'Segoe UI', sans-serif" font-size="28" fill="rgba(255,255,255,0.85)">
-    • Webhook realtime • Dashboard trực quan • Retry tự động • Log chi tiết
-  </text>
-  <rect x="200" y="410" width="280" height="72" rx="36" fill="rgba(255,255,255,0.16)" />
-  <text x="220" y="457" font-family="Inter, 'Segoe UI', sans-serif" font-size="28" font-weight="600" fill="#FFFFFF">
-    www.payhook.codes
-  </text>
+  
+  <!-- Background -->
+  <rect width="1200" height="630" fill="url(#bgGradient)"/>
+  
+  <!-- Circuit pattern overlay (bottom half) -->
+  <rect x="0" y="315" width="1200" height="315" fill="url(#circuitPattern)" opacity="0.4"/>
+  
+  <!-- Soft orbs (top) -->
+  <circle cx="200" cy="150" r="80" fill="#60A5FA" opacity="0.15" filter="url(#glow)"/>
+  <circle cx="1000" cy="100" r="60" fill="#3B82F6" opacity="0.12" filter="url(#glow)"/>
+  <circle cx="900" cy="200" r="50" fill="#2563EB" opacity="0.1" filter="url(#glow)"/>
+  
+  <!-- Main content -->
+  <g transform="translate(600, 200)">
+    <!-- Logo: Payhook -->
+    <text x="0" y="0" font-family="system-ui, -apple-system, sans-serif" font-size="72" font-weight="700" 
+          text-anchor="middle" fill="url(#logoGradient)" letter-spacing="-2">
+      <tspan fill="#38b6ff">Pay</tspan><tspan fill="#004aad">hook</tspan>
+    </text>
+    
+    <!-- Subtitle -->
+    <text x="0" y="80" font-family="system-ui, -apple-system, sans-serif" font-size="28" font-weight="500" 
+          text-anchor="middle" fill="#1E293B" opacity="0.9">
+      Nhận thông báo giao dịch ngay lập tức
+    </text>
+  </g>
+  
+  <!-- Features (bottom section) -->
+  <g transform="translate(600, 380)">
+    <text x="0" y="0" font-family="system-ui, -apple-system, sans-serif" font-size="20" font-weight="600" 
+          text-anchor="middle" fill="#F8FAFC" letter-spacing="0.5">
+      Websocket realtime • Dashboard trực quan
+    </text>
+    <text x="0" y="35" font-family="system-ui, -apple-system, sans-serif" font-size="20" font-weight="600" 
+          text-anchor="middle" fill="#F8FAFC" letter-spacing="0.5">
+      Log chi tiết • Retry tự động
+    </text>
+    
+    <!-- URL -->
+    <text x="0" y="75" font-family="system-ui, -apple-system, sans-serif" font-size="18" font-weight="400" 
+          text-anchor="middle" fill="#CBD5E1" letter-spacing="1">
+      https://www.payhook.codes/
+    </text>
+  </g>
+  
+  <!-- Decorative elements -->
+  <circle cx="150" cy="500" r="3" fill="#60A5FA" opacity="0.6"/>
+  <circle cx="1050" cy="450" r="3" fill="#60A5FA" opacity="0.6"/>
+  <circle cx="200" cy="550" r="2" fill="#3B82F6" opacity="0.5"/>
+  <circle cx="1000" cy="580" r="2" fill="#3B82F6" opacity="0.5"/>
 </svg>
-
