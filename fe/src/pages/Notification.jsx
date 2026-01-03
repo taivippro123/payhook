@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { AppLayout } from '@/components/AppLayout'
 import { PageSEO } from '@/components/SEO'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -33,6 +33,7 @@ export default function Notification() {
       setError('Trình duyệt của bạn không hỗ trợ push notifications')
     }
   }, [])
+
 
   const loadSettings = async () => {
     try {
@@ -93,7 +94,7 @@ export default function Notification() {
 
       // Lấy subscription
       let subscription = await registration.pushManager.getSubscription()
-      
+
       if (!subscription) {
         // Tạo subscription mới
         subscription = await registration.pushManager.subscribe({
@@ -158,30 +159,21 @@ export default function Notification() {
     }
   }
 
-  const resetSubscription = async () => {
-    if (!hasSubscription) {
-      setError('Bạn chưa đăng ký thông báo')
-      return
-    }
-
-    setIsResetting(true)
-    setError(null)
-    setSuccess(null)
-
+  const autoResetSubscription = useCallback(async () => {
     try {
       // 1. Lấy service worker registration
       const registration = await navigator.serviceWorker.ready
-      
+
       // 2. Lấy subscription hiện tại từ browser
       const oldSubscription = await registration.pushManager.getSubscription()
-      
-      // 3. Unsubscribe từ browser (xóa subscription trong service worker)
+
+      // 3. Unsubscribe từ browser nếu có (xóa subscription trong service worker)
       if (oldSubscription) {
         await oldSubscription.unsubscribe()
         console.log('✅ Unsubscribed from browser')
       }
 
-      // 4. Unsubscribe từ server (xóa subscription trong database)
+      // 4. Unsubscribe từ server nếu có endpoint (xóa subscription trong database)
       if (oldSubscription?.endpoint) {
         try {
           await pushNotificationsAPI.unsubscribe(oldSubscription.endpoint)
@@ -233,27 +225,47 @@ export default function Notification() {
       }
 
       await pushNotificationsAPI.subscribe(subscriptionData, {
-        enabled: true,
+        enabled: enabled,
         startTime: startTime,
         endTime: endTime,
       })
 
       // 10. Update state
       setHasSubscription(true)
-      setEnabled(true)
-      setEditEnabled(true)
-      
-      setSuccess('Đã reset subscription thành công! Thông báo và âm thanh sẽ hoạt động lại bình thường.')
+      console.log('✅ Đã tự động reset subscription thành công')
     } catch (error) {
-      console.error('Error resetting subscription:', error)
-      setError(error.message || 'Có lỗi xảy ra khi reset subscription')
-      // Nếu reset thất bại, có thể subscription đã bị xóa
-      setHasSubscription(false)
-      setEnabled(false)
-    } finally {
-      setIsResetting(false)
+      console.error('Error auto-resetting subscription:', error)
+      // Không hiển thị lỗi cho user khi auto-reset, chỉ log
     }
-  }
+  }, [enabled, startTime, endTime])
+
+  // Tự động kiểm tra và reset subscription nếu bị mất
+  useEffect(() => {
+    if (!isSupported || !hasSubscription) return
+
+    const checkAndResetSubscription = async () => {
+      try {
+        const registration = await navigator.serviceWorker.ready
+        const subscription = await registration.pushManager.getSubscription()
+
+        // Nếu subscription bị mất trên browser nhưng server vẫn có
+        if (!subscription) {
+          console.log('🔄 Subscription bị mất trên browser, tự động reset...')
+          await autoResetSubscription()
+        }
+      } catch (error) {
+        console.error('Error checking subscription:', error)
+      }
+    }
+
+    // Kiểm tra ngay khi component mount
+    checkAndResetSubscription()
+
+    // Kiểm tra định kỳ mỗi 5 phút
+    const interval = setInterval(checkAndResetSubscription, 5 * 60 * 1000)
+
+    return () => clearInterval(interval)
+  }, [isSupported, hasSubscription, autoResetSubscription])
 
   const handleEdit = () => {
     setEditEnabled(enabled)
@@ -359,7 +371,7 @@ export default function Notification() {
         <Card>
           <CardHeader>
             <CardTitle>Thông báo Âm thanh</CardTitle>
-           
+
           </CardHeader>
           <CardContent className="space-y-4">
             {error && (
@@ -396,7 +408,7 @@ export default function Notification() {
                       </Label>
                       <Toggle
                         checked={enabled}
-                        onChange={() => {}}
+                        onChange={() => { }}
                         disabled={true}
                       />
                     </div>
@@ -435,23 +447,7 @@ export default function Notification() {
                     </div>
 
                     <div className="space-y-2">
-                      <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-md">
-                        <p className="text-sm text-yellow-800 mb-2">
-                          <strong>⚠️ Không nghe được âm thanh?</strong>
-                        </p>
-                        <p className="text-xs text-yellow-700 mb-3">
-                          Nếu bạn không nghe được âm thanh khi có giao dịch mới, hãy thử reset subscription để đăng ký lại.
-                        </p>
-                        <Button
-                          onClick={resetSubscription}
-                          disabled={isResetting}
-                          variant="outline"
-                          className="w-full border-yellow-300 text-yellow-800 hover:bg-yellow-100"
-                          size="sm"
-                        >
-                          {isResetting ? 'Đang reset...' : '🔄 Reset Subscription'}
-                        </Button>
-                      </div>
+
                       <div className="flex gap-2">
                         <Button
                           onClick={handleEdit}

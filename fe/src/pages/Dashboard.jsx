@@ -36,8 +36,7 @@ export default function Dashboard() {
   const [allTransactions, setAllTransactions] = useState([])
   const [transactionsPage, setTransactionsPage] = useState(1)
   const [transactionsLoading, setTransactionsLoading] = useState(false)
-  const [hasMoreTransactions, setHasMoreTransactions] = useState(true)
-  const transactionsContainerRef = useRef(null)
+  const [transactionsPagination, setTransactionsPagination] = useState({ total: 0, totalPages: 1, page: 1, limit: 20 })
   const [showWelcomeDialog, setShowWelcomeDialog] = useState(false)
   const [configsLoaded, setConfigsLoaded] = useState(false) // Track xem đã load configs lần đầu chưa
   const [recentLimit, setRecentLimit] = useState(10)
@@ -119,19 +118,29 @@ export default function Dashboard() {
               return updated.slice(0, limit)
             })
 
-            // Cập nhật all transactions
-            setAllTransactions((prev) => {
-              const exists = prev.some((tx) => {
-                const existingId = tx?._id?.$oid || tx?._id
-                return existingId === incomingId
+            // Cập nhật all transactions - chỉ thêm vào đầu nếu đang ở trang 1
+            if (transactionsPage === 1) {
+              setAllTransactions((prev) => {
+                const exists = prev.some((tx) => {
+                  const existingId = tx?._id?.$oid || tx?._id
+                  return existingId === incomingId
+                })
+                if (exists) {
+                  // Already exists in all list
+                  return prev
+                }
+                triggerAllHighlight(incomingId)
+                // Thêm vào đầu và giới hạn số lượng
+                const updated = [newTransaction, ...prev]
+                return updated.slice(0, transactionsPagination.limit)
               })
-              if (exists) {
-                // Already exists in all list
-                return prev
-              }
-              triggerAllHighlight(incomingId)
-              return [newTransaction, ...prev]
-            })
+              // Cập nhật total nếu cần
+              setTransactionsPagination((prev) => ({
+                ...prev,
+                total: prev.total + 1,
+                totalPages: Math.ceil((prev.total + 1) / prev.limit)
+              }))
+            }
           }
         } catch (error) {
           console.error('❌ WS message parse error:', error)
@@ -198,7 +207,7 @@ export default function Dashboard() {
       const response = await emailConfigAPI.sendTestEmail(configId)
       const amount = response?.sample?.parsedTransaction?.amountVND
       const friendlyAmount = amount ? formatCurrency(amount) : 'giao dịch mẫu'
-      alert(`Đã gửi email test CAKE tới ${response.email}. Khi Gmail nhận thư, Payhook sẽ hiển thị ${friendlyAmount} trong danh sách giao dịch.`)
+      alert(`Đã gửi email test tới ${response.email}. Khi Gmail nhận thư, Payhook sẽ hiển thị ${friendlyAmount} trong danh sách giao dịch.`)
     } catch (error) {
       console.error('Error sending test email:', error)
       const message = error.response?.data?.error || 'Không thể gửi email test. Vui lòng kiểm tra cấu hình SMTP TEST_EMAIL_* ở backend.'
@@ -244,53 +253,40 @@ export default function Dashboard() {
       setTransactions(recentResponse.transactions || [])
 
       // Load trang đầu cho "Chi tiết giao dịch"
-      const allResponse = await transactionsAPI.getAll({ limit: 20, page: 1 })
+      const pageSize = 20
+      const skip = 0
+      const allResponse = await transactionsAPI.getAll({ limit: pageSize, skip })
       setAllTransactions(allResponse.transactions || [])
-      setHasMoreTransactions((allResponse.transactions || []).length >= 20)
+      const total = allResponse.pagination?.total || 0
+      const totalPages = Math.ceil(total / pageSize) || 1
+      setTransactionsPagination({ total, totalPages, page: 1, limit: pageSize })
       setTransactionsPage(1)
     } catch (error) {
       console.error('Error loading transactions:', error)
     }
   }
 
-  const loadMoreTransactions = useCallback(async () => {
-    if (transactionsLoading || !hasMoreTransactions) return
+  const loadTransactionsPage = useCallback(async (page) => {
+    if (transactionsLoading) return
 
     setTransactionsLoading(true)
     try {
-      const nextPage = transactionsPage + 1
-      const response = await transactionsAPI.getAll({ limit: 20, page: nextPage })
-      const newTransactions = response.transactions || []
+      const pageSize = 20
+      const skip = (page - 1) * pageSize
+      const response = await transactionsAPI.getAll({ limit: pageSize, skip })
+      const transactions = response.transactions || []
+      const total = response.pagination?.total || 0
+      const totalPages = Math.ceil(total / pageSize) || 1
 
-      if (newTransactions.length > 0) {
-        setAllTransactions(prev => [...prev, ...newTransactions])
-        setTransactionsPage(nextPage)
-        setHasMoreTransactions(newTransactions.length >= 20)
-      } else {
-        setHasMoreTransactions(false)
-      }
+      setAllTransactions(transactions)
+      setTransactionsPagination({ total, totalPages, page, limit: pageSize })
+      setTransactionsPage(page)
     } catch (error) {
-      console.error('Error loading more transactions:', error)
+      console.error('Error loading transactions page:', error)
     } finally {
       setTransactionsLoading(false)
     }
-  }, [transactionsPage, transactionsLoading, hasMoreTransactions])
-
-  useEffect(() => {
-    const container = transactionsContainerRef.current
-    if (!container) return
-
-    const handleScroll = () => {
-      const { scrollTop, scrollHeight, clientHeight } = container
-      // Load more khi scroll đến 80% cuối
-      if (scrollHeight - scrollTop <= clientHeight * 1.2) {
-        loadMoreTransactions()
-      }
-    }
-
-    container.addEventListener('scroll', handleScroll)
-    return () => container.removeEventListener('scroll', handleScroll)
-  }, [loadMoreTransactions])
+  }, [transactionsLoading])
 
   const handleConnectGmail = async () => {
     setIsConnectingGmail(true)
@@ -640,7 +636,7 @@ export default function Dashboard() {
 
               {emailConfigs.length === 0 ? (
                 <p className="text-center text-gray-500 py-4">
-                  Chưa có Gmail nào được kết nối. Nhấn <strong>Kết nối Gmail</strong> để ủy quyền cho Payhook theo dõi hộp thư CAKE của bạn.
+                  Chưa có Gmail nào được kết nối. Nhấn <strong>Kết nối Gmail</strong> để ủy quyền cho Payhook theo dõi hộp thư <img src="/cake.png" alt="CAKE" className="inline-block h-4 w-auto align-middle mx-1" /> của bạn.
                 </p>
               ) : (
                 <div className="space-y-3">
@@ -696,7 +692,11 @@ export default function Dashboard() {
                                   onClick={() => handleSendTestEmail(configId)}
                                   disabled={sendingTestEmailId === configId || isApiRateLimited}
                                 >
-                                  {sendingTestEmailId === configId ? 'Đang gửi...' : 'Gửi email test CAKE'}
+                                  {sendingTestEmailId === configId ? 'Đang gửi...' : (
+                                    <>
+                                      Gửi email test
+                                    </>
+                                  )}
                                 </Button>
                               </div>
                             </div>
@@ -942,7 +942,11 @@ export default function Dashboard() {
                           )}
                         >
                           <TableCell>
-                            <Badge variant="default">{tx.bank}</Badge>
+                            {tx.bank === 'CAKE' ? (
+                              <img src="/cake.png" alt="CAKE" className="inline-block h-8 w-auto align-middle" />
+                            ) : (
+                              <Badge variant="default">{tx.bank}</Badge>
+                            )}
                           </TableCell>
                           <TableCell className="font-semibold text-green-600">
                             {formatCurrency(tx.amountVND)}
@@ -971,24 +975,26 @@ export default function Dashboard() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div
-                ref={transactionsContainerRef}
-                className="overflow-x-auto overflow-y-auto -mx-6 sm:mx-0 max-h-[600px]"
-                style={{ scrollBehavior: 'smooth' }}
-              >
-                <div className="inline-block min-w-full align-middle">
-                  <Table>
-                    <TableHeader>
+              <div className="overflow-x-auto border border-gray-200 rounded-md">
+                <Table>
+                  <TableHeader className="bg-gray-50">
+                    <TableRow>
+                      <TableHead className="text-xs sm:text-sm">Transaction ID</TableHead>
+                      <TableHead className="text-xs sm:text-sm">Ngân hàng</TableHead>
+                      <TableHead className="text-xs sm:text-sm">Số tiền</TableHead>
+                      <TableHead className="text-xs sm:text-sm min-w-[200px]">Nội dung</TableHead>
+                      <TableHead className="text-xs sm:text-sm">Thời gian</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {allTransactions.length === 0 ? (
                       <TableRow>
-                        <TableHead className="text-xs sm:text-sm">Transaction ID</TableHead>
-                        <TableHead className="text-xs sm:text-sm">Ngân hàng</TableHead>
-                        <TableHead className="text-xs sm:text-sm">Số tiền</TableHead>
-                        <TableHead className="text-xs sm:text-sm min-w-[200px]">Nội dung</TableHead>
-                        <TableHead className="text-xs sm:text-sm">Thời gian</TableHead>
+                        <TableCell colSpan={5} className="text-center py-8 text-sm text-gray-500">
+                          {transactionsLoading ? 'Đang tải dữ liệu...' : 'Chưa có giao dịch nào'}
+                        </TableCell>
                       </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {allTransactions.map((tx) => (
+                    ) : (
+                      allTransactions.map((tx) => (
                         <TableRow
                           key={getTransactionKey(tx)}
                           className={cn(
@@ -1000,7 +1006,11 @@ export default function Dashboard() {
                             {tx.transactionId || '-'}
                           </TableCell>
                           <TableCell>
-                            <Badge variant="default" className="text-xs">{tx.bank}</Badge>
+                            {tx.bank === 'CAKE' ? (
+                              <img src="/cake.png" alt="CAKE" className="inline-block h-8 w-auto align-middle" />
+                            ) : (
+                              <Badge variant="default" className="text-xs">{tx.bank}</Badge>
+                            )}
                           </TableCell>
                           <TableCell className="font-semibold text-green-600 text-sm sm:text-base">
                             {formatCurrency(tx.amountVND)}
@@ -1014,19 +1024,33 @@ export default function Dashboard() {
                             {formatDate(tx.detectedAt)}
                           </TableCell>
                         </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                  {transactionsLoading && (
-                    <div className="text-center py-4 text-gray-500">
-                      Đang tải thêm...
-                    </div>
-                  )}
-                  {!hasMoreTransactions && allTransactions.length > 0 && (
-                    <div className="text-center py-4 text-gray-500">
-                      Đã hiển thị tất cả giao dịch
-                    </div>
-                  )}
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between mt-4">
+                <p className="text-xs text-gray-500">
+                  Trang {transactionsPagination.page} / {transactionsPagination.totalPages} · Tổng {transactionsPagination.total} bản ghi
+                </p>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => loadTransactionsPage(transactionsPage - 1)}
+                    disabled={transactionsPage <= 1 || transactionsLoading}
+                  >
+                    Trước
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => loadTransactionsPage(transactionsPage + 1)}
+                    disabled={transactionsPage >= transactionsPagination.totalPages || transactionsLoading}
+                  >
+                    Sau
+                  </Button>
                 </div>
               </div>
             </CardContent>
