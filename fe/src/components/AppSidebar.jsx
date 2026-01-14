@@ -9,6 +9,7 @@ import {
   IconFileText,
   IconBook,
   IconBell,
+  IconCode,
 } from '@tabler/icons-react'
 import { motion } from 'motion/react'
 import PayhookLogo from '@/assets/Payhook.png'
@@ -50,6 +51,13 @@ export function AppSidebar({ open, setOpen }) {
       icon: <IconFileText size={18} className="text-neutral-500 dark:text-neutral-200" />,
       action: () => navigate('/webhooks'),
       path: '/webhooks',
+    },
+    {
+      key: 'share',
+      label: 'Share API',
+      icon: <IconCode size={18} className="text-neutral-500 dark:text-neutral-200" />,
+      action: () => navigate('/share'),
+      path: '/share',
     },
     {
       key: 'notification',

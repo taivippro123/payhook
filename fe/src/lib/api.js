@@ -187,6 +187,14 @@ export const usersAPI = {
     const response = await api.put(`/api/users/${id}/role`, { role })
     return response.data
   },
+  getApiKey: async () => {
+    const response = await api.get('/api/users/me/api-key')
+    return response.data
+  },
+  getOrCreateApiKey: async () => {
+    const response = await api.post('/api/users/me/api-key')
+    return response.data
+  },
 }
 
 // QR API (helper to compose image URL)
@@ -221,6 +229,16 @@ export const pushNotificationsAPI = {
   },
   updateSettings: async (settings) => {
     const response = await api.put('/api/push/settings', settings)
+    return response.data
+  },
+}
+
+// Public Share API (preview JSON giao dịch)
+export const shareAPI = {
+  getTransactions: async ({ apiKey, limit = 5 }) => {
+    const response = await api.get('/api/share/transactions', {
+      params: { apiKey, limit },
+    })
     return response.data
   },
 }

@@ -115,11 +115,14 @@ router.get('/me', async (req, res) => {
     }
 
     // Không trả về passwordHash
-    const { passwordHash, ...userWithoutPassword } = user;
+    const { passwordHash, apiKey, ...userWithoutSensitive } = user;
 
     res.json({
       success: true,
-      user: userWithoutPassword,
+      user: {
+        ...userWithoutSensitive,
+        hasApiKey: Boolean(apiKey),
+      },
     });
   } catch (error) {
     console.error('Get current user error:', error);
@@ -433,6 +436,95 @@ router.delete('/:id', isAdmin, async (req, res) => {
     });
   } catch (error) {
     console.error('Delete user error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * @swagger
+ * /api/users/me/api-key:
+ *   get:
+ *     summary: Lấy API key hiện tại của user (không tạo mới)
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: API key hiện tại hoặc null nếu chưa có
+ *       401:
+ *         description: Unauthorized
+ */
+router.get('/me/api-key', async (req, res) => {
+  try {
+    const apiKey = await User.getApiKey(req.user.userId);
+    const baseUrl = process.env.FRONTEND_URL || process.env.BACKEND_URL || '';
+
+    res.json({
+      success: true,
+      apiKey: apiKey || null,
+      shareUrl: apiKey ? `${baseUrl}/api/share/transactions?apiKey=${apiKey}`.replace(/\/+api/, '/api') : null,
+    });
+  } catch (error) {
+    console.error('Get API key error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * @swagger
+ * /api/users/me/api-key:
+ *   post:
+ *     summary: Tạo hoặc lấy API key dùng để chia sẻ giao dịch (current user)
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: API key hiện tại của user (sẽ tạo mới nếu chưa có)
+ *       401:
+ *         description: Unauthorized
+ */
+router.post('/me/api-key', async (req, res) => {
+  try {
+    const apiKey = await User.getOrCreateApiKey(req.user.userId);
+    const baseUrl = process.env.FRONTEND_URL || process.env.BACKEND_URL || '';
+
+    res.json({
+      success: true,
+      apiKey,
+      shareUrl: `${baseUrl}/api/share/transactions?apiKey=${apiKey}`.replace(/\/+api/, '/api'),
+    });
+  } catch (error) {
+    console.error('Generate API key error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * @swagger
+ * /api/users/me/api-key/rotate:
+ *   post:
+ *     summary: Tạo API key mới (vô hiệu hóa API key cũ) cho current user
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: API key mới
+ *       401:
+ *         description: Unauthorized
+ */
+router.post('/me/api-key/rotate', async (req, res) => {
+  try {
+    const apiKey = await User.rotateApiKey(req.user.userId);
+
+    res.json({
+      success: true,
+      apiKey,
+      shareUrl: `${process.env.FRONTEND_URL || ''}/api/share/transactions?apiKey=${apiKey}`.replace(/\/+api/, '/api'),
+    });
+  } catch (error) {
+    console.error('Rotate API key error:', error);
     res.status(500).json({ error: error.message });
   }
 });

@@ -1,6 +1,7 @@
 const { getDB } = require('../db');
 const { ObjectId } = require('mongodb');
 const bcrypt = require('bcrypt');
+const crypto = require('crypto');
 
 class User {
   /**
@@ -31,6 +32,7 @@ class User {
       email,
       passwordHash,
       role: role || 'user', // Mặc định là 'user'
+      apiKey: crypto.randomBytes(32).toString('hex'),
       createdAt: new Date(),
       updatedAt: new Date(),
     };
@@ -65,6 +67,98 @@ class User {
     const db = await getDB();
     const users = db.collection('users');
     return await users.findOne({ email });
+  }
+
+  /**
+   * Tìm user theo API key (dùng cho endpoint chia sẻ giao dịch public)
+   * @param {string} apiKey
+   * @returns {Promise<Object|null>}
+   */
+  static async findByApiKey(apiKey) {
+    if (!apiKey) return null;
+    const db = await getDB();
+    const users = db.collection('users');
+    return await users.findOne({ apiKey });
+  }
+
+  /**
+   * Lấy API key hiện tại của user (không tạo mới)
+   * @param {string} userId
+   * @returns {Promise<string|null>} apiKey hoặc null nếu chưa có
+   */
+  static async getApiKey(userId) {
+    const db = await getDB();
+    const users = db.collection('users');
+    const objectId = new ObjectId(userId);
+
+    const existing = await users.findOne({ _id: objectId });
+    if (!existing) {
+      throw new Error('User not found');
+    }
+
+    return existing.apiKey || null;
+  }
+
+  /**
+   * Lấy hoặc tạo mới API key cho user
+   * @param {string} userId
+   * @returns {Promise<string>} apiKey
+   */
+  static async getOrCreateApiKey(userId) {
+    const db = await getDB();
+    const users = db.collection('users');
+    const objectId = new ObjectId(userId);
+
+    const existing = await users.findOne({ _id: objectId });
+    if (!existing) {
+      throw new Error('User not found');
+    }
+
+    if (existing.apiKey) {
+      return existing.apiKey;
+    }
+
+    const apiKey = crypto.randomBytes(32).toString('hex');
+    await users.updateOne(
+      { _id: objectId },
+      {
+        $set: {
+          apiKey,
+          updatedAt: new Date(),
+        },
+      }
+    );
+
+    return apiKey;
+  }
+
+  /**
+   * Rotate API key cho user (regen key mới)
+   * @param {string} userId
+   * @returns {Promise<string>} apiKey mới
+   */
+  static async rotateApiKey(userId) {
+    const db = await getDB();
+    const users = db.collection('users');
+    const objectId = new ObjectId(userId);
+
+    const apiKey = crypto.randomBytes(32).toString('hex');
+    const result = await users.findOneAndUpdate(
+      { _id: objectId },
+      {
+        $set: {
+          apiKey,
+          updatedAt: new Date(),
+        },
+      },
+      { returnDocument: 'after' }
+    );
+
+    if (!result.value) {
+      throw new Error('User not found');
+    }
+
+    return apiKey;
   }
 
   /**

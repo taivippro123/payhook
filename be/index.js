@@ -155,6 +155,7 @@ const gmailOAuthRoutes = require('./routes/gmailOAuth');
 const gmailWebhookRoutes = require('./routes/gmailWebhook');
 const pushNotificationRoutes = require('./routes/pushNotifications');
 const ttsRoutes = require('./routes/tts');
+const shareRoutes = require('./routes/share');
 const { apiLimiter, authLimiter, ttsLimiter } = require('./middleware/rateLimiter');
 
 // Apply rate limiting
@@ -193,6 +194,7 @@ app.use('/api/transactions', transactionRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/qr', qrRoutes);
 app.use('/api/webhook-logs', webhookLogRoutes);
+app.use('/api/share', shareRoutes);
 app.use('/api/auth', gmailOAuthRoutes); // OAuth routes
 app.use('/api/gmail', gmailWebhookRoutes); // Pub/Sub webhook
 app.use('/api/push', pushNotificationRoutes); // Push notifications

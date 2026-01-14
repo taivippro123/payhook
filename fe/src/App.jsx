@@ -14,6 +14,7 @@ import Home from '@/pages/Home'
 import Privacy from '@/pages/Privacy'
 import Notification from '@/pages/Notification'
 import NotFound from '@/pages/NotFound'
+import SharePreview from '@/pages/SharePreview'
 import { getRedirectPath } from '@/utils/redirect'
 import { Analytics } from '@vercel/analytics/react'
 function RootRedirect() {
@@ -280,6 +281,14 @@ function App() {
             element={
               <ProtectedRoute>
                 <Notification />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/share"
+            element={
+              <ProtectedRoute>
+                <SharePreview />
               </ProtectedRoute>
             }
           />
