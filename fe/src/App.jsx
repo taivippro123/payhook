@@ -1,21 +1,22 @@
-import { useEffect } from 'react'
+import { useEffect, lazy, Suspense } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider, useAuth } from '@/contexts/AuthContext'
 import { RateLimitProvider } from '@/contexts/RateLimitContext'
 import ProtectedRoute from '@/components/ProtectedRoute'
-import Login from '@/pages/Login'
-import Register from '@/pages/Register'
-import Dashboard from '@/pages/Dashboard'
-import AdminDashboard from '@/pages/AdminDashboard'
-import QRGenerator from '@/pages/QRGenerator'
-import WebhookLogs from '@/pages/WebhookLogs'
-import Guide from '@/pages/Guide'
-import Home from '@/pages/Home'
-import Privacy from '@/pages/Privacy'
-import Notification from '@/pages/Notification'
-import NotFound from '@/pages/NotFound'
-import SharePreview from '@/pages/SharePreview'
 import { getRedirectPath } from '@/utils/redirect'
+
+const Login = lazy(() => import('@/pages/Login'))
+const Register = lazy(() => import('@/pages/Register'))
+const Dashboard = lazy(() => import('@/pages/Dashboard'))
+const AdminDashboard = lazy(() => import('@/pages/AdminDashboard'))
+const QRGenerator = lazy(() => import('@/pages/QRGenerator'))
+const WebhookLogs = lazy(() => import('@/pages/WebhookLogs'))
+const Guide = lazy(() => import('@/pages/Guide'))
+const Home = lazy(() => import('@/pages/Home'))
+const Privacy = lazy(() => import('@/pages/Privacy'))
+const Notification = lazy(() => import('@/pages/Notification'))
+const NotFound = lazy(() => import('@/pages/NotFound'))
+const SharePreview = lazy(() => import('@/pages/SharePreview'))
 import { Analytics } from '@vercel/analytics/react'
 function RootRedirect() {
   const { user, loading } = useAuth()
@@ -231,71 +232,77 @@ function App() {
     <AuthProvider>
       <RateLimitProvider>
         <BrowserRouter>
-          <Routes>
-          <Route path="/" element={<Home />} />
-          <Route path="/privacy" element={<Privacy />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
-          <Route
-            path="/dashboard"
-            element={
-              <ProtectedRoute>
-                <Dashboard />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/admin"
-            element={
-              <ProtectedRoute>
-                <AdminDashboard />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/qr"
-            element={
-              <ProtectedRoute>
-                <QRGenerator />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/webhooks"
-            element={
-              <ProtectedRoute>
-                <WebhookLogs />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/guide"
-            element={
-              <ProtectedRoute>
-                <Guide />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/notification"
-            element={
-              <ProtectedRoute>
-                <Notification />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/share"
-            element={
-              <ProtectedRoute>
-                <SharePreview />
-              </ProtectedRoute>
-            }
-          />
-          <Route path="/app" element={<RootRedirect />} />
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </BrowserRouter>
+          <Suspense fallback={
+            <div className="min-h-screen flex items-center justify-center bg-white text-gray-600">
+              Đang tải...
+            </div>
+          }>
+            <Routes>
+              <Route path="/" element={<Home />} />
+              <Route path="/privacy" element={<Privacy />} />
+              <Route path="/login" element={<Login />} />
+              <Route path="/register" element={<Register />} />
+              <Route
+                path="/dashboard"
+                element={
+                  <ProtectedRoute>
+                    <Dashboard />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin"
+                element={
+                  <ProtectedRoute>
+                    <AdminDashboard />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/qr"
+                element={
+                  <ProtectedRoute>
+                    <QRGenerator />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/webhooks"
+                element={
+                  <ProtectedRoute>
+                    <WebhookLogs />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/guide"
+                element={
+                  <ProtectedRoute>
+                    <Guide />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/notification"
+                element={
+                  <ProtectedRoute>
+                    <Notification />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/share"
+                element={
+                  <ProtectedRoute>
+                    <SharePreview />
+                  </ProtectedRoute>
+                }
+              />
+              <Route path="/app" element={<RootRedirect />} />
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </Suspense>
+        </BrowserRouter>
       <Analytics />
       </RateLimitProvider>
     </AuthProvider>

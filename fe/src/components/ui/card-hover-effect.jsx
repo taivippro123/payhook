@@ -1,7 +1,7 @@
 import { cn } from "@/lib/utils";
 import { AnimatePresence, motion } from "motion/react";
-
 import { useState } from "react";
+import { Link } from "react-router-dom";
 
 export const HoverEffect = ({
   items,
@@ -14,8 +14,8 @@ export const HoverEffect = ({
     <div
       className={cn("grid grid-cols-1 gap-4 sm:gap-6 py-10", columns, className)}>
       {items.map((item, idx) => (
-        <a
-          href={item?.link}
+        <Link
+          to={item?.link}
           key={idx}
           className="relative group block h-full w-full"
           onMouseEnter={() => setHoveredIndex(idx)}
@@ -40,7 +40,7 @@ export const HoverEffect = ({
             <CardTitle>{item.title}</CardTitle>
             <CardDescription>{item.description}</CardDescription>
           </Card>
-        </a>
+        </Link>
       ))}
     </div>
   );

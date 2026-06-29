@@ -1,7 +1,6 @@
-import { useMemo } from 'react'
+import { useMemo, useState, useEffect, lazy, Suspense } from 'react'
 import { Link } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
-import Silk from '@/components/Silk'
 import PillNav from '@/components/PillNav'
 import Faq02 from '@/components/faq-02'
 import { HoverEffect } from '@/components/ui/card-hover-effect'
@@ -9,7 +8,19 @@ import { PageSEO, generateOrganizationSchema } from '@/components/SEO'
 import ogImage from '@/assets/Payhook.png'
 import GradientText from '@/components/GradientText'
 
+const Silk = lazy(() => import('@/components/Silk'))
+
 export default function Home() {
+  const [isDesktop, setIsDesktop] = useState(false)
+
+  useEffect(() => {
+    const media = window.matchMedia('(min-width: 768px)')
+    setIsDesktop(media.matches)
+    const listener = (e) => setIsDesktop(e.matches)
+    media.addEventListener('change', listener)
+    return () => media.removeEventListener('change', listener)
+  }, [])
+
   const navItems = useMemo(
     () => [
       { label: 'Trang chủ', href: '/#' },
@@ -93,7 +104,13 @@ export default function Home() {
       <main className="bg-white">
         <section className="relative overflow-hidden border-b border-gray-200 bg-black text-white">
           <div className="absolute inset-0">
-            <Silk color="#4515FF" speed={4} scale={1.2} noiseIntensity={1.1} />
+            {isDesktop ? (
+              <Suspense fallback={null}>
+                <Silk color="#4515FF" speed={4} scale={1.2} noiseIntensity={1.1} />
+              </Suspense>
+            ) : (
+              <div className="absolute inset-0 bg-gradient-to-br from-[#060010] via-[#12003b] to-[#060010]" />
+            )}
           </div>
           <div className="relative z-20 mx-auto flex max-w-4xl justify-center px-4 pt-16">
             <PillNav
@@ -112,9 +129,9 @@ export default function Home() {
             <h1 className="text-3xl font-bold sm:text-4xl md:text-5xl">
               Payhook
             </h1>
-            <h1 className="text-3xl font-bold sm:text-4xl md:text-5xl">
+            <p className="text-3xl font-bold sm:text-4xl md:text-5xl">
               Nhận thông báo giao dịch
-            </h1>
+            </p>
             <GradientText
               colors={['#40ffaa', '#4079ff', '#40ffaa', '#4079ff', '#40ffaa']}
               animationSpeed={3}
