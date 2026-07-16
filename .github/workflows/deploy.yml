@@ -1,0 +1,34 @@
+name: Deploy Backend to Oracle VPS
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Executing remote ssh commands using ssh key
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.USERNAME }}
+          key: ${{ secrets.SSH_KEY }}
+          port: ${{ secrets.PORT }}
+          script: |
+            # 1. Di chuyển vào thư mục backend trên VPS (Thay đổi đường dẫn chính xác của bạn)
+            cd ~/payhook/be
+            
+            # 2. Tải code mới nhất từ GitHub về VPS
+            git pull origin main
+            
+            # 3. Cài đặt các package mới nếu có thay đổi
+            npm install --omit=dev
+            
+            # 4. Restart lại tiến trình PM2 để cập nhật code mới
+            pm2 restart payhook
