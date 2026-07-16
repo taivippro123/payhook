@@ -25,7 +25,7 @@ const getDefaultWsBase = () => {
     return 'ws://localhost:3000'
   }
   // Luôn kết nối WS trực tiếp backend để tránh rewrite limitations của Vercel
-  return 'wss://payhook-taivippro123.fly.dev'
+  return 'wss://rimmed-improvise-hatchery.ngrok-free.dev'
 }
 
 export const API_BASE_URL = stripTrailingSlash(import.meta.env.VITE_API_URL || getDefaultApiBase())
