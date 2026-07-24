@@ -37,20 +37,28 @@ const getDefaultApiBase = () => {
     if (window.location.origin.includes('localhost')) {
       return 'http://localhost:3000'
     }
+
+    return window.location.origin
   }
 
-  return 'https://rimmed-improvise-hatchery.ngrok-free.dev'
+  return 'https://www.payhook.codes'
 }
 
 const getDefaultWsBase = () => {
   if (import.meta.env.VITE_WS_URL) {
     return import.meta.env.VITE_WS_URL
   }
-  if (typeof window !== 'undefined' && window.location.origin.includes('localhost')) {
-    return 'ws://localhost:3000'
+  if (typeof window !== 'undefined') {
+    if (window.location.origin.includes('localhost')) {
+      return 'ws://localhost:3000'
+    }
+
+    const currentUrl = new URL(window.location.origin)
+    currentUrl.protocol = currentUrl.protocol === 'https:' ? 'wss:' : 'ws:'
+    return currentUrl.origin.replace(/^https:/, 'wss:').replace(/^http:/, 'ws:')
   }
-  // Luôn kết nối WS trực tiếp backend để tránh rewrite limitations của Vercel
-  return 'wss://rimmed-improvise-hatchery.ngrok-free.dev'
+
+  return 'wss://www.payhook.codes'
 }
 
 export const API_BASE_URL = stripTrailingSlash(import.meta.env.VITE_API_URL || getDefaultApiBase())
