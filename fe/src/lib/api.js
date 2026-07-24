@@ -34,13 +34,12 @@ const appendNgrokSkipBrowserWarning = (value) => {
 
 const getDefaultApiBase = () => {
   if (typeof window !== 'undefined') {
-    const origin = window.location.origin
-    if (origin.includes('localhost')) {
+    if (window.location.origin.includes('localhost')) {
       return 'http://localhost:3000'
     }
-    return origin
   }
-  return 'https://www.payhook.codes'
+
+  return 'https://rimmed-improvise-hatchery.ngrok-free.dev'
 }
 
 const getDefaultWsBase = () => {

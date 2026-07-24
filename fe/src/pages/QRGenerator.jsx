@@ -1,6 +1,6 @@
-import { useState, useMemo } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
-import { qrAPI } from '@/lib/api'
+import api, { qrAPI } from '@/lib/api'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -19,6 +19,41 @@ export default function QRGenerator() {
   const [error, setError] = useState('')
   const [previewVersion, setPreviewVersion] = useState(0)
   const [downloading, setDownloading] = useState(false)
+  const [previewSrc, setPreviewSrc] = useState('')
+
+  useEffect(() => {
+    let active = true
+    let objectUrl = ''
+
+    const loadPreview = async () => {
+      if (!qrUrl) {
+        setPreviewSrc('')
+        return
+      }
+
+      try {
+        const response = await api.get(qrUrl, { responseType: 'blob' })
+        objectUrl = URL.createObjectURL(response.data)
+        if (active) {
+          setPreviewSrc(objectUrl)
+        }
+      } catch (err) {
+        console.error('QR preview load failed:', err)
+        if (active) {
+          setPreviewSrc('')
+        }
+      }
+    }
+
+    loadPreview()
+
+    return () => {
+      active = false
+      if (objectUrl) {
+        URL.revokeObjectURL(objectUrl)
+      }
+    }
+  }, [qrUrl])
 
   const qrUrl = useMemo(() => {
     if (!form.acc.trim()) return ''
@@ -37,12 +72,21 @@ export default function QRGenerator() {
     }
     setError('')
     setPreviewVersion((v) => v + 1)
-    window.open(qrAPI.imageUrl({
+    api.get(qrAPI.imageUrl({
       acc: form.acc.trim(),
       amount: form.amount ? Number(form.amount) : undefined,
       des: form.des.trim(),
       bank: 'cake',
-    }), '_blank', 'noopener')
+    }), { responseType: 'blob' })
+      .then((response) => {
+        const objectUrl = URL.createObjectURL(response.data)
+        window.open(objectUrl, '_blank', 'noopener')
+        setTimeout(() => URL.revokeObjectURL(objectUrl), 60_000)
+      })
+      .catch((err) => {
+        console.error('Open QR failed:', err)
+        setError('Không mở được QR, thử lại sau.')
+      })
   }
 
   const handleDownload = async () => {
@@ -53,16 +97,16 @@ export default function QRGenerator() {
     try {
       setError('')
       setDownloading(true)
-      const response = await fetch(qrUrl)
-      const blob = await response.blob()
-      const url = URL.createObjectURL(blob)
+      const url = previewSrc || URL.createObjectURL((await api.get(qrUrl, { responseType: 'blob' })).data)
       const link = document.createElement('a')
       link.href = url
       link.download = `vietqr-${form.acc || 'qr'}.png`
       document.body.appendChild(link)
       link.click()
       link.remove()
-      URL.revokeObjectURL(url)
+      if (!previewSrc) {
+        URL.revokeObjectURL(url)
+      }
     } catch (err) {
       console.error('Download QR failed:', err)
       setError('Không tải được QR, thử lại sau.')
@@ -142,12 +186,18 @@ export default function QRGenerator() {
               <div className="pt-4 border-t">
                 <h2 className="text-sm font-semibold text-gray-700 mb-3">Preview</h2>
                 <div className="flex flex-col sm:flex-row gap-4 sm:items-center">
-                  <img
-                    src={qrUrl}
-                    alt="QR chuyển khoản Cake"
-                    className="w-48 h-48 border rounded bg-white shadow-sm"
-                    loading="lazy"
-                  />
+                  {previewSrc ? (
+                    <img
+                      src={previewSrc}
+                      alt="QR chuyển khoản Cake"
+                      className="w-48 h-48 border rounded bg-white shadow-sm"
+                      loading="lazy"
+                    />
+                  ) : (
+                    <div className="w-48 h-48 border rounded bg-gray-100 shadow-sm flex items-center justify-center text-sm text-gray-500">
+                      Đang tải QR...
+                    </div>
+                  )}
                   <div className="text-xs sm:text-sm text-gray-600">
                     <p><strong>Số tài khoản:</strong> {form.acc || '—'}</p>
                     <p><strong>Số tiền:</strong> {form.amount || '—'}</p>

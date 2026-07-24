@@ -29,7 +29,7 @@ app.use((req, res, next) => {
     return cors({
       origin: '*', // Allow all origins for QR endpoint
       methods: ['GET', 'OPTIONS'],
-      allowedHeaders: ['Content-Type'],
+      allowedHeaders: ['Content-Type', 'Authorization', 'ngrok-skip-browser-warning'],
     })(req, res, next);
   }
   
@@ -44,7 +44,7 @@ app.use((req, res, next) => {
         return callback(null, true);
       },
       methods: ['POST', 'OPTIONS'],
-      allowedHeaders: ['Content-Type', 'Authorization'], // Allow Authorization header
+      allowedHeaders: ['Content-Type', 'Authorization', 'ngrok-skip-browser-warning'], // Allow Authorization header
       credentials: false, // No credentials needed for TTS
     })(req, res, next);
   }
@@ -79,7 +79,7 @@ app.use((req, res, next) => {
       },
       credentials: true,
       methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-      allowedHeaders: ['Content-Type', 'Authorization'],
+      allowedHeaders: ['Content-Type', 'Authorization', 'ngrok-skip-browser-warning'],
     })(req, res, next);
   }
   
@@ -105,7 +105,7 @@ app.use((req, res, next) => {
     },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'ngrok-skip-browser-warning'],
   })(req, res, next);
 });
 
