@@ -3,7 +3,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import { AppLayout } from '@/components/AppLayout'
 import { PageSEO } from '@/components/SEO'
 import WebhookLogPanel from '@/components/WebhookLogPanel'
-import { WS_BASE_URL } from '@/lib/api'
+import { WS_BASE_URL, appendNgrokSkipBrowserWarning } from '@/lib/api'
 
 export default function WebhookLogs() {
   const { user } = useAuth()
@@ -15,7 +15,7 @@ export default function WebhookLogs() {
 
     let isMounted = true
     let reconnectTimer = null
-    const wsUrl = `${WS_BASE_URL}/ws?token=${encodeURIComponent(token)}`
+    const wsUrl = appendNgrokSkipBrowserWarning(`${WS_BASE_URL}/ws?token=${encodeURIComponent(token)}`)
 
     const connect = () => {
       if (!isMounted) return

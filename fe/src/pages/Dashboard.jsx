@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '@/contexts/AuthContext'
 import { useRateLimit } from '@/contexts/RateLimitContext'
-import { emailConfigAPI, transactionsAPI, WS_BASE_URL, gmailAPI } from '@/lib/api'
+import { emailConfigAPI, transactionsAPI, WS_BASE_URL, gmailAPI, appendNgrokSkipBrowserWarning } from '@/lib/api'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -79,7 +79,7 @@ export default function Dashboard() {
 
     let isMounted = true
     let reconnectTimer = null
-    const wsUrl = `${WS_BASE_URL}/ws?token=${encodeURIComponent(token)}`
+    const wsUrl = appendNgrokSkipBrowserWarning(`${WS_BASE_URL}/ws?token=${encodeURIComponent(token)}`)
 
     const connect = () => {
       if (!isMounted) return

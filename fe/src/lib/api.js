@@ -6,6 +6,32 @@ const stripTrailingSlash = (value) => {
   return value.endsWith('/') ? value.slice(0, -1) : value
 }
 
+const NGROK_SKIP_BROWSER_WARNING = 'ngrok-skip-browser-warning'
+
+const isNgrokUrl = (value) => {
+  if (!value) return false
+  try {
+    const parsedUrl = new URL(value, typeof window !== 'undefined' ? window.location.origin : 'http://localhost')
+    return /(^|\.)ngrok\.(free|app)$/.test(parsedUrl.hostname) || parsedUrl.hostname.includes('ngrok-free.dev')
+  } catch (error) {
+    return false
+  }
+}
+
+const appendNgrokSkipBrowserWarning = (value) => {
+  if (!value || !isNgrokUrl(value)) return value
+
+  try {
+    const parsedUrl = new URL(value, typeof window !== 'undefined' ? window.location.origin : 'http://localhost')
+    if (!parsedUrl.searchParams.has(NGROK_SKIP_BROWSER_WARNING)) {
+      parsedUrl.searchParams.set(NGROK_SKIP_BROWSER_WARNING, 'true')
+    }
+    return parsedUrl.toString()
+  } catch (error) {
+    return value
+  }
+}
+
 const getDefaultApiBase = () => {
   if (typeof window !== 'undefined') {
     const origin = window.location.origin
@@ -46,6 +72,12 @@ api.interceptors.request.use((config) => {
   } else {
     console.warn('⚠️ No token found in localStorage')
   }
+
+  const requestUrl = config.baseURL ? `${config.baseURL}${config.url || ''}` : config.url
+  if (isNgrokUrl(requestUrl)) {
+    config.headers[NGROK_SKIP_BROWSER_WARNING] = 'true'
+  }
+
   return config
 }, (error) => {
   return Promise.reject(error)
@@ -205,7 +237,7 @@ export const qrAPI = {
     if (bank) u.searchParams.set('bank', bank)
     if (amount) u.searchParams.set('amount', amount)
     if (des) u.searchParams.set('des', des)
-    return u.toString()
+    return appendNgrokSkipBrowserWarning(u.toString())
   },
 }
 
@@ -256,4 +288,5 @@ export const ttsAPI = {
 }
 
 export default api
+export { appendNgrokSkipBrowserWarning, isNgrokUrl }
 

@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '@/contexts/AuthContext'
 import { useRateLimit } from '@/contexts/RateLimitContext'
-import { usersAPI, transactionsAPI, WS_BASE_URL } from '@/lib/api'
+import { usersAPI, transactionsAPI, WS_BASE_URL, appendNgrokSkipBrowserWarning } from '@/lib/api'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -57,7 +57,7 @@ export default function AdminDashboard() {
 
     let isMounted = true
     let reconnectTimer = null
-    const wsUrl = `${WS_BASE_URL}/ws?token=${encodeURIComponent(token)}`
+    const wsUrl = appendNgrokSkipBrowserWarning(`${WS_BASE_URL}/ws?token=${encodeURIComponent(token)}`)
 
     const connect = () => {
       if (!isMounted) return
