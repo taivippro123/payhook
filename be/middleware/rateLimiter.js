@@ -20,6 +20,16 @@ const ttsLimiter = rateLimit({
   trustProxy: 1, // Trust first proxy (fix warning)
 });
 
+// Rate limiter cho endpoint share public (cho phép polling mỗi vài giây)
+const shareLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 phút
+  max: 500, // Cho phép polling thường xuyên mà vẫn có giới hạn hợp lý
+  message: 'Quá nhiều requests từ IP này, vui lòng thử lại sau 15 phút.',
+  standardHeaders: true,
+  legacyHeaders: false,
+  trustProxy: 1, // Trust first proxy (fix warning)
+});
+
 // Rate limiter cho authentication endpoints (stricter)
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 phút
@@ -81,6 +91,7 @@ module.exports = {
   apiLimiter,
   authLimiter,
   ttsLimiter,
+  shareLimiter,
   webhookRateLimit,
 };
 

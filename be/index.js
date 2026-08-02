@@ -156,13 +156,13 @@ const gmailWebhookRoutes = require('./routes/gmailWebhook');
 const pushNotificationRoutes = require('./routes/pushNotifications');
 const ttsRoutes = require('./routes/tts');
 const shareRoutes = require('./routes/share');
-const { apiLimiter, authLimiter, ttsLimiter } = require('./middleware/rateLimiter');
+const { apiLimiter, authLimiter, ttsLimiter, shareLimiter } = require('./middleware/rateLimiter');
 
 // Apply rate limiting
 // Exclude TTS from general API limiter (will use its own limiter)
 app.use('/api/', (req, res, next) => {
-  // Skip rate limiting for TTS endpoint (will use its own limiter)
-  if (req.path.startsWith('/api/tts')) {
+  // Skip rate limiting for TTS and share endpoints (they use their own limiters)
+  if (req.path.startsWith('/api/tts') || req.path.startsWith('/api/share')) {
     return next();
   }
   return apiLimiter(req, res, next);
@@ -187,6 +187,7 @@ app.use('/api/tts', (req, res, next) => {
 });
 
 app.use('/api/tts', ttsLimiter);
+app.use('/api/share', shareLimiter);
 
 app.use('/api/auth', authRoutes);
 app.use('/api/email-configs', emailConfigRoutes);
