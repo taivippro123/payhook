@@ -21,6 +21,16 @@ export default function QRGenerator() {
   const [downloading, setDownloading] = useState(false)
   const [previewSrc, setPreviewSrc] = useState('')
 
+  const qrUrl = useMemo(() => {
+    if (!form.acc.trim()) return ''
+    return qrAPI.imageUrl({
+      acc: form.acc.trim(),
+      amount: form.amount ? Number(form.amount) : undefined,
+      des: form.des.trim(),
+      bank: 'cake',
+    }) + `&v=${previewVersion}`
+  }, [form, previewVersion])
+
   useEffect(() => {
     let active = true
     let objectUrl = ''
@@ -54,16 +64,6 @@ export default function QRGenerator() {
       }
     }
   }, [qrUrl])
-
-  const qrUrl = useMemo(() => {
-    if (!form.acc.trim()) return ''
-    return qrAPI.imageUrl({
-      acc: form.acc.trim(),
-      amount: form.amount ? Number(form.amount) : undefined,
-      des: form.des.trim(),
-      bank: 'cake',
-    }) + `&v=${previewVersion}`
-  }, [form, previewVersion])
 
   const handleGenerate = () => {
     if (!form.acc.trim()) {
