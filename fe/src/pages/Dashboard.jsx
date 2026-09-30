@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '@/contexts/AuthContext'
 import { useRateLimit } from '@/contexts/RateLimitContext'
 import { emailConfigAPI, transactionsAPI, billingAPI, WS_BASE_URL, gmailAPI, appendNgrokSkipBrowserWarning } from '@/lib/api'
@@ -14,12 +14,24 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { AppLayout } from '@/components/AppLayout'
 import { PageSEO } from '@/components/SEO'
 import { cn } from '@/lib/utils'
-import { IconCopy, IconEye, IconEyeOff, IconCheck } from '@tabler/icons-react'
+import { IconAlertTriangle, IconCopy, IconEye, IconEyeOff, IconCheck, IconX } from '@tabler/icons-react'
+
+const oauthMessages = {
+  gmail_already_connected: 'Gmail này đã được liên kết với một tài khoản Payhook khác.',
+  oauth_failed: 'Xác thực Google thất bại. Vui lòng thử lại.',
+  no_code: 'Không nhận được mã xác thực từ Google.',
+  no_user: 'Không xác định được tài khoản Payhook đang kết nối Gmail.',
+  no_refresh_token: 'Google không trả về refresh token. Vui lòng cấp lại quyền Gmail.',
+  pubsub_not_configured: 'Payhook chưa cấu hình Gmail Push Notifications. Vui lòng liên hệ hỗ trợ.',
+  oauth_callback_failed: 'Không thể hoàn tất kết nối Gmail. Vui lòng thử lại.',
+}
 
 export default function Dashboard() {
   const { user, logout } = useAuth()
   const { isRateLimited, rateLimitType } = useRateLimit()
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+  const [oauthToast, setOauthToast] = useState(null)
   const [emailConfigs, setEmailConfigs] = useState([])
   
   // Check if API or webhook is rate limited
@@ -50,6 +62,28 @@ export default function Dashboard() {
   const [copiedXiaozhiMcpId, setCopiedXiaozhiMcpId] = useState(null)
   const [sendingTestEmailId, setSendingTestEmailId] = useState(null)
   const [billingStatus, setBillingStatus] = useState(null)
+
+  useEffect(() => {
+    const errorParam = searchParams.get('error')
+    const successParam = searchParams.get('gmail_connected')
+    const message = errorParam ? oauthMessages[errorParam] : null
+
+    if (message) {
+      setOauthToast({ type: 'error', message })
+    } else if (successParam === 'true') {
+      setOauthToast({ type: 'success', message: 'Đã kết nối Gmail thành công.' })
+    }
+
+    if (errorParam || successParam) {
+      window.history.replaceState({}, '', window.location.pathname)
+    }
+  }, [searchParams])
+
+  useEffect(() => {
+    if (!oauthToast) return undefined
+    const timer = window.setTimeout(() => setOauthToast(null), 7000)
+    return () => window.clearTimeout(timer)
+  }, [oauthToast])
 
   useEffect(() => {
     loadData()
@@ -589,6 +623,28 @@ export default function Dashboard() {
   return (
     <>
       <PageSEO title="Payhook" pathname="/dashboard" robots="noindex,nofollow" />
+      {oauthToast && (
+        <div
+          className={cn(
+            'fixed right-4 top-4 z-[100] flex w-[calc(100vw-2rem)] max-w-md items-start gap-3 rounded-lg border px-4 py-3 shadow-lg',
+            oauthToast.type === 'error'
+              ? 'border-red-200 bg-red-50 text-red-800'
+              : 'border-green-200 bg-green-50 text-green-800'
+          )}
+          role="alert"
+        >
+          <IconAlertTriangle className="mt-0.5 h-5 w-5 shrink-0" />
+          <p className="flex-1 text-sm font-medium">{oauthToast.message}</p>
+          <button
+            type="button"
+            className="shrink-0 rounded p-1 hover:bg-black/5"
+            aria-label="Đóng thông báo"
+            onClick={() => setOauthToast(null)}
+          >
+            <IconX className="h-4 w-4" />
+          </button>
+        </div>
+      )}
       <Dialog open={showWelcomeDialog} onOpenChange={setShowWelcomeDialog}>
         <DialogContent>
           <DialogHeader>
