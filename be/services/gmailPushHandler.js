@@ -10,6 +10,8 @@ const { sendPushNotification } = require('../routes/pushNotifications');
 const {
   reserveTransactionSlot,
   releaseTransactionSlot,
+  claimBankAccount,
+  notifyBankAccountOwnershipBlocked,
   isPaymentWatcherConfig,
   autoConfirmPayment,
 } = require('./billing');
@@ -135,6 +137,28 @@ async function handleGmailPush(pubsubMessage) {
 
         if (exists) {
           console.log(`⏭️  Transaction already exists: ${parsed.transactionId}`);
+          continue;
+        }
+
+        const bankAccountOwnership = await claimBankAccount(
+          userId,
+          parsed.bank,
+          parsed.accountNumberMasked,
+          parsed.transactionId
+        );
+        if (!bankAccountOwnership.allowed) {
+          console.warn(
+            `⛔ Bank account blocked for user ${userId}: ${bankAccountOwnership.reason}`
+          );
+          notifyBankAccountOwnershipBlocked({
+            userId,
+            bank: parsed.bank,
+            accountNumber: parsed.accountNumberMasked,
+            ownerUserId: bankAccountOwnership.ownerUserId,
+          }).catch((notificationError) => {
+            console.error('❌ Bank account block notification error:', notificationError.message);
+          });
+          await EmailConfig.markSynced(configId, emailData.date || new Date());
           continue;
         }
 

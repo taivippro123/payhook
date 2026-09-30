@@ -8,6 +8,7 @@ const swaggerSpec = require('./config/swagger');
 const { connectDB, closeDB, getDB } = require('./db');
 const { authenticate, decodeToken } = require('./middleware/auth');
 const User = require('./models/user');
+const EmailConfig = require('./models/emailConfig');
 const wsHub = require('./services/wsHub');
 const gmailWatchManager = require('./services/gmailWatchManager');
 const { startDLQProcessor, stopDLQProcessor } = require('./services/dlqProcessor');
@@ -140,7 +141,7 @@ if (process.env.NODE_ENV === 'development') {
 }
 
 // Kết nối database khi server khởi động
-connectDB().catch((error) => {
+connectDB().then(() => EmailConfig.ensureIndexes()).catch((error) => {
   console.error('Failed to connect to database:', error);
   process.exit(1);
 });

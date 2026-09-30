@@ -3,6 +3,30 @@ const { ObjectId } = require('mongodb');
 const { encrypt, decrypt } = require('../utils/encryption');
 
 class EmailConfig {
+  static normalizeEmail(email) {
+    return String(email || '').trim().toLowerCase();
+  }
+
+  static async ensureIndexes() {
+    const db = await getDB();
+    await db.collection('email_configs').createIndex(
+      { email: 1 },
+      {
+        unique: true,
+        collation: { locale: 'en', strength: 2 },
+        name: 'email_configs_email_unique',
+      }
+    );
+  }
+
+  static async findByEmail(email) {
+    const db = await getDB();
+    return db.collection('email_configs').findOne(
+      { email: this.normalizeEmail(email) },
+      { collation: { locale: 'en', strength: 2 } }
+    );
+  }
+
   /**
    * Tạo email config mới
    * @param {Object} configData - { userId, email, refreshToken?, webhookUrl?, watchHistoryId?, watchExpiration? }
@@ -11,6 +35,7 @@ class EmailConfig {
   static async create({ userId, email, appPassword, scanInterval = 30000, webhookUrl, xiaozhiMcpUrl, refreshToken, watchHistoryId, watchExpiration }) {
     const db = await getDB();
     const configs = db.collection('email_configs');
+    email = this.normalizeEmail(email);
 
     // Kiểm tra email đã tồn tại cho user này
     const existing = await configs.findOne({ 
@@ -47,7 +72,15 @@ class EmailConfig {
       updatedAt: new Date(),
     };
 
-    const result = await configs.insertOne(config);
+    let result;
+    try {
+      result = await configs.insertOne(config);
+    } catch (error) {
+      if (error.code === 11000) {
+        throw new Error('Gmail account is already connected to another user');
+      }
+      throw error;
+    }
     const createdConfig = {
       ...config,
       _id: result.insertedId,

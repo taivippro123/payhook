@@ -43,11 +43,33 @@ Lưu cấu hình email của mỗi user
 
 **Indexes:**
 - `userId`: index
-- `userId + email`: unique compound index (một user không thể có 2 config cho cùng 1 email)
+- `email`: unique index không phân biệt hoa thường (một Gmail chỉ được liên kết với một user)
 
 ---
 
-### 3. `transactions`
+### 3. `bank_account_owners`
+Lưu user đầu tiên sở hữu tài khoản ngân hàng Cake để chống tạo nhiều Payhook account dùng chung một tài khoản.
+
+```javascript
+{
+  _id: ObjectId,
+  bank: String,             // CAKE
+  accountKey: String,       // Giá trị chuẩn hóa từ "Tài khoản nhận"
+  displayAccount: String,   // Giá trị gốc để kiểm tra/audit
+  userId: ObjectId,         // User đầu tiên claim tài khoản
+  firstTransactionId: String|null,
+  createdAt: Date,
+  updatedAt: Date,
+  migratedAt: Date|null
+}
+```
+
+**Indexes:**
+- `bank + accountKey`: unique compound index
+
+---
+
+### 4. `transactions`
 Lưu các giao dịch đã phát hiện từ email
 
 ```javascript

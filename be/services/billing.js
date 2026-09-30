@@ -4,6 +4,7 @@ const crypto = require('crypto');
 const PaymentOrder = require('../models/paymentOrder');
 const User = require('../models/user');
 const { sendPayhookEmail } = require('./cakeTestEmail');
+const { sendPushNotification } = require('../routes/pushNotifications');
 
 const PLANS = Object.freeze({
   free: {
@@ -35,6 +36,7 @@ const PAYMENT_QR_BASE_URL = process.env.PAYMENT_QR_BASE_URL
   || 'https://rimmed-improvise-hatchery.ngrok-free.dev/api/qr/img';
 const PAYMENT_RECEIVING_EMAIL = (process.env.PAYMENT_RECEIVING_EMAIL || '').trim().toLowerCase();
 let billingIndexesPromise = null;
+let bankAccountOwnershipIndexPromise = null;
 let lastReconcileAt = 0;
 let reconcilePromise = null;
 
@@ -67,6 +69,133 @@ function buildQrUrl(amount, orderCode) {
 
 function escapeRegex(value) {
   return String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function normalizeBankAccountKey(bank, accountNumber) {
+  const normalizedBank = String(bank || '').trim().toUpperCase();
+  const accountText = String(accountNumber || '')
+    .normalize('NFKC')
+    .trim()
+    .toUpperCase();
+  const accountMatch = accountText.match(/^[0-9A-Z*]+/);
+  const normalizedAccount = (accountMatch ? accountMatch[0] : accountText)
+    .replace(/[\s.]/g, '');
+  if (!normalizedBank || !normalizedAccount) return null;
+  return { bank: normalizedBank, accountKey: normalizedAccount };
+}
+
+async function ensureBankAccountOwnershipIndex() {
+  if (!bankAccountOwnershipIndexPromise) {
+    bankAccountOwnershipIndexPromise = (async () => {
+      const db = await getDB();
+      await db.collection('bank_account_owners').createIndex(
+        { bank: 1, accountKey: 1 },
+        { unique: true, name: 'bank_account_owners_unique' }
+      );
+    })();
+  }
+  await bankAccountOwnershipIndexPromise;
+}
+
+async function claimBankAccount(userId, bank, accountNumber, transactionId = null) {
+  const identity = normalizeBankAccountKey(bank, accountNumber);
+  if (!identity) {
+    return { allowed: false, reason: 'missing_account_number' };
+  }
+
+  await ensureBankAccountOwnershipIndex();
+  const db = await getDB();
+  const owners = db.collection('bank_account_owners');
+  const owner = await owners.findOne(identity);
+
+  if (owner) {
+    return {
+      allowed: owner.userId.toString() === userId.toString(),
+      reason: owner.userId.toString() === userId.toString() ? null : 'owned_by_another_user',
+      ownerUserId: owner.userId.toString(),
+    };
+  }
+
+  try {
+    await owners.insertOne({
+      ...identity,
+      userId: new ObjectId(userId),
+      displayAccount: String(accountNumber).trim(),
+      firstTransactionId: transactionId || null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+    return { allowed: true, claimed: true };
+  } catch (error) {
+    if (error.code !== 11000) throw error;
+    const competingOwner = await owners.findOne(identity);
+    const sameUser = competingOwner?.userId?.toString() === userId.toString();
+    return {
+      allowed: sameUser,
+      reason: sameUser ? null : 'owned_by_another_user',
+      ownerUserId: competingOwner?.userId?.toString(),
+    };
+  }
+}
+
+async function notifyBankAccountOwnershipBlocked({ userId, bank, accountNumber, ownerUserId }) {
+  const identity = normalizeBankAccountKey(bank, accountNumber);
+  if (!identity) return;
+
+  const db = await getDB();
+  const notifications = db.collection('bank_account_block_notifications');
+  const notificationId = `${userId}:${identity.bank}:${identity.accountKey}`;
+
+  try {
+    await notifications.insertOne({
+      _id: notificationId,
+      userId: new ObjectId(userId),
+      ownerUserId: ownerUserId ? new ObjectId(ownerUserId) : null,
+      bank: identity.bank,
+      accountKey: identity.accountKey,
+      status: 'sending',
+      createdAt: new Date(),
+    });
+  } catch (error) {
+    if (error.code === 11000) return;
+    throw error;
+  }
+
+  const displayAccount = String(accountNumber).trim();
+  const subject = 'Payhook: Giao dịch bị chặn';
+  const text = `Payhook đã nhận giao dịch từ tài khoản Cake ${displayAccount}, nhưng tài khoản ngân hàng này đã được liên kết với một Payhook account khác. Giao dịch này không được ghi nhận và không bị trừ quota. Nếu đây là tài khoản của bạn, vui lòng liên hệ hỗ trợ Payhook.`;
+  const html = `<div style="font-family:Arial,sans-serif;color:#111827;line-height:1.6"><h2>Giao dịch bị chặn</h2><p>Payhook đã nhận giao dịch từ tài khoản Cake <strong>${displayAccount}</strong>, nhưng tài khoản ngân hàng này đã được liên kết với một Payhook account khác.</p><p>Giao dịch này không được ghi nhận và không bị trừ quota.</p><p>Nếu đây là tài khoản của bạn, vui lòng liên hệ hỗ trợ Payhook.</p></div>`;
+
+  try {
+    await sendPushNotification(userId, {
+      title: 'Giao dịch bị chặn',
+      body: `Tài khoản Cake ${displayAccount} đã thuộc Payhook account khác. Giao dịch không được tính quota.`,
+      tag: `bank-account-blocked-${identity.accountKey}`,
+      data: { type: 'bank_account_blocked', bank: identity.bank, accountKey: identity.accountKey },
+    });
+
+    const user = await User.findById(userId);
+    if (user?.email) {
+      await sendPayhookEmail({
+        to: user.email,
+        subject,
+        text,
+        html,
+        headers: { 'X-Payhook-Notification': 'bank-account-blocked' },
+      });
+    }
+
+    await notifications.updateOne(
+      { _id: notificationId },
+      { $set: { status: 'sent', sentAt: new Date() } }
+    );
+  } catch (error) {
+    await notifications.updateOne(
+      { _id: notificationId },
+      { $set: { status: 'failed', error: error.message, updatedAt: new Date() } }
+    );
+    console.error(`❌ Failed to notify user ${userId} about blocked bank account:`, error.message);
+  }
 }
 
 async function ensureBillingIndexes() {
@@ -397,10 +526,13 @@ async function autoConfirmPayment({ description, amountVND }) {
 
 module.exports = {
   PLANS,
+  normalizeBankAccountKey,
   getPlan,
   getBillingStatus,
   canCreateTransaction,
   reserveTransactionSlot,
+  claimBankAccount,
+  notifyBankAccountOwnershipBlocked,
   releaseTransactionSlot,
   createPaymentOrder,
   activateOrder,

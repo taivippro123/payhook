@@ -93,6 +93,14 @@ router.get('/google/callback', async (req, res) => {
       return res.redirect(`${process.env.FRONTEND_URL}/dashboard?error=no_refresh_token`);
     }
 
+    const existingGmailConfig = await EmailConfig.findByEmail(userInfo.email);
+    if (existingGmailConfig && existingGmailConfig.userId.toString() !== userId) {
+      console.warn(
+        `⛔ Gmail ${userInfo.email} is already connected to user ${existingGmailConfig.userId}`
+      );
+      return res.redirect(`${process.env.FRONTEND_URL}/dashboard?error=gmail_already_connected`);
+    }
+
     // Đăng ký Gmail watch
     const topicName = process.env.GOOGLE_PUBSUB_TOPIC; // Ví dụ: projects/PROJECT_ID/topics/gmail-notifications
     if (!topicName) {
@@ -105,7 +113,8 @@ router.get('/google/callback', async (req, res) => {
 
     // Lưu hoặc cập nhật email config
     const existingConfig = await EmailConfig.findByUserId(userId);
-    const configForEmail = existingConfig.find(c => c.email === userInfo.email);
+    const normalizedEmail = EmailConfig.normalizeEmail(userInfo.email);
+    const configForEmail = existingConfig.find(c => EmailConfig.normalizeEmail(c.email) === normalizedEmail);
 
     if (configForEmail) {
       // Update existing config
@@ -119,7 +128,7 @@ router.get('/google/callback', async (req, res) => {
       // Create new config
       await EmailConfig.create({
         userId,
-        email: userInfo.email,
+        email: normalizedEmail,
         refreshToken: tokens.refresh_token,
         watchHistoryId: watchResult.historyId,
         watchExpiration,
@@ -134,6 +143,9 @@ router.get('/google/callback', async (req, res) => {
     res.redirect(`${process.env.FRONTEND_URL}/dashboard?gmail_connected=true`);
   } catch (error) {
     console.error('❌ OAuth callback error:', error);
+    if (error.message === 'Gmail account is already connected to another user') {
+      return res.redirect(`${process.env.FRONTEND_URL}/dashboard?error=gmail_already_connected`);
+    }
     res.redirect(`${process.env.FRONTEND_URL}/dashboard?error=oauth_callback_failed`);
   }
 });
