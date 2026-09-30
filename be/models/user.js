@@ -337,6 +337,9 @@ class User {
         db.collection('webhook_logs').deleteMany({ userId: objectId }),
         db.collection('dead_letter_queue').deleteMany({ userId: objectId }),
         db.collection('push_subscriptions').deleteMany({ userId: objectId }),
+        db.collection('subscriptions').deleteMany({ userId: objectId }),
+        db.collection('payment_orders').deleteMany({ userId: objectId }),
+        db.collection('billing_notifications').deleteMany({ userId: objectId }),
       ]);
 
       return true;

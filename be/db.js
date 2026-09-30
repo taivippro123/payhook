@@ -1,5 +1,20 @@
 const { MongoClient } = require('mongodb');
+const dns = require('dns');
 require('dotenv').config();
+
+const mongoDnsServers = (process.env.MONGO_DNS_SERVERS || '8.8.8.8,1.1.1.1')
+  .split(',')
+  .map((server) => server.trim())
+  .filter(Boolean);
+
+if (mongoDnsServers.length > 0) {
+  try {
+    dns.setServers(mongoDnsServers);
+    console.log(`🌐 MongoDB DNS servers: ${mongoDnsServers.join(', ')}`);
+  } catch (error) {
+    console.warn('⚠️ Could not configure custom DNS servers:', error.message);
+  }
+}
 
 let client = null;
 let db = null;

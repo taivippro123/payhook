@@ -7,6 +7,12 @@ const { sendWebhook } = require('./webhookSender');
 const { sendTransactionNotification } = require('./xiaozhiMcpClient');
 const User = require('../models/user');
 const { sendPushNotification } = require('../routes/pushNotifications');
+const {
+  reserveTransactionSlot,
+  releaseTransactionSlot,
+  isPaymentWatcherConfig,
+  autoConfirmPayment,
+} = require('./billing');
 
 // Helper function để serialize transaction
 function serializeTransaction(tx) {
@@ -88,6 +94,7 @@ async function handleGmailPush(pubsubMessage) {
     // Xử lý từng email
     const userId = config.userId.toString();
     const configId = config._id.toString();
+    let quotaBlocked = false;
 
     for (const emailData of emails) {
       try {
@@ -106,6 +113,19 @@ async function handleGmailPush(pubsubMessage) {
           continue;
         }
 
+        if (isPaymentWatcherConfig(config)) {
+          const confirmedOrder = await autoConfirmPayment({
+            description: parsed.description,
+            amountVND: parsed.amountVND,
+          });
+          if (confirmedOrder) {
+            console.log(`✅ Auto-confirmed payment order ${confirmedOrder.orderCode}`);
+            await EmailConfig.markSynced(configId, emailData.date || new Date());
+            continue;
+          }
+          console.log(`⏭️  Payment email did not match a pending Payhook order; processing as a normal transaction`);
+        }
+
         // Kiểm tra transaction đã tồn tại chưa
         const exists = await Transaction.exists(
           parsed.transactionId,
@@ -118,6 +138,15 @@ async function handleGmailPush(pubsubMessage) {
           continue;
         }
 
+        const quota = await reserveTransactionSlot(userId);
+        if (!quota.allowed) {
+          console.warn(
+            `⛔ Quota exhausted for user ${userId}: ${quota.used}/${quota.plan.transactionLimit} transactions`
+          );
+          quotaBlocked = true;
+          continue;
+        }
+
         // Tạo transaction
         const transaction = {
           ...parsed,
@@ -126,7 +155,13 @@ async function handleGmailPush(pubsubMessage) {
           detectedAt: new Date().toISOString(),
         };
 
-        const saved = await Transaction.create(transaction, userId, configId);
+        let saved;
+        try {
+          saved = await Transaction.create(transaction, userId, configId);
+        } catch (error) {
+          await releaseTransactionSlot(userId, quota.periodStart);
+          throw error;
+        }
         
         console.log(`💾 Saved transaction to DB: ${transaction.transactionId}`);
 
@@ -223,7 +258,7 @@ async function handleGmailPush(pubsubMessage) {
     }
 
     // Update watchHistoryId sau khi xử lý xong tất cả emails
-    if (newHistoryId && newHistoryId !== startHistoryId) {
+    if (!quotaBlocked && newHistoryId && newHistoryId !== startHistoryId) {
       await EmailConfig.update(config._id.toString(), {
         watchHistoryId: newHistoryId,
       });

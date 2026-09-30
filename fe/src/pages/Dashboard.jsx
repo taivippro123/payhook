@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '@/contexts/AuthContext'
 import { useRateLimit } from '@/contexts/RateLimitContext'
-import { emailConfigAPI, transactionsAPI, WS_BASE_URL, gmailAPI, appendNgrokSkipBrowserWarning } from '@/lib/api'
+import { emailConfigAPI, transactionsAPI, billingAPI, WS_BASE_URL, gmailAPI, appendNgrokSkipBrowserWarning } from '@/lib/api'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -49,6 +49,7 @@ export default function Dashboard() {
   const [copiedSecretId, setCopiedSecretId] = useState(null)
   const [copiedXiaozhiMcpId, setCopiedXiaozhiMcpId] = useState(null)
   const [sendingTestEmailId, setSendingTestEmailId] = useState(null)
+  const [billingStatus, setBillingStatus] = useState(null)
 
   useEffect(() => {
     loadData()
@@ -192,11 +193,20 @@ export default function Dashboard() {
     setLoading(true)
     try {
       const { computedLimit } = await loadConfigs()
-      await loadTransactions(computedLimit)
+      await Promise.all([loadTransactions(computedLimit), loadBillingStatus()])
     } catch (error) {
       console.error('Error loading data:', error)
     } finally {
       setLoading(false)
+    }
+  }
+
+  const loadBillingStatus = async () => {
+    try {
+      const response = await billingAPI.getStatus()
+      setBillingStatus(response)
+    } catch (error) {
+      console.error('Error loading billing status:', error)
     }
   }
 
@@ -757,6 +767,37 @@ export default function Dashboard() {
                                 </div>
                               )}
                             </div>
+
+                            {billingStatus?.plan && (
+                              <div className="space-y-2 rounded-lg border border-blue-100 bg-blue-50/60 p-3">
+                                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                                  <div>
+                                    <p className="text-sm font-semibold text-gray-900">Gói {billingStatus.plan.name}</p>
+                                    <p className="text-xs text-gray-600">Hạn mức dùng chung cho tài khoản</p>
+                                  </div>
+                                  <Button type="button" size="sm" variant="outline" onClick={() => navigate('/billing')}>
+                                    Xem các gói
+                                  </Button>
+                                </div>
+                                <div className="flex items-center justify-between text-xs text-gray-600">
+                                  <span>Đã dùng</span>
+                                  <strong className="text-gray-900">
+                                    {billingStatus.used.toLocaleString('vi-VN')} / {billingStatus.plan.transactionLimit === null ? 'Không giới hạn' : billingStatus.plan.transactionLimit.toLocaleString('vi-VN')}
+                                  </strong>
+                                </div>
+                                {billingStatus.plan.transactionLimit !== null && (
+                                  <div className="h-2 overflow-hidden rounded-full bg-white">
+                                    <div
+                                      className={cn('h-full rounded-full transition-all', billingStatus.isExhausted ? 'bg-red-500' : 'bg-blue-600')}
+                                      style={{ width: `${Math.min((billingStatus.used / billingStatus.plan.transactionLimit) * 100, 100)}%` }}
+                                    />
+                                  </div>
+                                )}
+                                <p className={cn('text-xs', billingStatus.isExhausted ? 'font-medium text-red-600' : 'text-gray-600')}>
+                                  {billingStatus.isExhausted ? 'Đã hết lượt. Nâng cấp để tiếp tục nhận giao dịch.' : `Còn lại: ${billingStatus.remaining === null ? 'Không giới hạn' : billingStatus.remaining.toLocaleString('vi-VN')}`}
+                                </p>
+                              </div>
+                            )}
 
                             {/* Webhook Secret */}
                             {config.webhookUrl && config.webhookSecret && (

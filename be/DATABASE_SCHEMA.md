@@ -105,6 +105,13 @@ Lưu các giao dịch đã phát hiện từ email
 - `DELETE /api/users/:id` - Xóa user (admin only)
 - `PUT /api/users/:id/role` - Cập nhật role của user (chỉ admin)
 
+### Billing (cần authentication)
+- `GET /api/billing/plans` - Danh sách 3 gói Free, Pro và Unlimited
+- `GET /api/billing/me` - Gói hiện tại, số giao dịch đã dùng và còn lại
+- `POST /api/billing/orders` - Tạo đơn mua gói và QR chuyển khoản
+- `GET /api/billing/admin/orders` - Admin xem đơn chờ xác nhận
+- `POST /api/billing/admin/orders/:id/confirm` - Admin xác nhận thanh toán và kích hoạt gói
+
 ### Monitor (cần authentication)
 - `GET /monitor/status` - Xem trạng thái monitor
 - `POST /monitor/start` - Khởi động monitor
@@ -119,6 +126,11 @@ MONGO_URI=mongodb://localhost:27017/payhook
 PORT=3000
 JWT_SECRET=your-secret-key-change-in-production
 FRONTEND_URL=http://localhost:5173  # Optional: CORS origin
+PAYMENT_BANK_ACCOUNT=0356882700
+PAYMENT_BANK_CODE=cake
+PAYMENT_QR_BASE_URL=https://rimmed-improvise-hatchery.ngrok-free.dev/api/qr/img
+PAYMENT_AUTO_CONFIRM=false
+PAYMENT_RECEIVING_EMAIL=bank-alerts@example.com
 ```
 
 ---
@@ -133,4 +145,6 @@ FRONTEND_URL=http://localhost:5173  # Optional: CORS origin
    - Kiểm tra số tiền âm → bỏ qua nếu âm
    - Kiểm tra duplicate → lưu vào `transactions` nếu chưa có
 5. User có thể xem transactions qua API
+6. User mua gói bằng QR, admin xác nhận chuyển khoản và subscription được kích hoạt trong một tháng
+7. Có thể bật `PAYMENT_AUTO_CONFIRM=true` để Payhook tự đối soát email Cake của `PAYMENT_RECEIVING_EMAIL` theo mã đơn và số tiền
 

@@ -246,8 +246,30 @@ async function sendCakeTestEmail({ to, overrides = {}, headers = {} }) {
   };
 }
 
+async function sendPayhookEmail({ to, subject, html, text, headers = {} }) {
+  if (!to) {
+    throw new Error('Destination email is required to send email');
+  }
+
+  const transporter = getTransporter();
+  const info = await transporter.sendMail({
+    from: process.env.PAYHOOK_EMAIL_FROM || process.env.TEST_EMAIL_SMTP_USER,
+    to,
+    subject,
+    html,
+    text,
+    headers,
+  });
+
+  return {
+    messageId: info.messageId,
+    envelope: info.envelope,
+  };
+}
+
 module.exports = {
   sendCakeTestEmail,
+  sendPayhookEmail,
   buildCakeTestEmail,
 };
 

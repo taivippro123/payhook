@@ -1,4 +1,5 @@
 const rateLimit = require('express-rate-limit');
+const isDevelopment = process.env.NODE_ENV !== 'production';
 
 // Rate limiter cho API endpoints chung
 const apiLimiter = rateLimit({
@@ -7,7 +8,7 @@ const apiLimiter = rateLimit({
   message: 'Quá nhiều requests từ IP này, vui lòng thử lại sau 15 phút.',
   standardHeaders: true, // Return rate limit info in `RateLimit-*` headers
   legacyHeaders: false, // Disable `X-RateLimit-*` headers
-  trustProxy: 1, // Trust first proxy (fix warning)
+  skip: () => isDevelopment,
 });
 
 // Rate limiter cho TTS endpoint (more lenient, used by service workers)
@@ -17,7 +18,7 @@ const ttsLimiter = rateLimit({
   message: 'Quá nhiều TTS requests, vui lòng thử lại sau.',
   standardHeaders: true,
   legacyHeaders: false,
-  trustProxy: 1, // Trust first proxy (fix warning)
+  skip: () => isDevelopment,
 });
 
 // Rate limiter cho endpoint share public (cho phép polling mỗi vài giây)
@@ -27,7 +28,7 @@ const shareLimiter = rateLimit({
   message: 'Quá nhiều requests từ IP này, vui lòng thử lại sau 15 phút.',
   standardHeaders: true,
   legacyHeaders: false,
-  trustProxy: 1, // Trust first proxy (fix warning)
+  skip: () => isDevelopment,
 });
 
 // Rate limiter cho authentication endpoints (stricter)
@@ -36,6 +37,7 @@ const authLimiter = rateLimit({
   max: 5, // Chỉ 5 lần đăng nhập/đăng ký mỗi 15 phút
   message: 'Quá nhiều lần thử đăng nhập, vui lòng thử lại sau 15 phút.',
   skipSuccessfulRequests: true, // Không đếm requests thành công
+  skip: () => isDevelopment,
 });
 
 // Rate limiter cho webhook sending (per user)
@@ -46,6 +48,10 @@ const webhookRateLimit = {
   
   // Kiểm tra xem user có vượt quá limit không
   checkLimit(userId, maxPerHour = 1000) {
+    if (isDevelopment) {
+      return { allowed: true, remaining: maxPerHour };
+    }
+
     const now = Date.now();
     const hourAgo = now - 60 * 60 * 1000;
     

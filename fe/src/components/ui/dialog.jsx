@@ -1,7 +1,7 @@
 import * as React from "react"
 import { cn } from "@/lib/utils"
 
-function Dialog({ open, onOpenChange, children, className, ...props }) {
+function Dialog({ open, onOpenChange, children, className, contentClassName, ...props }) {
   if (!open) return null
 
   return (
@@ -21,7 +21,8 @@ function Dialog({ open, onOpenChange, children, className, ...props }) {
       <div
         className={cn(
           "relative z-50 w-full max-w-lg mx-4 bg-white dark:bg-gray-800 rounded-xl shadow-lg",
-          className
+          className,
+          contentClassName
         )}
         onClick={(e) => e.stopPropagation()}
       >

@@ -17,6 +17,7 @@ const Privacy = lazy(() => import('@/pages/Privacy'))
 const Notification = lazy(() => import('@/pages/Notification'))
 const NotFound = lazy(() => import('@/pages/NotFound'))
 const SharePreview = lazy(() => import('@/pages/SharePreview'))
+const Billing = lazy(() => import('@/pages/Billing'))
 import { Analytics } from '@vercel/analytics/react'
 function RootRedirect() {
   const { user, loading } = useAuth()
@@ -295,6 +296,14 @@ function App() {
                 element={
                   <ProtectedRoute>
                     <SharePreview />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/billing"
+                element={
+                  <ProtectedRoute>
+                    <Billing />
                   </ProtectedRoute>
                 }
               />

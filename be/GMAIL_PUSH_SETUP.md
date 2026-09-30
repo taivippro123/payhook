@@ -100,6 +100,10 @@ GOOGLE_PUBSUB_TOPIC=projects/YOUR_PROJECT_ID/topics/gmail-notifications
 BACKEND_URL=https://yourdomain.com
 FRONTEND_URL=https://your-frontend.com
 
+# Tự động xác nhận thanh toán gói Payhook (tuỳ chọn)
+PAYMENT_AUTO_CONFIRM=true
+PAYMENT_RECEIVING_EMAIL=dia-chi-gmail-nhan-thong-bao-cake@example.com
+
 # Scheduler (tùy chọn)
 GMAIL_WATCH_REFRESH_INTERVAL_MS=3600000       # Chu kỳ kiểm tra auto-renew (mặc định 1h)
 GMAIL_WATCH_RENEW_THRESHOLD_MS=86400000       # Gia hạn khi còn dưới 24h

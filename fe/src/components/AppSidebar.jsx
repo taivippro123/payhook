@@ -10,6 +10,7 @@ import {
   IconBook,
   IconBell,
   IconCode,
+  IconCreditCard,
 } from '@tabler/icons-react'
 import { motion } from 'motion/react'
 import PayhookLogo from '@/assets/Payhook.png'
@@ -58,6 +59,13 @@ export function AppSidebar({ open, setOpen }) {
       icon: <IconCode size={18} className="text-neutral-500 dark:text-neutral-200" />,
       action: () => navigate('/share'),
       path: '/share',
+    },
+    {
+      key: 'billing',
+      label: 'Gói dịch vụ',
+      icon: <IconCreditCard size={18} className="text-neutral-500 dark:text-neutral-200" />,
+      action: () => navigate('/billing'),
+      path: '/billing',
     },
     {
       key: 'notification',

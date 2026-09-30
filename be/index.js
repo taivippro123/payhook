@@ -12,6 +12,7 @@ const wsHub = require('./services/wsHub');
 const gmailWatchManager = require('./services/gmailWatchManager');
 const { startDLQProcessor, stopDLQProcessor } = require('./services/dlqProcessor');
 const { startDataRetentionJob, stopDataRetentionJob } = require('./services/dataRetention');
+const { notifyExistingFreeLimitUsers } = require('./services/billing');
 require('dotenv').config();
 
 const app = express();
@@ -156,13 +157,14 @@ const gmailWebhookRoutes = require('./routes/gmailWebhook');
 const pushNotificationRoutes = require('./routes/pushNotifications');
 const ttsRoutes = require('./routes/tts');
 const shareRoutes = require('./routes/share');
+const billingRoutes = require('./routes/billing');
 const { apiLimiter, authLimiter, ttsLimiter, shareLimiter } = require('./middleware/rateLimiter');
 
 // Apply rate limiting
 // Exclude TTS from general API limiter (will use its own limiter)
 app.use('/api/', (req, res, next) => {
   // Skip rate limiting for TTS and share endpoints (they use their own limiters)
-  if (req.path.startsWith('/api/tts') || req.path.startsWith('/api/share')) {
+  if (req.path.startsWith('/tts') || req.path.startsWith('/share') || req.path.startsWith('/billing') || req.path.startsWith('/gmail')) {
     return next();
   }
   return apiLimiter(req, res, next);
@@ -196,6 +198,7 @@ app.use('/api/users', userRoutes);
 app.use('/api/qr', qrRoutes);
 app.use('/api/webhook-logs', webhookLogRoutes);
 app.use('/api/share', shareRoutes);
+app.use('/api/billing', billingRoutes);
 app.use('/api/auth', gmailOAuthRoutes); // OAuth routes
 app.use('/api/gmail', gmailWebhookRoutes); // Pub/Sub webhook
 app.use('/api/push', pushNotificationRoutes); // Push notifications
@@ -318,6 +321,10 @@ wss.on('connection', async (ws, req) => {
 
 server.listen(PORT, async () => {
   console.log(`\n🚀 Server running on port ${PORT}`);
+
+  notifyExistingFreeLimitUsers().catch((error) => {
+    console.error('❌ Existing quota notification sweep failed:', error.message);
+  });
 
   gmailWatchManager.start();
   

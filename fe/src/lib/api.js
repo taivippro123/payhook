@@ -196,6 +196,21 @@ export const webhookLogsAPI = {
   },
 }
 
+export const billingAPI = {
+  getPlans: async () => {
+    const response = await api.get('/api/billing/plans')
+    return response.data
+  },
+  getStatus: async () => {
+    const response = await api.get('/api/billing/me')
+    return response.data
+  },
+  createOrder: async (planId) => {
+    const response = await api.post('/api/billing/orders', { planId })
+    return response.data
+  },
+}
+
 // Users API
 export const usersAPI = {
   getAll: async (params = {}) => {
