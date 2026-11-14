@@ -36,8 +36,12 @@ const router = express.Router();
  *         description: Nội dung chuyển khoản
  *     responses:
  *       200:
- *         description: PNG image
+ *         description: QR image returned by the upstream service
  *         content:
+ *           image/svg+xml:
+ *             schema:
+ *               type: string
+ *               format: binary
  *           image/png:
  *             schema:
  *               type: string
@@ -69,14 +73,20 @@ router.get('/img', async (req, res) => {
     if (amount) url.searchParams.set('amount', String(amount));
     if (des) url.searchParams.set('addInfo', des);
 
-    // Fetch and proxy the PNG
+    // Fetch and proxy the image without changing its media type.
     const upstream = await fetch(url.toString());
     if (!upstream.ok) {
       return res.status(502).json({ error: 'Upstream QR service error' });
     }
+    const contentType = upstream.headers.get('content-type')?.split(';')[0];
+    if (!['image/svg+xml', 'image/png'].includes(contentType)) {
+      return res.status(502).json({ error: 'Upstream QR service returned an unsupported image type' });
+    }
+
     const arrayBuf = await upstream.arrayBuffer();
     const buf = Buffer.from(arrayBuf);
-    res.setHeader('Content-Type', 'image/png');
+    res.setHeader('Content-Type', contentType);
+    res.setHeader('X-Content-Type-Options', 'nosniff');
     res.setHeader('Cache-Control', 'no-store');
     res.end(buf);
   } catch (error) {

@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog'
-import api, { billingAPI, appendNgrokSkipBrowserWarning } from '@/lib/api'
+import api, { API_BASE_URL, billingAPI } from '@/lib/api'
 import { Check, CheckCircle2, Copy, CreditCard, LoaderCircle } from 'lucide-react'
 
 const planOrder = ['free', 'pro', 'unlimited']
@@ -63,12 +63,15 @@ export default function Billing() {
       if (!selectedOrder?.qrUrl) return
 
       try {
-        const response = await api.get(appendNgrokSkipBrowserWarning(selectedOrder.qrUrl), {
+        const qrUrl = new URL(selectedOrder.qrUrl, API_BASE_URL)
+        const qrPath = `${qrUrl.pathname}${qrUrl.search}`
+        const response = await api.get(qrPath, {
           responseType: 'blob',
           headers: { 'ngrok-skip-browser-warning': 'true' },
         })
-        if (!response.headers['content-type']?.includes('image/png')) {
-          throw new Error('QR endpoint did not return a PNG image')
+        const contentType = response.headers['content-type'] || ''
+        if (!contentType.includes('image/png') && !contentType.includes('image/svg+xml')) {
+          throw new Error('QR endpoint did not return a supported image')
         }
 
         imageUrl = URL.createObjectURL(response.data)

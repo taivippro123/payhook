@@ -20,6 +20,7 @@ export default function QRGenerator() {
   const [previewVersion, setPreviewVersion] = useState(0)
   const [downloading, setDownloading] = useState(false)
   const [previewSrc, setPreviewSrc] = useState('')
+  const [previewExtension, setPreviewExtension] = useState('svg')
 
   const qrUrl = useMemo(() => {
     if (!form.acc.trim()) return ''
@@ -43,9 +44,14 @@ export default function QRGenerator() {
 
       try {
         const response = await api.get(qrUrl, { responseType: 'blob' })
+        const contentType = response.headers['content-type'] || ''
+        if (!contentType.includes('image/png') && !contentType.includes('image/svg+xml')) {
+          throw new Error('QR endpoint did not return a supported image')
+        }
         objectUrl = URL.createObjectURL(response.data)
         if (active) {
           setPreviewSrc(objectUrl)
+          setPreviewExtension(contentType.includes('image/png') ? 'png' : 'svg')
         }
       } catch (err) {
         console.error('QR preview load failed:', err)
@@ -97,10 +103,14 @@ export default function QRGenerator() {
     try {
       setError('')
       setDownloading(true)
-      const url = previewSrc || URL.createObjectURL((await api.get(qrUrl, { responseType: 'blob' })).data)
+      const response = previewSrc ? null : await api.get(qrUrl, { responseType: 'blob' })
+      const url = previewSrc || URL.createObjectURL(response.data)
+      const extension = previewSrc
+        ? previewExtension
+        : response.headers['content-type']?.includes('image/png') ? 'png' : 'svg'
       const link = document.createElement('a')
       link.href = url
-      link.download = `vietqr-${form.acc || 'qr'}.png`
+      link.download = `vietqr-${form.acc || 'qr'}.${extension}`
       document.body.appendChild(link)
       link.click()
       link.remove()

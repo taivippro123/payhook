@@ -16,7 +16,7 @@ export default function QRCodeGuide() {
           <Alert>
             <IconPhoto className="h-4 w-4" />
             <AlertDescription>
-              API này trả về hình ảnh QR Code dạng PNG, bạn có thể nhúng trực tiếp vào website hoặc ứng dụng của mình.
+              API trả về hình QR dạng SVG hoặc PNG; bạn có thể nhúng trực tiếp vào website hoặc ứng dụng của mình.
             </AlertDescription>
           </Alert>
 
