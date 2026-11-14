@@ -1,3 +1,5 @@
+require('dotenv').config();
+
 const express = require('express');
 const cors = require('cors');
 const http = require('http');
@@ -14,13 +16,11 @@ const gmailWatchManager = require('./services/gmailWatchManager');
 const { startDLQProcessor, stopDLQProcessor } = require('./services/dlqProcessor');
 const { startDataRetentionJob, stopDataRetentionJob } = require('./services/dataRetention');
 const { notifyExistingFreeLimitUsers } = require('./services/billing');
-require('dotenv').config();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Trust proxy - Cần thiết cho fly.io và các reverse proxy
-// Fly.io sử dụng proxy, cần trust để express-rate-limit có thể lấy đúng IP
+// Trust proxy for ngrok and other reverse proxies.
 // Trust only first proxy (fix rate limiter warning)
 app.set('trust proxy', 1);
 

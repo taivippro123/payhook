@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog'
-import { billingAPI, appendNgrokSkipBrowserWarning } from '@/lib/api'
+import api, { billingAPI, appendNgrokSkipBrowserWarning } from '@/lib/api'
 import { Check, CheckCircle2, Copy, CreditCard, LoaderCircle } from 'lucide-react'
 
 const planOrder = ['free', 'pro', 'unlimited']
@@ -30,6 +30,8 @@ export default function Billing() {
   const [buying, setBuying] = useState('')
   const [error, setError] = useState('')
   const [paymentSuccess, setPaymentSuccess] = useState(false)
+  const [qrImageUrl, setQrImageUrl] = useState('')
+  const [qrImageError, setQrImageError] = useState(false)
 
   const loadBilling = async () => {
     try {
@@ -50,6 +52,40 @@ export default function Billing() {
   useEffect(() => {
     loadBilling()
   }, [])
+
+  useEffect(() => {
+    let active = true
+    let imageUrl
+
+    const loadQrImage = async () => {
+      setQrImageUrl('')
+      setQrImageError(false)
+      if (!selectedOrder?.qrUrl) return
+
+      try {
+        const response = await api.get(appendNgrokSkipBrowserWarning(selectedOrder.qrUrl), {
+          responseType: 'blob',
+          headers: { 'ngrok-skip-browser-warning': 'true' },
+        })
+        if (!response.headers['content-type']?.includes('image/png')) {
+          throw new Error('QR endpoint did not return a PNG image')
+        }
+
+        imageUrl = URL.createObjectURL(response.data)
+        if (active) setQrImageUrl(imageUrl)
+        else URL.revokeObjectURL(imageUrl)
+      } catch (loadError) {
+        if (active) setQrImageError(true)
+        console.error('Payment QR image failed to load:', loadError)
+      }
+    }
+
+    loadQrImage()
+    return () => {
+      active = false
+      if (imageUrl) URL.revokeObjectURL(imageUrl)
+    }
+  }, [selectedOrder?.qrUrl])
 
   useEffect(() => {
     if (!selectedOrder || selectedOrder.status !== 'pending') return undefined
@@ -177,7 +213,15 @@ export default function Billing() {
                 <CardDescription>Quét QR, chuyển đúng số tiền và ghi đúng nội dung. Hệ thống sẽ tự động xác nhận khi nhận được tiền.</CardDescription>
               </CardHeader>
               <CardContent className="flex flex-col gap-5 md:flex-row md:items-center">
-                <img className="h-56 w-56 rounded-md border bg-white object-contain" src={appendNgrokSkipBrowserWarning(selectedOrder.qrUrl)} alt="QR thanh toán gói Payhook" />
+                <div className="flex h-56 w-56 shrink-0 items-center justify-center rounded-md border bg-white">
+                  {qrImageUrl ? (
+                    <img className="h-full w-full object-contain" src={qrImageUrl} alt="QR thanh toán gói Payhook" />
+                  ) : (
+                    <span className="px-4 text-center text-sm text-gray-500" aria-live="polite">
+                      {qrImageError ? 'Không tải được mã QR' : 'Đang tải mã QR...'}
+                    </span>
+                  )}
+                </div>
                 <div className="space-y-3 text-sm">
                   <p><span className="text-gray-500">Số tiền:</span> <strong>{formatCurrency(selectedOrder.amount)}</strong></p>
                   <div className="flex items-center gap-2"><span className="text-gray-500">Nội dung:</span><strong>{selectedOrder.orderCode}</strong><Button size="icon" variant="ghost" onClick={copyOrderCode} title="Sao chép nội dung"><Copy className="h-4 w-4" /></Button></div>

@@ -182,7 +182,7 @@ export default function Privacy() {
                       </li>
                       <li>Chỉ lưu các trường giao dịch đã trích xuất; nội dung email thô không được lưu trữ.</li>
                       <li>
-                        Database MongoDB Atlas được giới hạn IP (chỉ Fly.io app server) và bật TLS ở cả chiều vào/ra.
+                        Database MongoDB Atlas sử dụng TLS và các quy tắc giới hạn truy cập mạng đã cấu hình.
                       </li>
                     </ul>
                   </div>
@@ -191,7 +191,7 @@ export default function Privacy() {
                     <h3 className="font-semibold text-gray-900">3.2. Truyền dữ liệu</h3>
                     <ul className="ml-4 mt-1 list-disc space-y-1">
                       <li>Webhook chỉ gửi qua HTTPS và đính kèm chữ ký `X-Payhook-Signature` để bạn xác thực.</li>
-                      <li>Giao tiếp giữa trình duyệt và API đi qua Vercel + Fly.io đều dùng TLS 1.2+.</li>
+                      <li>Trình duyệt kết nối tới frontend Vercel và API qua các endpoint HTTPS của Vercel và ngrok.</li>
                       <li>Push notification và WebSocket yêu cầu JWT hợp lệ và hết hạn sau 24 giờ.</li>
                     </ul>
                   </div>
@@ -199,9 +199,9 @@ export default function Privacy() {
                   <div>
                     <h3 className="font-semibold text-gray-900">3.3. Bảo mật vận hành</h3>
                     <ul className="ml-4 mt-1 list-disc space-y-1">
-                      <li>Chỉ có một thành viên vận hành hệ thống; tài khoản Fly.io, MongoDB Atlas, Vercel đều bật MFA.</li>
-                      <li>Truy cập server Fly.io được giới hạn qua SSH certificate; mọi thay đổi deploy đều log trong Git + Fly.io release log.</li>
-                      <li>Theo dõi webhook, Gmail push và login bằng log tập trung; mọi sự kiện quan trọng đều kèm timestamp/IP.</li>
+                      <li>Chỉ người vận hành dự án được truy cập thiết bị chạy backend và các tài khoản dịch vụ.</li>
+                      <li>Backend Node.js chạy trên thiết bị của người vận hành và được public qua ngrok khi cần.</li>
+                      <li>Backend ghi nhận các sự kiện vận hành quan trọng để hỗ trợ theo dõi lỗi.</li>
                     </ul>
                   </div>
                 </div>
@@ -263,7 +263,7 @@ export default function Privacy() {
               <div className="space-y-4">
                 <h2 className="text-xl font-semibold text-gray-900">7. Hạ tầng &amp; nhà cung cấp</h2>
                 <ul className="ml-4 list-disc space-y-2">
-                  <li>API Node.js chạy trên Fly.io (region Singapore) và chỉ mở cổng 443/80. Fly.io chỉ lưu log tạm thời tối đa 30 ngày.</li>
+                  <li>API Node.js chạy trên thiết bị của người vận hành và được truy cập từ Internet qua ngrok; dịch vụ chỉ khả dụng khi backend và tunnel đang chạy.</li>
                   <li>Database MongoDB Atlas lưu trữ giao dịch sau khi đã mã hóa và giới hạn quyền truy cập qua IP allowlist.</li>
                   <li>Frontend (https://payhook.vercel.app) được build và phục vụ bởi Vercel; không chứa dữ liệu người dùng.</li>
                 </ul>

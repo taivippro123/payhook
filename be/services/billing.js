@@ -32,8 +32,9 @@ const PLANS = Object.freeze({
 
 const PAYMENT_ACCOUNT = process.env.PAYMENT_BANK_ACCOUNT || '0356882700';
 const PAYMENT_BANK = process.env.PAYMENT_BANK_CODE || 'cake';
+const BACKEND_URL = (process.env.BACKEND_URL || `http://localhost:${process.env.PORT || 3000}`).replace(/\/+$/, '');
 const PAYMENT_QR_BASE_URL = process.env.PAYMENT_QR_BASE_URL
-  || 'https://payhook.vercel.app/api/qr/img';
+  || `${BACKEND_URL}/api/qr/img`;
 const PAYMENT_RECEIVING_EMAIL = (process.env.PAYMENT_RECEIVING_EMAIL || '').trim().toLowerCase();
 let billingIndexesPromise = null;
 let bankAccountOwnershipIndexPromise = null;

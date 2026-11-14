@@ -1,6 +1,6 @@
 const { google } = require('googleapis');
 const EmailConfig = require('../models/emailConfig');
-const BACKEND_URL = process.env.BACKEND_URL || 'https://payhook-taivippro123.fly.dev';
+const BACKEND_URL = process.env.BACKEND_URL || `http://localhost:${process.env.PORT || 3000}`;
 
 // OAuth2 Client configuration
 const oauth2Client = new google.auth.OAuth2(

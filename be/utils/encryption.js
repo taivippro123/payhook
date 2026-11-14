@@ -8,7 +8,7 @@ const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY || crypto.randomBytes(32).toSt
 if (!process.env.ENCRYPTION_KEY) {
   console.warn('⚠️ ENCRYPTION_KEY not set in environment! Using random key (will change on restart).');
   console.warn('   This means encrypted data cannot be decrypted after server restart.');
-  console.warn('   Please set ENCRYPTION_KEY in fly.io secrets: fly secrets set ENCRYPTION_KEY=<your-64-char-hex-key>');
+  console.warn('   Please set ENCRYPTION_KEY in the backend .env or process environment.');
 } else {
   console.log('✅ ENCRYPTION_KEY is set');
 }

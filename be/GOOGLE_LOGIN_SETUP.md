@@ -29,11 +29,11 @@ Trong phần **Scopes**, thêm các scopes sau (nếu chưa có):
 3. Trong **Authorized redirect URIs**, thêm URI mới:
 
 ```
-https://payhook-taivippro123.fly.dev/api/auth/google/login/callback
+https://rimmed-improvise-hatchery.ngrok-free.dev/api/auth/google/login/callback
 ```
 
 **Ví dụ:**
-- Production: `https://payhook-taivippro123.fly.dev/api/auth/google/login/callback`
+- Ngrok: `https://rimmed-improvise-hatchery.ngrok-free.dev/api/auth/google/login/callback`
 - Nếu backend URL là `http://localhost:3000`, thêm: `http://localhost:3000/api/auth/google/login/callback`
 
 **Lưu ý:** URI này khác với URI của Gmail OAuth (`/api/auth/google/callback`)
@@ -44,7 +44,7 @@ Thêm vào file `.env` của backend (tùy chọn):
 
 ```env
 # Google Login OAuth (tùy chọn - mặc định sẽ dùng GOOGLE_REDIRECT_URI)
-GOOGLE_LOGIN_REDIRECT_URI=https://payhook-taivippro123.fly.dev/api/auth/google/login/callback
+GOOGLE_LOGIN_REDIRECT_URI=https://rimmed-improvise-hatchery.ngrok-free.dev/api/auth/google/login/callback
 ```
 
 **Lưu ý:** Nếu không set `GOOGLE_LOGIN_REDIRECT_URI`, hệ thống sẽ tự động dùng `${BACKEND_URL}/api/auth/google/login/callback`

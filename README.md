@@ -13,14 +13,14 @@ Payhook là dự án mã nguồn mở giúp trích xuất giao dịch ngân hàn
 
 ### Công nghệ
 - **Frontend**: React + Vite, Zustand/Context, Tailwind UI, deploy trên **Vercel**.
-- **Backend**: Node.js + Express, WebSocket, axios retry, deploy trên **Fly.io**.
+- **Backend**: Node.js + Express, WebSocket, axios retry, chạy local và public qua **ngrok**.
 - **Database**: **MongoDB Atlas**, refresh token được mã hóa AES‑256‑GCM.
 - **Push & TTS**: Service Worker, Web Push API, Google TTS.
 
 ### Hạ tầng triển khai
 - Domain chính: `https://payhook.vercel.app`
 - Frontend: Vercel
-- Backend: Fly.io
+- Backend: Local Node.js server exposed through ngrok
 - MongoDB: Atlas (IP allowlist)
 
 ### Dành cho ai?
@@ -47,7 +47,7 @@ Payhook is an open-source project that parses bank transaction emails (currently
 
 ### Tech stack & Hosting
 - React/Vite frontend on **Vercel**.
-- Node.js/Express backend + WebSocket on **Fly.io**.
+- Node.js/Express backend + WebSocket exposed through an **ngrok** tunnel.
 - **MongoDB Atlas** for encrypted storage.
 - Domain: `https://payhook.vercel.app`
 

@@ -41,7 +41,7 @@ const getDefaultApiBase = () => {
     return window.location.origin
   }
 
-  return 'https://payhook-taivippro123.fly.dev'
+  return 'https://payhook.vercel.app'
 }
 
 const getDefaultWsBase = () => {
@@ -58,7 +58,7 @@ const getDefaultWsBase = () => {
     return currentUrl.origin.replace(/^https:/, 'wss:').replace(/^http:/, 'ws:')
   }
 
-  return 'wss://payhook-taivippro123.fly.dev'
+  return 'wss://payhook.vercel.app'
 }
 
 export const API_BASE_URL = stripTrailingSlash(import.meta.env.VITE_API_URL || getDefaultApiBase())
@@ -80,7 +80,9 @@ api.interceptors.request.use((config) => {
     console.warn('⚠️ No token found in localStorage')
   }
 
-  const requestUrl = config.baseURL ? `${config.baseURL}${config.url || ''}` : config.url
+  const requestUrl = config.url
+    ? new URL(config.url, config.baseURL || (typeof window !== 'undefined' ? window.location.origin : 'http://localhost')).toString()
+    : config.baseURL
   if (isNgrokUrl(requestUrl)) {
     config.headers[NGROK_SKIP_BROWSER_WARNING] = 'true'
   }
