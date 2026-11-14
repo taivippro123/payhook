@@ -33,7 +33,7 @@ const PLANS = Object.freeze({
 const PAYMENT_ACCOUNT = process.env.PAYMENT_BANK_ACCOUNT || '0356882700';
 const PAYMENT_BANK = process.env.PAYMENT_BANK_CODE || 'cake';
 const PAYMENT_QR_BASE_URL = process.env.PAYMENT_QR_BASE_URL
-  || 'https://rimmed-improvise-hatchery.ngrok-free.dev/api/qr/img';
+  || 'https://payhook.vercel.app/api/qr/img';
 const PAYMENT_RECEIVING_EMAIL = (process.env.PAYMENT_RECEIVING_EMAIL || '').trim().toLowerCase();
 let billingIndexesPromise = null;
 let bankAccountOwnershipIndexPromise = null;
@@ -415,7 +415,7 @@ async function notifyFreeLimitReached(userId, used, limit, periodStart) {
   try {
     const user = await User.findById(userId);
     if (!user?.email) throw new Error('User email is not configured');
-    const billingUrl = `${process.env.FRONTEND_URL || 'https://payhook.codes'}/billing`;
+    const billingUrl = `${process.env.FRONTEND_URL || 'https://payhook.vercel.app'}/billing`;
     const email = buildFreeLimitEmail({ username: user.username, used, limit, billingUrl });
     await sendPayhookEmail({
       to: user.email,

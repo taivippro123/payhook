@@ -11,6 +11,12 @@ primary_region = 'sin'
 [env]
   NODE_ENV = 'production'
   PORT = '8080'
+  FRONTEND_URL = 'https://payhook.vercel.app'
+  BACKEND_URL = 'https://payhook-taivippro123.fly.dev'
+  GOOGLE_REDIRECT_URI = 'https://payhook-taivippro123.fly.dev/api/auth/google/callback'
+  GOOGLE_LOGIN_REDIRECT_URI = 'https://payhook-taivippro123.fly.dev/api/auth/google/login/callback'
+  PAYMENT_QR_BASE_URL = 'https://payhook.vercel.app/api/qr/img'
+  VAPID_SUBJECT = 'mailto:phanvothanhtai1007@gmail.com'
 
 [http_service]
   internal_port = 8080

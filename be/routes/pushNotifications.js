@@ -8,7 +8,7 @@ const webpush = require('web-push');
 // User cần set VAPID_PUBLIC_KEY và VAPID_PRIVATE_KEY trong .env
 if (process.env.VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY) {
   webpush.setVapidDetails(
-    process.env.VAPID_SUBJECT || 'mailto:admin@payhook.codes',
+    process.env.VAPID_SUBJECT || 'mailto:phanvothanhtai1007@gmail.com',
     process.env.VAPID_PUBLIC_KEY,
     process.env.VAPID_PRIVATE_KEY
   );

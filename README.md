@@ -18,7 +18,7 @@ Payhook là dự án mã nguồn mở giúp trích xuất giao dịch ngân hàn
 - **Push & TTS**: Service Worker, Web Push API, Google TTS.
 
 ### Hạ tầng triển khai
-- Domain chính: `https://www.payhook.codes`
+- Domain chính: `https://payhook.vercel.app`
 - Frontend: Vercel
 - Backend: Fly.io
 - MongoDB: Atlas (IP allowlist)
@@ -49,7 +49,7 @@ Payhook is an open-source project that parses bank transaction emails (currently
 - React/Vite frontend on **Vercel**.
 - Node.js/Express backend + WebSocket on **Fly.io**.
 - **MongoDB Atlas** for encrypted storage.
-- Domain: `https://www.payhook.codes`
+- Domain: `https://payhook.vercel.app`
 
 ### Why CAKE bank?
 - CAKE is a digital bank with a fast, easy onboarding process.

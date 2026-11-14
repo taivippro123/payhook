@@ -12,7 +12,7 @@ npx web-push generate-vapid-keys
 ```
 VAPID_PUBLIC_KEY=your_public_key_here
 VAPID_PRIVATE_KEY=your_private_key_here
-VAPID_SUBJECT=mailto:admin@payhook.codes
+VAPID_SUBJECT=mailto:phanvothanhtai1007@gmail.com
 ```
 
 ## Cách hoạt động

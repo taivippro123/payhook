@@ -150,7 +150,7 @@ JWT_SECRET=your-secret-key-change-in-production
 FRONTEND_URL=http://localhost:5173  # Optional: CORS origin
 PAYMENT_BANK_ACCOUNT=0356882700
 PAYMENT_BANK_CODE=cake
-PAYMENT_QR_BASE_URL=https://rimmed-improvise-hatchery.ngrok-free.dev/api/qr/img
+PAYMENT_QR_BASE_URL=https://payhook.vercel.app/api/qr/img
 PAYMENT_AUTO_CONFIRM=false
 PAYMENT_RECEIVING_EMAIL=bank-alerts@example.com
 ```

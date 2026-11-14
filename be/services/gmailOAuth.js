@@ -1,11 +1,12 @@
 const { google } = require('googleapis');
 const EmailConfig = require('../models/emailConfig');
+const BACKEND_URL = process.env.BACKEND_URL || 'https://payhook-taivippro123.fly.dev';
 
 // OAuth2 Client configuration
 const oauth2Client = new google.auth.OAuth2(
   process.env.GOOGLE_CLIENT_ID,
   process.env.GOOGLE_CLIENT_SECRET,
-  process.env.GOOGLE_REDIRECT_URI || `${process.env.BACKEND_URL}/api/auth/google/callback`
+  process.env.GOOGLE_REDIRECT_URI || `${BACKEND_URL}/api/auth/google/callback`
 );
 
 /**
@@ -88,7 +89,7 @@ async function refreshAccessToken(refreshToken) {
  * @returns {string} Authorization URL
  */
 function getLoginAuthUrl() {
-  const loginRedirectUri = process.env.GOOGLE_LOGIN_REDIRECT_URI || `${process.env.BACKEND_URL}/api/auth/google/login/callback`;
+  const loginRedirectUri = process.env.GOOGLE_LOGIN_REDIRECT_URI || `${BACKEND_URL}/api/auth/google/login/callback`;
   
   const loginOAuth2Client = new google.auth.OAuth2(
     process.env.GOOGLE_CLIENT_ID,
@@ -116,7 +117,7 @@ function getLoginAuthUrl() {
  */
 async function handleLoginCallback(code) {
   try {
-    const loginRedirectUri = process.env.GOOGLE_LOGIN_REDIRECT_URI || `${process.env.BACKEND_URL}/api/auth/google/login/callback`;
+    const loginRedirectUri = process.env.GOOGLE_LOGIN_REDIRECT_URI || `${BACKEND_URL}/api/auth/google/login/callback`;
     
     const loginOAuth2Client = new google.auth.OAuth2(
       process.env.GOOGLE_CLIENT_ID,

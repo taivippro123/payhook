@@ -63,9 +63,7 @@ app.use((req, res, next) => {
         const allowedOrigins = [
           process.env.FRONTEND_URL,
           'http://localhost:5173',
-          'https://www.payhook.codes',
-          'https://payhook.codes',
-          'https://payhook.vercel.app', // Keep old domain for backward compatibility
+          'https://payhook.vercel.app',
         ].filter(Boolean);
         
         // Check if origin matches server origin (for Swagger UI)
@@ -89,9 +87,7 @@ app.use((req, res, next) => {
   const allowedOrigins = [
     process.env.FRONTEND_URL,
     'http://localhost:5173',
-    'https://www.payhook.codes',
-    'https://payhook.codes',
-    'https://payhook.vercel.app', // Keep old domain for backward compatibility
+    'https://payhook.vercel.app',
   ].filter(Boolean); // Remove undefined values
   
   return cors({

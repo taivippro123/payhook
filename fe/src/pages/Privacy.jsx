@@ -40,18 +40,18 @@ export default function Privacy() {
           '@context': 'https://schema.org',
           '@type': 'PrivacyPolicy',
           name: 'Chính sách bảo mật Payhook',
-          url: 'https://www.payhook.codes/privacy',
+          url: 'https://payhook.vercel.app/privacy',
           mainEntityOfPage: {
             '@type': 'WebPage',
-            '@id': 'https://www.payhook.codes/privacy',
+            '@id': 'https://payhook.vercel.app/privacy',
           },
           publisher: {
             '@type': 'Organization',
             name: 'Payhook',
-            url: 'https://www.payhook.codes/',
+            url: 'https://payhook.vercel.app/',
             logo: {
               '@type': 'ImageObject',
-              url: 'https://www.payhook.codes/og-image.svg',
+              url: 'https://payhook.vercel.app/og-image.svg',
             },
           },
           datePublished: '2025-11-16',
@@ -265,7 +265,7 @@ export default function Privacy() {
                 <ul className="ml-4 list-disc space-y-2">
                   <li>API Node.js chạy trên Fly.io (region Singapore) và chỉ mở cổng 443/80. Fly.io chỉ lưu log tạm thời tối đa 30 ngày.</li>
                   <li>Database MongoDB Atlas lưu trữ giao dịch sau khi đã mã hóa và giới hạn quyền truy cập qua IP allowlist.</li>
-                  <li>Frontend (https://www.payhook.codes) được build và phục vụ bởi Vercel; không chứa dữ liệu người dùng.</li>
+                  <li>Frontend (https://payhook.vercel.app) được build và phục vụ bởi Vercel; không chứa dữ liệu người dùng.</li>
                 </ul>
               </div>
 

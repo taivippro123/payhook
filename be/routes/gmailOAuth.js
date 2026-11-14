@@ -6,6 +6,7 @@ const { getAuthUrl, handleCallback, getLoginAuthUrl, handleLoginCallback } = req
 const { watchGmail } = require('../services/gmailApi');
 const EmailConfig = require('../models/emailConfig');
 const User = require('../models/user');
+const FRONTEND_URL = process.env.FRONTEND_URL || 'https://payhook.vercel.app';
 
 /**
  * @swagger
@@ -72,17 +73,17 @@ router.get('/google/callback', async (req, res) => {
 
     if (error) {
       console.error('❌ OAuth error:', error);
-      return res.redirect(`${process.env.FRONTEND_URL}/dashboard?error=oauth_failed`);
+      return res.redirect(`${FRONTEND_URL}/dashboard?error=oauth_failed`);
     }
 
     if (!code) {
-      return res.redirect(`${process.env.FRONTEND_URL}/dashboard?error=no_code`);
+      return res.redirect(`${FRONTEND_URL}/dashboard?error=no_code`);
     }
 
     // Lấy userId từ state
     const userId = state;
     if (!userId) {
-      return res.redirect(`${process.env.FRONTEND_URL}/dashboard?error=no_user`);
+      return res.redirect(`${FRONTEND_URL}/dashboard?error=no_user`);
     }
 
     // Xử lý callback và lấy tokens
@@ -90,7 +91,7 @@ router.get('/google/callback', async (req, res) => {
 
     if (!tokens.refresh_token) {
       console.error('❌ No refresh token received');
-      return res.redirect(`${process.env.FRONTEND_URL}/dashboard?error=no_refresh_token`);
+      return res.redirect(`${FRONTEND_URL}/dashboard?error=no_refresh_token`);
     }
 
     const existingGmailConfig = await EmailConfig.findByEmail(userInfo.email);
@@ -98,14 +99,14 @@ router.get('/google/callback', async (req, res) => {
       console.warn(
         `⛔ Gmail ${userInfo.email} is already connected to user ${existingGmailConfig.userId}`
       );
-      return res.redirect(`${process.env.FRONTEND_URL}/dashboard?error=gmail_already_connected`);
+      return res.redirect(`${FRONTEND_URL}/dashboard?error=gmail_already_connected`);
     }
 
     // Đăng ký Gmail watch
     const topicName = process.env.GOOGLE_PUBSUB_TOPIC; // Ví dụ: projects/PROJECT_ID/topics/gmail-notifications
     if (!topicName) {
       console.error('❌ GOOGLE_PUBSUB_TOPIC not configured');
-      return res.redirect(`${process.env.FRONTEND_URL}/dashboard?error=pubsub_not_configured`);
+      return res.redirect(`${FRONTEND_URL}/dashboard?error=pubsub_not_configured`);
     }
 
     const watchResult = await watchGmail(tokens.refresh_token, topicName);
@@ -140,13 +141,13 @@ router.get('/google/callback', async (req, res) => {
     console.log(`✅ Gmail OAuth completed for user: ${userId}, email: ${userInfo.email}`);
 
     // Redirect về dashboard với success message
-    res.redirect(`${process.env.FRONTEND_URL}/dashboard?gmail_connected=true`);
+    res.redirect(`${FRONTEND_URL}/dashboard?gmail_connected=true`);
   } catch (error) {
     console.error('❌ OAuth callback error:', error);
     if (error.message === 'Gmail account is already connected to another user') {
-      return res.redirect(`${process.env.FRONTEND_URL}/dashboard?error=gmail_already_connected`);
+      return res.redirect(`${FRONTEND_URL}/dashboard?error=gmail_already_connected`);
     }
-    res.redirect(`${process.env.FRONTEND_URL}/dashboard?error=oauth_callback_failed`);
+    res.redirect(`${FRONTEND_URL}/dashboard?error=oauth_callback_failed`);
   }
 });
 
@@ -206,11 +207,11 @@ router.get('/google/login/callback', async (req, res) => {
 
     if (error) {
       console.error('❌ OAuth error:', error);
-      return res.redirect(`${process.env.FRONTEND_URL}/login?error=oauth_failed`);
+      return res.redirect(`${FRONTEND_URL}/login?error=oauth_failed`);
     }
 
     if (!code) {
-      return res.redirect(`${process.env.FRONTEND_URL}/login?error=no_code`);
+      return res.redirect(`${FRONTEND_URL}/login?error=no_code`);
     }
 
     // Xử lý callback và lấy thông tin user từ Google
@@ -218,7 +219,7 @@ router.get('/google/login/callback', async (req, res) => {
 
     if (!userInfo.email) {
       console.error('❌ No email received from Google');
-      return res.redirect(`${process.env.FRONTEND_URL}/login?error=no_email`);
+      return res.redirect(`${FRONTEND_URL}/login?error=no_email`);
     }
 
     // Tìm user theo email
@@ -251,10 +252,10 @@ router.get('/google/login/callback', async (req, res) => {
 
     // Redirect về frontend với token trong query string
     // Frontend sẽ lấy token và lưu vào localStorage
-    res.redirect(`${process.env.FRONTEND_URL}/login?token=${token}&success=true`);
+    res.redirect(`${FRONTEND_URL}/login?token=${token}&success=true`);
   } catch (error) {
     console.error('❌ Google login callback error:', error);
-    res.redirect(`${process.env.FRONTEND_URL}/login?error=login_failed`);
+    res.redirect(`${FRONTEND_URL}/login?error=login_failed`);
   }
 });
 

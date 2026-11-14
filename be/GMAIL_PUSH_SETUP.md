@@ -90,15 +90,15 @@ Thêm vào `.env`:
 # Google OAuth2
 GOOGLE_CLIENT_ID=your-client-id.apps.googleusercontent.com
 GOOGLE_CLIENT_SECRET=your-client-secret
-GOOGLE_REDIRECT_URI=https://yourdomain.com/api/auth/google/callback
+GOOGLE_REDIRECT_URI=https://payhook-taivippro123.fly.dev/api/auth/google/callback
 
 # Google Pub/Sub
 GOOGLE_PUBSUB_TOPIC=projects/YOUR_PROJECT_ID/topics/gmail-notifications
 
 # Backend URL (cho redirect)
 # Backend URL (cho redirect)
-BACKEND_URL=https://yourdomain.com
-FRONTEND_URL=https://your-frontend.com
+BACKEND_URL=https://payhook-taivippro123.fly.dev
+FRONTEND_URL=https://payhook.vercel.app
 
 # Tự động xác nhận thanh toán gói Payhook (tuỳ chọn)
 PAYMENT_AUTO_CONFIRM=true

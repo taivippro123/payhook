@@ -83,7 +83,7 @@
     <!-- URL -->
     <text x="0" y="75" font-family="system-ui, -apple-system, sans-serif" font-size="18" font-weight="400" 
           text-anchor="middle" fill="#CBD5E1" letter-spacing="1">
-      https://www.payhook.codes/
+      https://payhook.vercel.app/
     </text>
   </g>
   

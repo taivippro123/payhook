@@ -41,7 +41,7 @@ const getDefaultApiBase = () => {
     return window.location.origin
   }
 
-  return 'https://www.payhook.codes'
+  return 'https://payhook-taivippro123.fly.dev'
 }
 
 const getDefaultWsBase = () => {
@@ -58,7 +58,7 @@ const getDefaultWsBase = () => {
     return currentUrl.origin.replace(/^https:/, 'wss:').replace(/^http:/, 'ws:')
   }
 
-  return 'wss://www.payhook.codes'
+  return 'wss://payhook-taivippro123.fly.dev'
 }
 
 export const API_BASE_URL = stripTrailingSlash(import.meta.env.VITE_API_URL || getDefaultApiBase())
